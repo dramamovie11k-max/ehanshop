@@ -1,3 +1,4 @@
+import { imageVariant } from "@/lib/responsiveImage";
 import { persistUser } from "@/lib/fbTracking";
 import { salesPlainText } from '@/lib/salesRichText';
 import { renderSalesText } from '@/components/salespage/SalesRichText';
@@ -472,7 +473,7 @@ const CheckoutSection = ({ page }: CheckoutSectionProps) => {
                   >
                     {renderSalesText(selected && <Check className="h-3 w-3 text-white" />)}
                   </span>
-                  {renderSalesText(img && <img src={img} alt={salesPlainText(productLabel(p))} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />)}
+                  {renderSalesText(img && <img src={imageVariant(img,384)} loading="lazy" decoding="async" alt={salesPlainText(productLabel(p))} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />)}
                   <div className="flex-1 min-w-0">
                     <p className="checkout-product-name font-medium text-white text-sm truncate">{renderSalesText(productLabel(p))}</p>
                     <div className="flex items-center gap-2">
@@ -502,7 +503,8 @@ const CheckoutSection = ({ page }: CheckoutSectionProps) => {
             <div className="flex items-center gap-3">
               {renderSalesText((product?.image_url || (page.gallery_images && page.gallery_images.length > 0)) && (
                 <img
-                  src={product?.image_url || page.gallery_images?.[0]}
+                  src={imageVariant(product?.image_url || page.gallery_images?.[0] || "",384)}
+                  loading="lazy" decoding="async"
                   alt={salesPlainText(product?.name_bn || page.title)}
                   className="w-14 h-14 rounded-lg object-cover flex-shrink-0"
                   style={{ border: `2px solid ${page.primary_color}40` }}

@@ -1,3 +1,6 @@
+import { useSalesPage } from "@/hooks/useSalesPages";
+import { useProduct } from "@/hooks/useProducts";
+import { imageSrcSet, imageVariant, organicSalesHeroSizes } from "@/lib/responsiveImage";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import HomePage from "@/pages/HomePage";
 import AdminGuard from "@/components/admin/AdminGuard";
@@ -6,7 +9,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Outlet, useParams } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
@@ -82,6 +85,32 @@ const PageLoader = () => (
     <Loader2 className="h-8 w-8 animate-spin text-primary" />
   </div>
 );
+function SalesPageRoute() {
+  const { slug } = useParams();
+  const query = useSalesPage(slug ?? "");
+  const page = query.data;
+  const isOrganic = page?.template_id === "template-01-organic" || page?.template_id === "nature-fresh";
+  const heroImage = isOrganic && page.show_hero_section && !page.template_styles?.hero?.design
+    ? page.hero_images?.[0]
+    : undefined;
+  const sources = heroImage ? imageSrcSet(heroImage) : undefined;
+
+  return <>
+    {heroImage && (sources
+      ? <link rel="preload" as="image" imageSrcSet={sources} imageSizes={organicSalesHeroSizes} />
+      : <link rel="preload" as="image" href={imageVariant(heroImage, 960)} />)}
+    <Suspense fallback={<PageLoader />}>
+      <SalesPage data={page} isLoading={query.isLoading} error={query.error} />
+    </Suspense>
+  </>;
+}
+
+function ProductDetailRoute() {
+  const { slug } = useParams();
+  useProduct(slug ?? "");
+  return <Suspense fallback={<PageLoader />}><ProductDetail /></Suspense>;
+}
+
 const queryClient = new QueryClient({defaultOptions:{queries:{
   retry:(attempt,error)=>{const status=(error as Error & {status?:number}).status;return attempt<2&&(status===undefined||status>=500);},
 }}});
@@ -110,7 +139,7 @@ const App = () => (
                   <Route path="/register" element={<Register />} />
                   <Route path="/products" element={<Products />} />
                   <Route path="/shop" element={<Products />} />
-                  <Route path="/product/:slug" element={<ProductDetail />} />
+                  <Route path="/product/:slug" element={<ProductDetailRoute />} />
                   <Route path="/cart" element={<Cart />} />
                   <Route path="/checkout" element={<Checkout />} />
                   <Route path="/order-success" element={<OrderSuccess />} />
@@ -123,7 +152,7 @@ const App = () => (
                   <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/lp-order-success" element={<SalesPageOrderSuccess />} />
                   {/* Sales Landing Pages - No Header/Footer */}
-                  <Route path="/lp/:slug" element={<SalesPage />} />
+                  <Route path="/lp/:slug" element={<SalesPageRoute />} />
                   <Route element={<AdminGuard><Outlet /></AdminGuard>}>
                     <Route path="/admin/pages" element={<AdminPages />} />
                     <Route path="/admin" element={<AdminDashboard />} />

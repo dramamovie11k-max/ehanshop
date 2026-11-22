@@ -1,7 +1,7 @@
 import "@/components/salespage/salespage.css";
 import { lazy, Suspense } from "react";
- import { useParams, useNavigate } from "react-router-dom";
- import { useSalesPage } from "@/hooks/useSalesPages";
+import { useNavigate } from "react-router-dom";
+import type { useSalesPage } from "@/hooks/useSalesPages";
  import { Skeleton } from "@/components/ui/skeleton";
  import { Button } from "@/components/ui/button";
 import { pageWithAvailableDesigns } from "@/lib/salesSectionDesignAvailability";
@@ -27,11 +27,10 @@ const Template15Universal = lazy(() => import("@/components/salespage/templates/
 
 const LegacySalesPageRenderer = lazy(() => import("@/components/salespage/LegacySalesPageRenderer"));
 
-const SalesPage = ({ slugOverride }: { slugOverride?: string } = {}) => {
-  const params = useParams<{ slug: string }>();
-  const slug = slugOverride || params.slug;
+type SalesPageQuery = Pick<ReturnType<typeof useSalesPage>, "data" | "isLoading" | "error">;
+
+const SalesPage = ({ data: page, isLoading, error }: SalesPageQuery) => {
   const navigate = useNavigate();
-  const { data: page, isLoading, error } = useSalesPage(slug || "");
 
   if (isLoading) {
     return (

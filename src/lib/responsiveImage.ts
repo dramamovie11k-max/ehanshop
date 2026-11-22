@@ -11,3 +11,5 @@ export function imageSrcSet(src: string): string | undefined {
   if (imageVariant(src, 384) === src) return undefined;
   return widths.map(width => `${imageVariant(src, width)} ${width}w`).join(', ');
 }
+
+export const organicSalesHeroSizes = "(min-width: 1024px) 896px, (min-width: 800px) 768px, (min-width: 768px) calc(100vw - 32px), (min-width: 544px) 512px, calc(100vw - 32px)";

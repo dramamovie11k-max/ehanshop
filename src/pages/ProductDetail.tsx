@@ -5,7 +5,7 @@ import { useRelatedProducts } from '@/hooks/useRelatedProducts';
 import ProductPageSections from '@/components/product/ProductPageSections';
 import { useState, useEffect, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { Minus, Plus, ShoppingCart, Phone, ChevronDown, ChevronUp, Loader2, Star, BadgeCheck, ChevronLeft, ChevronRight } from "lucide-react";
+import { Minus, Plus, ShoppingCart, Phone, ChevronDown, ChevronUp, Star, BadgeCheck, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Header from "@/components/layout/Header";
@@ -123,8 +123,17 @@ const ProductDetail = () => {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
-        <main className="flex-1 flex items-center justify-center pb-20 lg:pb-0">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <main className="flex-1 pb-20 lg:pb-0" aria-busy="true">
+          <div className="h-9 bg-secondary/30" />
+          <div className="container px-2 pt-[2px] md:px-4 md:pt-6 lg:px-8">
+            <div className="grid gap-6 rounded-xl border border-gray-100 bg-white p-3 md:grid-cols-2 md:p-5 lg:gap-10 lg:p-6" aria-hidden="true">
+              {enabled('product_page_gallery_enabled') && <div className="aspect-square rounded-sm bg-muted/40 lg:aspect-auto lg:h-[420px] lg:ml-[76px]" />}
+              <div className="space-y-4">
+                <div className="h-7 w-3/4 rounded bg-muted/40" />
+                <div className="h-6 w-1/3 rounded bg-muted/40" />
+              </div>
+            </div>
+          </div>
         </main>
         <Footer />
       </div>

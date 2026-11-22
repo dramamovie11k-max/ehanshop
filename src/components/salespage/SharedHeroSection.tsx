@@ -1,3 +1,4 @@
+import { imageSrcSet, imageVariant } from "@/lib/responsiveImage";
 import { salesPlainText, splitSalesText } from '@/lib/salesRichText';
 import { renderSalesText } from '@/components/salespage/SalesRichText';
 import { type CSSProperties, useState } from 'react';
@@ -35,7 +36,7 @@ export default function SharedHeroSection({ page, onOrderClick }: { page: SalesP
     ? `+${callDigits.startsWith(callCode) ? callDigits : callCode + callDigits.replace(/^0/, '')}`
     : callNumber.replace(/[^\d+]/g, '');
   const showPriceRow = design !== '01' && design !== '02' && design !== '03';
-  const media = image ? <img src={image} alt={salesPlainText(titleText)} className="sales-hero-image" loading="eager" /> : <div className="sales-hero-placeholder" aria-hidden="true" />;
+  const media = image ? <img src={imageVariant(image,960)} srcSet={imageSrcSet(image)} sizes="(min-width: 1024px) 50vw, 100vw" alt={salesPlainText(titleText)} className="sales-hero-image" loading="eager" fetchPriority="high" decoding="async" /> : <div className="sales-hero-placeholder" aria-hidden="true" />;
   const carousel = images.length > 1 && <div className="sales-hero-image-controls"><Button type="button" variant="ghost" size="icon" aria-label="আগের ছবি" onClick={() => setActive(n => (n - 1 + images.length) % images.length)}><ChevronLeft size={19} /></Button><span>{renderSalesText(active % images.length + 1)} / {renderSalesText(images.length)}</span><Button type="button" variant="ghost" size="icon" aria-label="পরের ছবি" onClick={() => setActive(n => n + 1)}><ChevronRight size={19} /></Button></div>;
   if (design === '03') {
     const sliderImages = images.length ? images : page.products?.image_url ? [page.products.image_url] : [];

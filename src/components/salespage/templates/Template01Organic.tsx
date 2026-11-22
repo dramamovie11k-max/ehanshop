@@ -1,3 +1,4 @@
+import { imageSrcSet, imageVariant, organicSalesHeroSizes } from "@/lib/responsiveImage";
 import SectionAppearance from '../SectionAppearance';
 import ExtraSection from '../ExtraSection';
 import { isExtraDesign } from '@/lib/extraSectionDesigns';
@@ -70,7 +71,10 @@ const ReviewCarousel = ({ images }: { images: string[] }) => {
                     className="rounded-xl overflow-hidden border border-green-500/20"
                   >
                     <img
-                      src={img}
+                      src={imageVariant(img, 384)}
+                      srcSet={imageSrcSet(img)}
+                      sizes="(min-width: 512px) 232px, 45vw"
+                      loading="lazy" decoding="async"
                       alt={salesPlainText(`Review ${slideIndex * imagesPerSlide + imgIndex + 1}`)}
                       className="w-full h-auto object-cover"
                     />
@@ -213,26 +217,26 @@ const ReviewCarousel = ({ images }: { images: string[] }) => {
          </div>
          <div className="relative z-10 px-4 pt-6 pb-8">
            <div className="max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto">
-             <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-5">
+             <div className="text-center mb-5">
                <span className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold bg-gradient-to-r from-green-500/20 to-emerald-500/20 backdrop-blur-md text-white border border-green-400/40 shadow-lg shadow-green-500/20">
                  <Sparkles className="w-4 h-4 text-yellow-400" />
                  {renderSalesText(page.hero_badge_text || "১০০% অর্গানিক")}
                  <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                </span>
-             </motion.div>
-             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="text-center mb-5">
+             </div>
+             <div className="text-center mb-5">
                <h1 className="text-2xl md:text-3xl font-black text-white leading-tight mb-3 drop-shadow-lg">{renderSalesText(page.hero_headline)}</h1>
                {renderSalesText(page.hero_subheadline && <p className="text-base text-green-100/80">{renderSalesText(page.hero_subheadline)}</p>)}
-             </motion.div>
+             </div>
              {renderSalesText(page.hero_images?.length > 0 && (
-               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }} className="mb-5">
+               <div className="mb-5">
                  <div className="relative rounded-3xl overflow-hidden shadow-2xl border-2 border-green-400/30">
-                   <img src={page.hero_images[0]} alt={salesPlainText(page.title)} className="w-full h-auto object-cover" />
+                   <img src={imageVariant(page.hero_images[0], 960)} srcSet={imageSrcSet(page.hero_images[0])} sizes={organicSalesHeroSizes} alt={salesPlainText(page.title)} fetchPriority="high" decoding="async" className="w-full h-auto object-cover" />
                    <motion.div animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 1.5, repeat: Infinity }} className="absolute top-4 right-4 bg-gradient-to-r from-red-500 to-orange-500 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg">
                      🔥 {renderSalesText(page.cta_urgency_text || "সীমিত স্টক!")}
                    </motion.div>
                  </div>
-               </motion.div>
+               </div>
              ))}
              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="mb-5">
                <div className="bg-gradient-to-r from-white via-green-50 to-white rounded-2xl p-5 shadow-2xl border border-green-200">
@@ -277,7 +281,7 @@ const ReviewCarousel = ({ images }: { images: string[] }) => {
                 <iframe loading="lazy" className="absolute inset-0 w-full h-full" src={`https://www.youtube.com/embed/${getYouTubeId(videoUrl)}?rel=0`} title="Product Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
                </div>
              ) : (
-              <video src={videoUrl} controls className="w-full" />
+              <video src={videoUrl} controls preload="none" className="w-full" />
              ))}
            </motion.div>
           <Button size="lg" onClick={scrollToCheckout} className="w-full h-14 mt-5 text-lg font-bold rounded-2xl bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-xl">
@@ -301,7 +305,7 @@ const ReviewCarousel = ({ images }: { images: string[] }) => {
            <div className="grid grid-cols-2 gap-2">
              {renderSalesText(page.gallery_images.slice(0, 6).map((img, i) => (
                <motion.div key={i} initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.05 }} className="rounded-xl overflow-hidden border border-green-500/20">
-                 <img src={img} alt={salesPlainText(`Gallery ${i + 1}`)} className="w-full aspect-square object-cover" />
+                 <img src={imageVariant(img, 384)} srcSet={imageSrcSet(img)} sizes="(min-width: 512px) 232px, 45vw" loading="lazy" decoding="async" alt={salesPlainText(`Gallery ${i + 1}`)} className="w-full aspect-square object-cover" />
                </motion.div>
              )))}
            </div>
