@@ -3,7 +3,8 @@
 ## Production configuration
 
 GitHub repository `dramamovie11k-max/ehanshop` is the production source.
-The `main` branch deploys to the `ehanshop` Pages project through GitHub Actions.
+Cloudflare Pages builds and deploys the `main` branch automatically through
+its GitHub integration.
 
 | Setting | Value |
 | --- | --- |
@@ -17,11 +18,11 @@ The `main` branch deploys to the `ehanshop` Pages project through GitHub Actions
 | R2 bucket | `ehanshop` |
 | Server signing secret | `JWT_SECRET` |
 
-Set `CLOUDFLARE_API_TOKEN` as a GitHub Actions secret and
-`CLOUDFLARE_ACCOUNT_ID` as a repository variable or secret. The token needs
-Pages and D1 edit access and permission to read the R2 bucket metadata.
-The workflow builds and tests the exact commit, applies D1 migrations,
-deploys Pages, and verifies the public health endpoint.
+GitHub Actions runs type checks, tests, schema tests, and a build. Cloudflare
+Pages handles production deployments separately. For a release that changes
+the D1 schema, apply compatible migrations with
+`python scripts/cloudflare_setup.py --apply` before pushing to `main`.
+Verify the deployment at `https://ehanshop.pages.dev/api/health`.
 
 Do not put the Cloudflare management API token into Pages build/runtime
 variables. D1 and R2 runtime access uses bindings. The management token is needed
@@ -63,7 +64,7 @@ an applied migration. Do not run Wrangler's separate remote migration ledger
 against this database, or execute `schema.sql` over an existing database.
 
 To restore production binding settings explicitly, use
-`python scripts/configure_pages.py --apply`. It checks the Pages project and production branch,
+`python scripts/configure_pages.py --apply`. It checks the Pages project and its GitHub production source,
 preserves other bindings/variables, and never replaces an existing JWT secret
 or creates a deployment. Production configuration is verified separately from
 local runtime tests.
