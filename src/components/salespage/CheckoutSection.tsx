@@ -31,9 +31,10 @@ import { checkoutExtraFields, isCheckoutExtraFieldEnabled, enabledCheckoutExtraV
 
 interface CheckoutSectionProps {
   page: SalesPage;
+  sectionId?: string | null;
 }
 
-const CheckoutSection = ({ page }: CheckoutSectionProps) => {
+const CheckoutSection = ({ page, sectionId = "checkout" }: CheckoutSectionProps) => {
   const checkoutDesign = getCheckoutDesign(page.template_styles?.checkout?.design);
   const checkoutColors = getCheckoutColorVariables(page.template_styles?.checkout);
   const checkoutColorClasses = Object.keys(checkoutColors).map(key => `checkout-color-${key.slice("--checkout-".length)}`);
@@ -693,7 +694,7 @@ const CheckoutSection = ({ page }: CheckoutSectionProps) => {
   );
 
   return (
-    <section id="checkout" data-checkout-design={checkoutDesign} data-checkout-spacing={hasCheckoutSpacing(page.template_styles?.checkout) ? 'custom' : undefined} style={{ ...checkoutColors } as React.CSSProperties} className={cn("sales-checkout pt-4 pb-8 md:pt-6 md:pb-12 bg-slate-950 relative", ...checkoutColorClasses)}>
+    <section id={sectionId ?? undefined} data-checkout-design={checkoutDesign} data-checkout-spacing={hasCheckoutSpacing(page.template_styles?.checkout) ? 'custom' : undefined} style={{ ...checkoutColors } as React.CSSProperties} className={cn("sales-checkout pt-4 pb-8 md:pt-6 md:pb-12 bg-slate-950 relative", ...checkoutColorClasses)}>
       {/* Background Glow */}
       <div 
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full blur-3xl opacity-15"

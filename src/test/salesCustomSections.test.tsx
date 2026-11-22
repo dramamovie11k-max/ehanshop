@@ -27,7 +27,7 @@ describe('custom sections on every sales template', () => {
       const result = render(<SalesPageContent page={fixture(template)} />);
       // The first lazy template import needs extra time on a cold cloud runner.
       const offer = await screen.findByText('Custom offer', {}, { timeout: 4000 });
-      const checkout = screen.getByText('Checkout');
+      const checkout = await screen.findByText('Checkout');
       expect(offer.compareDocumentPosition(checkout) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
       expect(result.queryByText('Ignored preset')).toBeNull();
       expect(screen.getAllByText('Custom offer')).toHaveLength(1);

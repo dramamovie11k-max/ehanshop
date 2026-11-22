@@ -5,7 +5,7 @@ import { isExtraDesign } from '@/lib/extraSectionDesigns';
 import { salesPlainText } from '@/lib/salesRichText';
 import { renderSalesText } from '@/components/salespage/SalesRichText';
  import { motion } from "framer-motion";
-import { useState, useEffect, useRef } from "react";
+import { lazy, Suspense, useState, useEffect, useRef } from "react";
 import { getWhatsAppUrl } from "@/lib/utils";
  import { Button } from "@/components/ui/button";
  import { SalesPage } from "@/types/salesPage";
@@ -22,7 +22,6 @@ import { getWhatsAppUrl } from "@/lib/utils";
    Truck,
    Gift
  } from "lucide-react";
- import CheckoutSection from "../CheckoutSection";
 import SharedHeroSection from "../SharedHeroSection";
 import SharedContactSection from "../ContactSection";
 import SharedReviewsSection from "../SharedReviewsSection";
@@ -31,6 +30,39 @@ import SharedGallerySection from "../SharedGallerySection";
 import Template02Sections from "../Template02Sections";
 import { isTemplate02Design, template02Sections } from "@/lib/template02Designs";
 import { usePixelTracking } from "@/hooks/usePixelTracking";
+
+const CheckoutSection = lazy(() => import("../CheckoutSection"));
+const checkoutPrefetchMargin = 320;
+
+function OrganicCheckout({ page }: { page: SalesPage }) {
+  const anchor = useRef<HTMLDivElement>(null);
+  const [nearViewport, setNearViewport] = useState(false);
+
+  useEffect(() => {
+    const target = anchor.current;
+    if (!target) return;
+    const bounds = target.getBoundingClientRect();
+    if (!window.IntersectionObserver ||
+        (bounds.top <= window.innerHeight + checkoutPrefetchMargin && bounds.bottom >= -checkoutPrefetchMargin)) {
+      setNearViewport(true);
+      return;
+    }
+    const observer = new IntersectionObserver(entries => {
+      if (!entries.some(entry => entry.isIntersecting)) return;
+      setNearViewport(true);
+      observer.disconnect();
+    }, { rootMargin: `${checkoutPrefetchMargin}px 0px` });
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, []);
+
+  const placeholder = <div className="min-h-96 bg-slate-950" role="status" aria-label="চেকআউট লোড হচ্ছে" />;
+  return <div id="checkout" ref={anchor}>
+    {nearViewport ? <Suspense fallback={placeholder}>
+      <CheckoutSection page={page} sectionId={null} />
+    </Suspense> : placeholder}
+  </div>;
+}
  
 // Review Carousel Component - 2 columns sliding  
 const ReviewCarousel = ({ images }: { images: string[] }) => {
@@ -477,7 +509,7 @@ const ReviewCarousel = ({ images }: { images: string[] }) => {
  
    const renderCheckout = () => {
      if (!page.show_checkout_section) return null;
-     return <CheckoutSection key="checkout" page={{ ...page, primary_color: '#16a34a', accent_color: '#22c55e' }} />;
+     return <OrganicCheckout key="checkout" page={{ ...page, primary_color: '#16a34a', accent_color: '#22c55e' }} />;
    };
  
    const renderSection = (sectionId: string) => {
