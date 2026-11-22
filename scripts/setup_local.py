@@ -15,4 +15,4 @@ if not re.search(r'^\s*JWT_SECRET\s*=',existing,re.M):
 local.chmod(0o600)
 print('Local JWT signing secret is configured; value withheld.',flush=True)
 environment={**os.environ,'XDG_CONFIG_HOME':'/tmp/offer-cloudflare-config','WRANGLER_LOG_PATH':'/tmp/baridhara-local-setup.log','WRANGLER_SEND_METRICS':'false','CI':'true'}
-subprocess.run(['npx','--no-install','wrangler','d1','migrations','apply','baridhara','--local','--persist-to','.wrangler/dev-state'],cwd=ROOT,env=environment,check=True)
+subprocess.run(['npx','--no-install','wrangler','d1','migrations','apply','DB','--local','--persist-to','.wrangler/dev-state'],cwd=ROOT,env=environment,check=True)

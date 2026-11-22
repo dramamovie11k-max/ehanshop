@@ -8,6 +8,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import sys
 import urllib.error
@@ -15,7 +16,8 @@ import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = json.loads((ROOT / "wrangler.jsonc").read_text())
-ACCOUNT = "032ab5fb84223b72fb69bfa45f265fde"
+ACCOUNT = os.environ.get("CLOUDFLARE_ACCOUNT_ID", "")
+DATABASE_NAME = CONFIG["d1_databases"][0]["database_name"]
 DATABASE = CONFIG["d1_databases"][0]["database_id"]
 BUCKET = CONFIG["r2_buckets"][0]["bucket_name"]
 
@@ -24,8 +26,8 @@ def api(path, payload=None):
     token = os.environ.get("CLOUDFLARE_API_TOKEN")
     if not token:
         raise RuntimeError("CLOUDFLARE_API_TOKEN must be set in secure environment settings")
-    if os.environ.get("CLOUDFLARE_ACCOUNT_ID", ACCOUNT) != ACCOUNT:
-        raise RuntimeError("CLOUDFLARE_ACCOUNT_ID does not match the selected account")
+    if not re.fullmatch(r"[0-9a-fA-F]{32}", ACCOUNT):
+        raise RuntimeError("Set CLOUDFLARE_ACCOUNT_ID to the Cloudflare account ID")
     req = urllib.request.Request(
         f"https://api.cloudflare.com/client/v4/accounts/{ACCOUNT}/{path}",
         data=None if payload is None else json.dumps(payload).encode(),
@@ -51,13 +53,13 @@ def query(sql, params=None):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--apply", action="store_true", help="apply pending migrations to baridhara")
+    parser.add_argument("--apply", action="store_true", help="apply pending migrations to the configured D1 database")
     args = parser.parse_args()
     db = api(f"d1/database/{DATABASE}")
     bucket = api(f"r2/buckets/{BUCKET}")
-    if db.get("name") != "baridhara" or bucket.get("name") != BUCKET:
+    if db.get("name") != DATABASE_NAME or bucket.get("name") != BUCKET:
         raise RuntimeError("Remote resource identity mismatch")
-    print("Verified D1 database and R2 bucket: baridhara")
+    print(f"Verified D1 database {DATABASE_NAME} and R2 bucket {BUCKET}")
     rows = query("SELECT name FROM sqlite_master WHERE type='table'")[0]["results"]
     names = {row["name"] for row in rows}
     if args.apply:

@@ -2,28 +2,26 @@
 
 ## Production configuration
 
-The Pages project is **baridhara**, connected to
-`dramamovie3k/offer-page-workshop` (`main`). The unrelated
-`shop-advance-craft` project is not modified.
+GitHub repository `dramamovie11k-max/ehanshop` is the production source.
+The `main` branch deploys to the `ehanshop` Pages project through GitHub Actions.
 
 | Setting | Value |
 | --- | --- |
-| Account ID | `032ab5fb84223b72fb69bfa45f265fde` |
-| Pages project | `baridhara` |
+| Pages project | `ehanshop` |
 | Build command | `npm run build` |
 | Build output | `dist` |
 | D1 binding | `DB` |
-| D1 database | `baridhara` |
-| D1 ID | `b5f03b0c-ac54-45ba-964e-5e5c9d2dbbe0` |
+| D1 database | `ehanshop` |
+| D1 ID | `8c06e5d8-73d4-4749-b006-85d50ab554dc` |
 | R2 binding | `BUCKET` |
-| R2 bucket | `baridhara` |
-| Server signing secret | `JWT_SECRET` (Pages secret, never a `VITE_*` variable) |
+| R2 bucket | `ehanshop` |
+| Server signing secret | `JWT_SECRET` |
 
-`wrangler.jsonc` declares the actual project and bindings. Production bindings
-and a newly generated server-only signing secret were saved and verified through
-the Cloudflare API. No deployment or GitHub push was performed. Existing live
-Pages deployments have not been validated with this code; deploy the completed
-repository changes through the project's normal Git integration when authorized.
+Set `CLOUDFLARE_API_TOKEN` as a GitHub Actions secret and
+`CLOUDFLARE_ACCOUNT_ID` as a repository variable or secret. The token needs
+Pages and D1 edit access and permission to read the R2 bucket metadata.
+The workflow builds and tests the exact commit, applies D1 migrations,
+deploys Pages, and verifies the public health endpoint.
 
 Do not put the Cloudflare management API token into Pages build/runtime
 variables. D1 and R2 runtime access uses bindings. The management token is needed
@@ -65,7 +63,7 @@ an applied migration. Do not run Wrangler's separate remote migration ledger
 against this database, or execute `schema.sql` over an existing database.
 
 To restore production binding settings explicitly, use
-`python scripts/configure_pages.py --apply`. It checks repository identity,
+`python scripts/configure_pages.py --apply`. It checks the Pages project and production branch,
 preserves other bindings/variables, and never replaces an existing JWT secret
 or creates a deployment. Production configuration is verified separately from
 local runtime tests.

@@ -1,20 +1,20 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "baridhara",
+  "name": "ehanshop",
   "pages_build_output_dir": "./dist",
   "compatibility_date": "2026-01-01",
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "baridhara",
-      "database_id": "b5f03b0c-ac54-45ba-964e-5e5c9d2dbbe0",
+      "database_name": "ehanshop",
+      "database_id": "8c06e5d8-73d4-4749-b006-85d50ab554dc",
       "migrations_dir": "cloudflare/migrations"
     }
   ],
   "r2_buckets": [
     {
       "binding": "BUCKET",
-      "bucket_name": "baridhara"
+      "bucket_name": "ehanshop"
     }
   ]
 }

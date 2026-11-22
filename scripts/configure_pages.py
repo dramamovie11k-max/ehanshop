@@ -30,9 +30,9 @@ def request(method='GET',payload=None):
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--apply',action='store_true');args=parser.parse_args()
-    project=request();source=(project.get('source') or {}).get('config',{})
-    if (source.get('owner'),source.get('repo_name'))!=('dramamovie3k','offer-page-workshop'):
-        raise RuntimeError('Pages project repository mismatch; no settings changed')
+    project=request()
+    if project.get("name") != PROJECT or project.get("production_branch") != "main" or project.get("source"):
+        raise RuntimeError("Expected the direct-upload Pages project with production branch main; no settings changed")
     production=project.get('deployment_configs',{}).get('production',{})
     if args.apply:
         dbs=dict(production.get('d1_databases') or {});buckets=dict(production.get('r2_buckets') or {})
@@ -49,7 +49,7 @@ def main():
         project=request();production=project['deployment_configs']['production']
     db=(production.get('d1_databases') or {}).get('DB',{})
     bucket=(production.get('r2_buckets') or {}).get('BUCKET',{})
-    checks={'repository':source.get('repo_name')=='offer-page-workshop','D1 binding DB':db.get('id')==CONFIG['d1_databases'][0]['database_id'],'R2 binding BUCKET':bucket.get('name')==CONFIG['r2_buckets'][0]['bucket_name'],'server-only JWT_SECRET':(production.get('env_vars') or {}).get('JWT_SECRET',{}).get('type')=='secret_text'}
+    checks={'Pages project':project.get('name')==PROJECT,'D1 binding DB':db.get('id')==CONFIG['d1_databases'][0]['database_id'],'R2 binding BUCKET':bucket.get('name')==CONFIG['r2_buckets'][0]['bucket_name'],'server-only JWT_SECRET':(production.get('env_vars') or {}).get('JWT_SECRET',{}).get('type')=='secret_text'}
     for label,passed in checks.items():print(label+': '+('verified' if passed else 'missing or mismatched'))
     if not all(checks.values()):raise RuntimeError('Pages production configuration is incomplete')
 
