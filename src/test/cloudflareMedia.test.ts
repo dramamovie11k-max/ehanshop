@@ -16,7 +16,7 @@ describe('public media performance and caching',()=>{
     const response=await onRequest({request,env,waitUntil:vi.fn()} as unknown as Parameters<typeof onRequest>[0]);
     expect(response.status).toBe(200);expect(prepare).not.toHaveBeenCalled();
     expect(response.headers.has('Set-Cookie')).toBe(false);
-    expect(response.headers.get('Cache-Control')).toBe('public,max-age=86400');
+    expect(response.headers.get('Cache-Control')).toBe('public,max-age=60,s-maxage=300');
   });
   it('returns 304 for matching ETags without a response body',async()=>{
     const env={BUCKET:{get:vi.fn().mockResolvedValue(object())}} as unknown as Env;

@@ -30,7 +30,7 @@ export async function storage(request:Request,env:Env,parts:string[],user:Identi
     const obj=variant ?? await readObject(key);
     if(!obj)return new Response(null,{status:404,headers:securityHeaders});
     const objectBody=request.method==='GET'?obj as R2ObjectBody:null;
-    const headers=new Headers(securityHeaders);obj.writeHttpMetadata(headers);headers.set('ETag',obj.httpEtag);headers.set('X-Content-Type-Options','nosniff');headers.set('Content-Security-Policy',"default-src 'none'; sandbox");headers.set('Cache-Control','public,max-age=86400');headers.set('Accept-Ranges','bytes');
+    const headers=new Headers(securityHeaders);obj.writeHttpMetadata(headers);headers.set('ETag',obj.httpEtag);headers.set('X-Content-Type-Options','nosniff');headers.set('Content-Security-Policy',"default-src 'none'; sandbox");headers.set('Cache-Control','public,max-age=60,s-maxage=300');headers.set('Accept-Ranges','bytes');
     if(request.headers.get('if-none-match')?.split(',').some(value=>value.trim()==='*'||value.trim().replace(/^W\//,'')===obj.httpEtag)){
       if(objectBody)await objectBody.body.cancel();
       return new Response(null,{status:304,headers});

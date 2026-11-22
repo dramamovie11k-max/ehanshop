@@ -23,6 +23,8 @@
     "db:audit": "python scripts/audit_schema.py"
   },
   "dependencies": {
+    "@fontsource-variable/baloo-da-2": "5.3.0",
+    "@fontsource/hind-siliguri": "5.3.0",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",

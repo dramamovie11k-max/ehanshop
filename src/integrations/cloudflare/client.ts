@@ -24,6 +24,7 @@ const auth={
 };
 const encoded=(bucket:string,path:string)=>[bucket,...path.split('/')].map(encodeURIComponent).join('/');
 export const api={
+  siteSettings:()=>call('site-settings'),
   from:(table:string)=>new QueryBuilder(table,q=>call('database',q)),
   rpc:(name:string,input:unknown={})=>call('rpc/'+encodeURIComponent(name),input),
   checkout:(input:unknown)=>call('checkout',input),

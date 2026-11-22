@@ -2,10 +2,8 @@
  import { api } from "@/integrations/cloudflare/client";
  
  interface SiteSetting {
-   id: string;
    setting_key: string;
    setting_value: string | null;
-   created_at: string;
    updated_at: string;
  }
  
@@ -28,9 +26,7 @@
    const { data: settings = [], isLoading } = useQuery({
      queryKey: ["site-settings"],
      queryFn: async () => {
-       const { data, error } = await api
-         .from("site_settings")
-         .select("*");
+       const { data, error } = await api.siteSettings();
        
        if (error) throw error;
        return data as SiteSetting[];

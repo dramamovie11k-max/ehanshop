@@ -1,3 +1,4 @@
+import "@/components/salespage/salespage.css";
 import SectionStepEditor from './SectionStepEditor';
 import ExtraSectionEditor from './ExtraSectionEditor';
 import type { ExtraSectionNumber } from '@/lib/extraSectionDesigns';

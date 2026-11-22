@@ -9,6 +9,16 @@ import { handle as tiktok } from '../../server/integrations/tiktok-events-api';
 import { handle as courier } from '../../server/integrations/send-to-courier';
 import { handle as ratio } from '../../server/integrations/check-courier-ratio';
 
+const mediaWidths = ['', '384', '960', '1600'];
+function mediaCacheKey(request: Request, path: string[], width = '') {
+  const url = new URL(request.url);
+  url.pathname = '/api/' + path.map(encodeURIComponent).join('/');
+  url.search = '';
+  url.searchParams.set('cache', '2');
+  if (width) url.searchParams.set('width', width);
+  return new Request(url, { method: 'GET' });
+}
+
 export const onRequest: PagesFunction<Env> = async ({request,env,waitUntil}) => {
   try {
     const path=new URL(request.url).pathname.slice(5).split('/').map(decodeURIComponent);
@@ -17,7 +27,8 @@ export const onRequest: PagesFunction<Env> = async ({request,env,waitUntil}) => 
       // Only public, complete media responses enter the edge cache. Never cache auth or database responses.
       const cacheable=request.method==='GET'&&!request.headers.has('range')&&!request.headers.has('if-none-match');
       const cache=(caches as CacheStorage & {default:Cache}).default;
-      const key=new Request(request.url,{method:'GET'});
+      const width = new URL(request.url).searchParams.get('width') ?? '';
+      const key = mediaCacheKey(request, path, mediaWidths.includes(width) ? width : '');
       if(cacheable){const hit=await cache.match(key);if(hit)return hit;}
       const media=await storage(request,env,path.slice(1),null);
       if(cacheable&&media.status===200)waitUntil(cache.put(key,media.clone()).catch(()=>{}));
@@ -27,7 +38,13 @@ export const onRequest: PagesFunction<Env> = async ({request,env,waitUntil}) => 
     if(['auth','rpc','functions'].includes(path[0]))assert(path.length===2,'Unknown API route',404);
     const user=await identify(request,env);
     let response:Response;
-    if(path[0]==='media') response=await storage(request,env,path.slice(1),user);
+    if(path[0]==='media') {
+      response=await storage(request,env,path.slice(1),user);
+      if (request.method === 'DELETE' && response.ok) {
+        const cache = (caches as CacheStorage & {default:Cache}).default;
+        await Promise.allSettled(mediaWidths.map(width => cache.delete(mediaCacheKey(request, path, width))));
+      }
+    }
     else if(path[0]==='auth') {
       assert(path.length===2);
       assert(request.method===(path[1]==='session'?'GET':'POST'),'Method not allowed',405);

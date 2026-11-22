@@ -141,12 +141,14 @@ assert admin.request(path,method='PUT',raw=image)[0]==200
 assert admin.request(path,method='PUT',raw=image)[0]==409
 assert anonymous.request(path)[1]==image
 etag=anonymous.last_headers['etag']
+assert anonymous.request(path+'?width=384&v=first')[1]==image
 assert anonymous.request(path,extra_headers={'If-None-Match':etag})[0]==304
 assert anonymous.request(path,method='HEAD')[0]==200
 status,partial=anonymous.request(path,extra_headers={'Range':'bytes=0-7'})
 assert status==206 and partial==image[:8]
 assert admin.request(path,method='DELETE')[0]==200
 assert anonymous.request(path)[0]==404
+assert anonymous.request(path+'?width=384&v=second')[0]==404
 assert admin.request('media/products/test/rejected.html',method='PUT',raw=b'<script>alert(1)</script>')[0]==415
 report('R2 upload, immutable path, public read, deletion and content validation')
 guest=Client();guest.ok('auth/session')

@@ -1,3 +1,4 @@
+import "@/components/salespage/salespage.css";
 import { lazy, Suspense } from "react";
  import { useParams, useNavigate } from "react-router-dom";
  import { useSalesPage } from "@/hooks/useSalesPages";
