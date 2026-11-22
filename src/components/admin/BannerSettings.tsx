@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { ArrowDown, ArrowUp, ImagePlus, Loader2, Save, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,33 +6,25 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/integrations/cloudflare/client";
-import { useSiteSettings } from "@/hooks/useSiteSettings";
-import { HomeBannerConfig, parseHomeBannerConfig } from "@/lib/homeBanner";
+import type { HomeBannerConfig } from "@/lib/homeBanner";
 import { BannerSlider } from "@/components/home/HomeBanner";
 import { toast } from "sonner";
 
 type NumKey = "marginTop" | "marginRight" | "marginBottom" | "marginLeft" | "radius" | "intervalSec" | "width" | "heightMobile" | "heightDesktop";
 
-export default function BannerSettings({ imageUrl, onChange }: { imageUrl: string; onChange: (url: string) => void }) {
+interface BannerSettingsProps {
+  config: HomeBannerConfig;
+  onChange: (update: (current: HomeBannerConfig) => HomeBannerConfig) => void;
+  onSave: () => void;
+  saving: boolean;
+}
+
+export default function BannerSettings({ config, onChange, onSave, saving }: BannerSettingsProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const { getSetting, bulkUpdateSettings, isLoading } = useSiteSettings();
-  const [config, setConfig] = useState<HomeBannerConfig>(() => parseHomeBannerConfig(undefined, imageUrl));
-  const [loaded, setLoaded] = useState(false);
 
-
-  useEffect(() => {
-    if (isLoading || loaded) return;
-    setConfig(parseHomeBannerConfig(getSetting("home_banner_config"), getSetting("home_banner_image") || imageUrl));
-    setLoaded(true);
-  }, [isLoading, loaded, getSetting, imageUrl]);
-
-  const patch = (p: Partial<HomeBannerConfig>) => setConfig(prev => {
-    const next = { ...prev, ...p };
-    if (p.images) onChange(next.images[0] || "");
-    return next;
-  });
+  const patch = (changes: Partial<HomeBannerConfig>) =>
+    onChange(current => ({ ...current, ...changes }));
 
   const upload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
@@ -50,7 +42,7 @@ export default function BannerSettings({ imageUrl, onChange }: { imageUrl: strin
         if (error) throw error;
         urls.push(api.storage.from("products").getPublicUrl(path).data.publicUrl);
       }
-      patch({ images: [...config.images, ...urls] });
+      onChange(current => ({ ...current, images: [...current.images, ...urls] }));
       toast.success("ছবি যোগ হয়েছে। সেভ করুন।");
     } catch {
       toast.error("ছবি আপলোড হয়নি, আবার চেষ্টা করুন।");
@@ -65,21 +57,6 @@ export default function BannerSettings({ imageUrl, onChange }: { imageUrl: strin
     if (j < 0 || j >= images.length) return;
     [images[i], images[j]] = [images[j], images[i]];
     patch({ images });
-  };
-
-  const save = async () => {
-    setSaving(true);
-    try {
-      await bulkUpdateSettings({
-        home_banner_config: JSON.stringify(config),
-        home_banner_image: config.images[0] || "",
-      });
-      toast.success("ব্যানার সেভ হয়েছে!");
-    } catch {
-      toast.error("ব্যানার সেভ হয়নি, আবার চেষ্টা করুন।");
-    } finally {
-      setSaving(false);
-    }
   };
 
   const numField = ({ k, label, max, unit = "px", min = 0 }: { k: NumKey; label: string; max: number; unit?: string; min?: number }) => (
@@ -178,7 +155,7 @@ export default function BannerSettings({ imageUrl, onChange }: { imageUrl: strin
         </div>
       )}
 
-      <Button onClick={save} disabled={busy}>
+      <Button onClick={onSave} disabled={busy}>
         {saving ? <Loader2 className="animate-spin" /> : <Save />}
         {saving ? "সেভ হচ্ছে…" : "ব্যানার সেভ করুন"}
       </Button>

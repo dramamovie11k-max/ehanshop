@@ -68,6 +68,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useBlockedUsers } from "@/hooks/useAdmin";
 import { useAuth } from "@/contexts/AuthContext";
 import { saveSiteSettings, changedSiteSettings } from "@/hooks/useSiteSettings";
+import { parseHomeBannerConfig, type HomeBannerConfig } from "@/lib/homeBanner";
 
 interface AllSettings extends Record<keyof typeof bottomBarDefaults,string>, Record<keyof typeof homePageDefaults, string>, Record<keyof typeof productPageDefaults, string> {
   // Shipping
@@ -87,6 +88,7 @@ interface AllSettings extends Record<keyof typeof bottomBarDefaults,string>, Rec
   site_logo_text: string;
   site_logo_url: string;
   home_banner_image: string;
+  home_banner_config: string;
   logo_size: string;
   topbar_phone: string;
   topbar_delivery: string;
@@ -305,6 +307,7 @@ const defaultSettings: AllSettings = {
   site_logo_text: "SE",
   site_logo_url: "",
   home_banner_image: "",
+  home_banner_config: "",
   logo_size: "44",
   topbar_phone: "হেল্পলাইন: 01700-000000",
   topbar_delivery: "সারা বাংলাদেশে হোম ডেলিভারি",
@@ -535,6 +538,7 @@ const AdminSettings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<AllSettings>(defaultSettings);
+  const [activeTab, setActiveTab] = useState("site");
   const savedSettings = useRef<Record<string, string>>({});
   const settingsReady = useRef(false);
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
@@ -635,7 +639,7 @@ const AdminSettings = () => {
       await saveSiteSettings(changedSiteSettings(snapshot, savedSettings.current));
       savedSettings.current = { ...savedSettings.current, ...snapshot };
 
-      toast.success("সেটিংস সেভ হয়েছে!");
+      toast.success(activeTab === "banner" ? "ব্যানার সেভ হয়েছে!" : "সেটিংস সেভ হয়েছে!");
       queryClient.invalidateQueries({ queryKey: ["site-settings"] });
     } catch (error) {
       console.error("Error saving settings:", error);
@@ -643,6 +647,17 @@ const AdminSettings = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const updateBanner = (update: (current: HomeBannerConfig) => HomeBannerConfig) => {
+    setSettings(current => {
+      const banner = update(parseHomeBannerConfig(current.home_banner_config, current.home_banner_image));
+      return {
+        ...current,
+        home_banner_config: JSON.stringify(banner),
+        home_banner_image: banner.images[0] || "",
+      };
+    });
   };
 
   const toggleSecret = (key: string) => {
@@ -865,7 +880,7 @@ const AdminSettings = () => {
     <AdminGuard>
       <AdminLayout title="সেটিংস">
         <div className="space-y-6">
-          <Tabs defaultValue="site">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="mb-4 flex-wrap h-auto gap-1">
               <TabsTrigger value="site" className="gap-2">
                 <Settings2 className="h-4 w-4" />
@@ -1237,7 +1252,12 @@ const AdminSettings = () => {
             </TabsContent>
 
             <TabsContent value="banner">
-              <BannerSettings imageUrl={settings.home_banner_image} onChange={value => setSettings(prev => ({ ...prev, home_banner_image: value }))} />
+              <BannerSettings
+                config={parseHomeBannerConfig(settings.home_banner_config, settings.home_banner_image)}
+                onChange={updateBanner}
+                onSave={handleSaveSettings}
+                saving={saving}
+              />
             </TabsContent>
 
             <TabsContent value="footer">
@@ -2751,23 +2771,25 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             </TabsContent>
           </Tabs>
 
-          <Separator />
-
-          {/* Save Button */}
-          <div className="flex justify-end">
-            <Button
-              onClick={handleSaveSettings}
-              disabled={saving}
-              className="bg-gradient-brand"
-            >
-              {saving ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4 mr-2" />
-              )}
-              সেটিংস সেভ করুন
-            </Button>
-          </div>
+          {activeTab !== "banner" && (
+            <>
+              <Separator />
+              <div className="flex justify-end">
+                <Button
+                  onClick={handleSaveSettings}
+                  disabled={saving}
+                  className="bg-gradient-brand"
+                >
+                  {saving ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  সেটিংস সেভ করুন
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       </AdminLayout>
     </AdminGuard>
