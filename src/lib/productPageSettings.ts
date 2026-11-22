@@ -1,3 +1,5 @@
+import { storePhone } from "./utils";
+
 export const productPageDefaults = {
   product_page_header_enabled:'true',product_page_footer_enabled:'true',product_page_gallery_enabled:'true',product_page_short_enabled:'true',product_page_wishlist_enabled:'true',
   product_page_bg:'',product_page_card_bg:'',product_page_heading_color:'',product_page_text_color:'',product_page_price_color:'',product_page_border_color:'',product_page_short_bg:'',product_page_short_color:'',product_page_accent:'',
@@ -15,6 +17,9 @@ export const selectedRelatedIds=(value:string)=>[...new Set(value.split(',').map
 export function safeProductLink(value:string,allowTel=false):string|undefined {
   const link=value.trim();if(!link||/[\x00-\x20\\]/.test(link))return;
   if(link.startsWith('/')&&!link.startsWith('//'))return link;
-  if(allowTel&&/^tel:\+?[\d-]{5,20}$/.test(link))return link;
+  if (allowTel && link.startsWith('tel:')) {
+    const phone = storePhone(link.slice(4));
+    return phone ? `tel:${phone}` : undefined;
+  }
   try{const url=new URL(link);if(url.protocol==='https:')return url.href;}catch{ /* Keep the normal action for an invalid URL. */ }
 }

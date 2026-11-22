@@ -1,5 +1,7 @@
 import { useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { storePhone } from "@/lib/utils";
 import { api } from "@/integrations/cloudflare/client";
 
 interface OrderDetails {
@@ -17,7 +19,8 @@ const OrderSuccess = () => {
   const [searchParams] = useSearchParams();
   const orderId = searchParams.get("orderId");
   const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
-  const [supportPhone, setSupportPhone] = useState("01XXXXXXXXX");
+  const { getSetting } = useSiteSettings();
+  const supportPhone = storePhone(getSetting("support_phone"), getSetting("footer_phone"));
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -44,14 +47,6 @@ const OrderSuccess = () => {
             quantity: items?.quantity,
           });
         }
-
-        const { data: settings } = await api
-          .from("site_settings")
-          .select("setting_value")
-          .eq("setting_key", "support_phone")
-          .single();
-
-        if (settings?.setting_value) setSupportPhone(settings.setting_value);
       } catch (e) {
         console.error("Error fetching order:", e);
       } finally {
@@ -196,9 +191,9 @@ const OrderSuccess = () => {
           )}
 
           <div className="rounded-xl p-4 text-center font-bold mt-6" style={{ background: '#3b256b' }}>
-            <span style={{ color: '#ddd' }}>যেকোনো প্রয়োজনে কল করুন:</span>
-            <a href={`tel:${supportPhone.replace(/[^\d+]/g, '')}`} className="block mt-1 text-xl no-underline" style={{ color: '#f1c40f' }}>
-              ☎ {supportPhone}
+            <span style={{ color: '#ddd' }}>অর্ডার সংক্রান্ত সহায়তা:</span>
+            <a href={supportPhone ? `tel:${supportPhone}` : '/page/contact'} className="block mt-1 text-xl no-underline" style={{ color: '#f1c40f' }}>
+              {supportPhone ? `☎ ${supportPhone}` : "যোগাযোগের তথ্য"}
             </a>
           </div>
         </div>

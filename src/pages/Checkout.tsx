@@ -20,7 +20,7 @@ import { api } from "@/integrations/cloudflare/client";
 import { toast } from "sonner";
 import { usePixelTracking } from "@/hooks/usePixelTracking";
 import { useOrderSource } from "@/hooks/useOrderSource";
-import { cn } from "@/lib/utils";
+import { cn, storePhone } from "@/lib/utils";
 
 const CHECKOUT_STORAGE_KEY = "checkout_form_data";
 
@@ -137,7 +137,7 @@ const Checkout = () => {
   // Get theme colors from settings
   const primaryColor = getSetting("primary_color", "#16a34a");
   const accentColor = getSetting("accent_color", "#22c55e");
-  const contactPhone = getSetting("footer_phone", "০১৭XX-XXXXXX");
+  const contactPhone = storePhone(getSetting("footer_phone"), getSetting("support_phone"));
   const bkashNumber = getSetting("payment_bkash_number", "");
   const nagadNumber = getSetting("payment_nagad_number", "");
   const rocketNumber = getSetting("payment_rocket_number", "");
@@ -663,13 +663,13 @@ const Checkout = () => {
                 className="rounded-xl p-4 text-center font-bold mt-6"
                 style={{ background: '#3b256b' }}
               >
-                <span style={{ color: '#ddd' }}>যেকোনো প্রয়োজনে কল করুন:</span>
+                <span style={{ color: '#ddd' }}>অর্ডার সংক্রান্ত সহায়তা:</span>
                 <a 
-                  href={`tel:${contactPhone.replace(/[^\d+]/g, '')}`}
+                  href={contactPhone ? `tel:${contactPhone}` : '/page/contact'}
                   className="block mt-1 text-xl no-underline"
                   style={{ color: '#f1c40f' }}
                 >
-                  ☎ {contactPhone}
+                  {contactPhone ? `☎ ${contactPhone}` : "যোগাযোগের তথ্য"}
                 </a>
               </div>
             </div>

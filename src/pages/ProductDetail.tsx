@@ -23,7 +23,8 @@ import { ProductVariation } from "@/types";
 import { toast } from "sonner";
 import { useWishlist } from "@/hooks/useWishlist";
 import { Heart } from "lucide-react";
-import { cn, getWhatsAppUrl } from "@/lib/utils";
+import { cn, getWhatsAppUrl, storePhone } from "@/lib/utils";
+import { bottomWhatsapp } from "@/lib/bottomBarSettings";
 import { groupVariations, defaultSelection, selectionPrice, selectionLabel } from "@/lib/variationGroups";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
@@ -51,10 +52,18 @@ const ProductDetail = () => {
   const [selectedVariations, setSelectedVariations] = useState<ProductVariation[]>([]);
   const { t, language } = useLanguage();
   
-  const productCallPhone = getSetting("product_call_phone", "");
-  const contactPhone = productCallPhone || getSetting("footer_phone", "০১৭XX-XXXXXX");
-  const productWhatsappPhone = getSetting("product_whatsapp_phone", "");
-  const whatsappNumber = productWhatsappPhone || getSetting("whatsapp_number", "");
+  const contactPhone = storePhone(getSetting("product_call_phone"), getSetting("footer_phone"), getSetting("support_phone"));
+  const whatsappTarget = [
+    getSetting("product_whatsapp_phone"), getSetting("whatsapp_number"), getSetting("footer_whatsapp_number"), contactPhone || "",
+  ].map(value => {
+    const input = value.trim();
+    const target = /^(?:https:\/\/)?(?:wa\.me|api\.whatsapp\.com)\//i.test(input)
+      ? (input.startsWith("https://") ? input : "https://" + input)
+      : storePhone(input);
+    return target && bottomWhatsapp(target, "", "");
+  }).find(Boolean);
+  const showCall = enabled("product_call_enabled") && !!(safeProductLink(getSetting("product_call_link"), true) || contactPhone);
+  const showWhatsApp = enabled("product_whatsapp_enabled") && !!(safeProductLink(getSetting("product_whatsapp_link")) || whatsappTarget);
   
   // Product Page Button Settings - use t() when English, DB setting when Bengali
   const addToCartBg = getSetting("product_addtocart_bg", "");
@@ -180,13 +189,12 @@ const ProductDetail = () => {
 
   const handleCall = () => {
     if(openConfigured('product_call_link',true))return;
-    const phoneClean = contactPhone.replace(/[^\d+]/g, '');
-    window.location.href = `tel:${phoneClean}`;
+    if (contactPhone) window.location.href = `tel:${contactPhone}`;
   };
 
   const handleWhatsApp = () => {
     if(openConfigured('product_whatsapp_link'))return;
-    const waInput = whatsappNumber || contactPhone;
+    if (!whatsappTarget) return;
     const productName = language === 'en' ? (product.name || product.name_bn) : product.name_bn;
     const variationText = selectedVariations.length > 0 ? `\n🎨 ${selectionLabel(selectedVariations)}` : '';
     const totalPrice = currentPrice * quantity;
@@ -196,7 +204,7 @@ const ProductDetail = () => {
     const template=getSetting('product_whatsapp_message');
     const values:Record<string,string>={name:productName,price:String(currentPrice),quantity:String(quantity),total:String(totalPrice),url:window.location.href};
     const text=template?template.replace(/\{(name|price|quantity|total|url)\}/g,(_,key:string)=>values[key]):message;
-    window.open(getWhatsAppUrl(waInput, text), '_blank', 'noopener,noreferrer');
+    window.open(getWhatsAppUrl(whatsappTarget, text), '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -345,8 +353,8 @@ const ProductDetail = () => {
                 </div>
 
                 {/* WhatsApp & Call - Side by Side */}
-                <div data-product-contact-buttons className="grid grid-cols-2 gap-2">
-                  {enabled('product_whatsapp_enabled') && <button
+                {(showCall || showWhatsApp) && <div data-product-contact-buttons className={cn("grid gap-2", showCall && showWhatsApp && "grid-cols-2")}>
+                  {showWhatsApp && <button
                     className="w-full flex items-center justify-center gap-2 h-10 text-xs sm:text-sm font-semibold rounded-md border transition-colors"
                     onClick={handleWhatsApp}
                     style={{
@@ -360,7 +368,7 @@ const ProductDetail = () => {
                     </svg>
                     <span className="truncate">{whatsappLabel}</span>
                   </button>}
-                  {enabled('product_call_enabled') && <button
+                  {showCall && <button
                     className="w-full flex items-center justify-center gap-2 h-10 text-xs sm:text-sm font-semibold rounded-md border transition-colors"
                     onClick={handleCall}
                     style={{
@@ -372,7 +380,7 @@ const ProductDetail = () => {
                     <Phone className="h-4 w-4 shrink-0" />
                     <span className="truncate">{getSetting('product_call_label',language === 'en' ? 'Call For Order' : 'ফোনে অর্ডার করুন')}</span>
                   </button>}
-                </div>
+                </div>}
 
 
               </div>

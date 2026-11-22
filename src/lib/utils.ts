@@ -5,6 +5,16 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function storePhone(...values: string[]): string | undefined {
+  for (const value of values) {
+    const localized = value.trim().replace(/[০-৯]/g, digit => String("০১২৩৪৫৬৭৮৯".indexOf(digit)));
+    if (!/^\+?[\d\s()-]+$/.test(localized)) continue;
+    const phone = localized.replace(/[\s()-]/g, "");
+    const digits = phone.replace(/^\+/, "");
+    if (digits.length >= 7 && digits.length <= 15 && !/^(?:88)?01700000000$/.test(digits)) return phone;
+  }
+}
+
 /**
  * Takes a WhatsApp input (full URL or phone number) and returns a valid WhatsApp URL.
  */

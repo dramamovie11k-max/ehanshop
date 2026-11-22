@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { productPageDefaults, safeProductLink, selectedRelatedIds, productNumber } from '@/lib/productPageSettings';
+import { storePhone } from '@/lib/utils';
 import ProductPageSettings from '@/components/admin/ProductPageSettings';
 vi.mock('@/hooks/useProducts',()=>({useProducts:()=>({data:[{id:'a',name:'Apple',name_bn:'আপেল'},{id:'b',name:'Honey',name_bn:'মধু'}]})}));
 afterEach(cleanup);
@@ -13,6 +14,11 @@ describe('product page customization',()=>{
     expect(safeProductLink('https://example.com/order')).toBe('https://example.com/order');
     expect(safeProductLink('tel:+8801711111111')).toBeUndefined();
     expect(safeProductLink('tel:+8801711111111',true)).toBe('tel:+8801711111111');
+  });
+  it('skips placeholder phone numbers and keeps a usable localized fallback',()=>{
+    expect(storePhone('০১৭XX-XXXXXX', '01700-000000')).toBeUndefined();
+    expect(storePhone('01XXXXXXXXX', '+৮৮০ ১৭১১-১১১১১১')).toBe('+8801711111111');
+    expect(safeProductLink('tel:+8801700000000', true)).toBeUndefined();
   });
   it('deduplicates selected products while preserving order and bounds numeric settings',()=>{
     expect(selectedRelatedIds(' b,a,b, ,c ')).toEqual(['b','a','c']);

@@ -1,10 +1,11 @@
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
+import AdminGuard from "@/components/admin/AdminGuard";
 import AppErrorBoundary from "@/components/AppErrorBoundary";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
@@ -118,27 +119,28 @@ const App = () => (
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/blog/:slug" element={<BlogDetail />} />
-                  <Route path="/admin/pages" element={<AdminPages />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/lp-order-success" element={<SalesPageOrderSuccess />} />
                   {/* Sales Landing Pages - No Header/Footer */}
                   <Route path="/lp/:slug" element={<SalesPage />} />
-                  {/* Admin Routes */}
-                  <Route path="/admin" element={<AdminDashboard />} />
-                  <Route path="/admin/products" element={<AdminProducts />} />
-                  <Route path="/admin/categories" element={<AdminCategories />} />
-                  <Route path="/admin/orders" element={<AdminOrders />} />
-                  <Route path="/admin/blocked" element={<AdminBlocked />} />
-                  <Route path="/admin/abandoned" element={<AdminAbandoned />} />
-                  <Route path="/admin/users" element={<AdminUsers />} />
-                  <Route path="/admin/custom-code" element={<AdminCustomCode />} />
-                  <Route path="/admin/settings" element={<AdminSettings />} />
-                  <Route path="/admin/inventory" element={<AdminInventory />} />
-                  <Route path="/admin/sales-pages" element={<AdminSalesPages />} />
-                  <Route path="/admin/reviews" element={<AdminReviews />} />
-                  <Route path="/admin/spin-settings" element={<AdminSpinSettings />} />
-                  <Route path="/admin/blogs" element={<AdminBlogs />} />
+                  <Route element={<AdminGuard><Outlet /></AdminGuard>}>
+                    <Route path="/admin/pages" element={<AdminPages />} />
+                    <Route path="/admin" element={<AdminDashboard />} />
+                    <Route path="/admin/products" element={<AdminProducts />} />
+                    <Route path="/admin/categories" element={<AdminCategories />} />
+                    <Route path="/admin/orders" element={<AdminOrders />} />
+                    <Route path="/admin/blocked" element={<AdminBlocked />} />
+                    <Route path="/admin/abandoned" element={<AdminAbandoned />} />
+                    <Route path="/admin/users" element={<AdminUsers />} />
+                    <Route path="/admin/custom-code" element={<AdminCustomCode />} />
+                    <Route path="/admin/settings" element={<AdminSettings />} />
+                    <Route path="/admin/inventory" element={<AdminInventory />} />
+                    <Route path="/admin/sales-pages" element={<AdminSalesPages />} />
+                    <Route path="/admin/reviews" element={<AdminReviews />} />
+                    <Route path="/admin/spin-settings" element={<AdminSpinSettings />} />
+                    <Route path="/admin/blogs" element={<AdminBlogs />} />
+                  </Route>
 
                   <Route path="*" element={<NotFound />} />
                   <Route path="/page/:slug" element={<DynamicPage />} />
