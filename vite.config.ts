@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => ({
     // তাই /api কল লাইভ Cloudflare ডিপ্লয়মেন্টে প্রক্সি করা হয়।
     proxy: {
       "/api": {
-        target: process.env.VITE_API_PROXY_TARGET || "https://shop-advance-craft.pages.dev",
+        target: process.env.VITE_API_PROXY_TARGET || "http://127.0.0.1:8788",
         changeOrigin: true,
         secure: true,
       },
