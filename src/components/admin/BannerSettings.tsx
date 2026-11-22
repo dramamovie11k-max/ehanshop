@@ -122,7 +122,10 @@ export default function BannerSettings({ imageUrl, onChange }: { imageUrl: strin
             <ImagePlus className="h-10 w-10 text-muted-foreground" />
           </div>
         )}
-        <Button variant="outline" onClick={() => inputRef.current?.click()} disabled={busy}>
+        <p id="home-banner-size-hint" className="text-sm text-muted-foreground">
+          প্রস্তাবিত ছবির সাইজ: <strong className="text-foreground">১৬০০ × ৭০০ পিক্সেল</strong> (প্রস্থ × উচ্চতা)
+        </p>
+        <Button variant="outline" aria-describedby="home-banner-size-hint" onClick={() => inputRef.current?.click()} disabled={busy}>
           {uploading ? <Loader2 className="animate-spin" /> : <Upload />}
           {uploading ? "আপলোড হচ্ছে…" : "ছবি যোগ করুন (একাধিক বাছাই করা যাবে)"}
         </Button>
