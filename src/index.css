@@ -23,15 +23,15 @@
    Other characters skip this font (unicode-range) and render in Hind Siliguri as before. */
 @font-face {
   font-family: 'Baloo Da Digits';
-  src: url('@fontsource-variable/baloo-da-2/files/baloo-da-2-latin-wght-normal.woff2') format('woff2');
-  font-weight: 400 800;
+  src: url('https://fonts.gstatic.com/s/balooda2/v26/2-ci9J9j0IaUMQZwAJyJQundoA.woff2') format('woff2');
+  font-weight: 100 900;
   font-display: swap;
   unicode-range: U+0030-0039, U+002C, U+002D, U+002E, U+003A, U+0025;
 }
 @font-face {
   font-family: 'Baloo Da Digits';
-  src: url('@fontsource-variable/baloo-da-2/files/baloo-da-2-bengali-wght-normal.woff2') format('woff2');
-  font-weight: 400 800;
+  src: url('https://fonts.gstatic.com/s/balooda2/v26/2-ci9J9j0IaUMQZwAJyJQvvdoKFD.woff2') format('woff2');
+  font-weight: 100 900;
   font-display: swap;
   unicode-range: U+09E6-09EF, U+09F3;
 }

@@ -3,12 +3,15 @@ import { fireEvent, render, screen, cleanup } from '@testing-library/react';
 import HomePage from '@/pages/HomePage';
 import SiteModeSettings from '@/components/admin/SiteModeSettings';
 
-const settings = vi.hoisted(() => ({ mode: '', loading: false }));
-vi.mock('@/hooks/useSiteSettings', () => ({ useSiteSettings: () => ({ isLoading: settings.loading, getSetting: (key: string) => key === 'site_mode' ? settings.mode : 'old-pinned-sales-page' }) }));
+const settings = vi.hoisted(() => ({ mode: '', loading: false, banner: '' }));
+vi.mock('@/hooks/useSiteSettings', () => ({ useSiteSettings: () => ({
+  isLoading: settings.loading,
+  getSetting: (key: string) => key === 'site_mode' ? settings.mode : key === 'home_banner_config' ? settings.banner : 'old-pinned-sales-page',
+}) }));
 vi.mock('@/pages/HomeSalesPage', () => ({ default: () => <h1>Sales page catalog</h1> }));
 vi.mock('@/pages/WebsiteHome', () => ({ default: () => <h1>Product and category storefront</h1> }));
 
-beforeEach(() => { cleanup(); settings.mode = ''; settings.loading = false; });
+beforeEach(() => { cleanup(); settings.mode = ''; settings.loading = false; settings.banner = ''; });
 describe('homepage mode switching', () => {
   it('keeps existing sites on the sales-page catalog when no mode is saved', async () => {
     render(<HomePage />);
@@ -18,6 +21,19 @@ describe('homepage mode switching', () => {
     settings.loading = true; settings.mode = 'website'; render(<HomePage />);
     expect(screen.getByRole('status')).toBeInTheDocument();
     expect(screen.queryByRole('heading')).not.toBeInTheDocument();
+  });
+  it('preloads the first responsive banner without downloading the remaining slides early', async () => {
+    settings.banner = JSON.stringify({ images: [
+      'https://shop.example/api/media/products/first.webp',
+      'https://shop.example/api/media/products/second.webp',
+    ] });
+    const { container } = render(<HomePage />);
+    await screen.findByText('Sales page catalog');
+    const links = container.querySelectorAll('link[rel="preload"][as="image"]');
+    expect(links).toHaveLength(1);
+    expect(links[0].getAttribute('imagesrcset')).toContain('first.webp?width=384');
+    expect(links[0].getAttribute('imagesrcset')).not.toContain('second.webp');
+    expect(links[0]).toHaveAttribute('imagesizes', '100vw');
   });
   it('switches both ways without letting a legacy pinned landing page override the mode', async () => {
     settings.mode = 'website'; const { rerender } = render(<HomePage />);

@@ -1,3 +1,4 @@
+import { imageSrcSet, imageVariant } from "@/lib/responsiveImage";
 import { homeSectionEnabled, homeColor } from "@/lib/homePageSettings";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
@@ -57,7 +58,7 @@ const DefaultHome = () => {
                 return (
                   <article key={p.id} className="group rounded-lg border border-border bg-card overflow-hidden shadow-sm hover:border-primary/40 hover:shadow-md transition-[border-color,box-shadow] flex flex-col min-w-0">
                     <Link to={`/lp/${p.slug}`} aria-label={p.title} className="block aspect-square overflow-hidden bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
-                      <img src={img} alt={p.title} loading="lazy" className="w-full h-full object-cover motion-safe:group-hover:scale-105 motion-safe:transition-transform duration-300" />
+                      <img src={imageVariant(img,384)} srcSet={imageSrcSet(img)} sizes="(max-width: 767px) calc(50vw - 12px), (max-width: 1023px) 33vw, 25vw" alt={p.title} loading="lazy" decoding="async" className="w-full h-full object-cover motion-safe:group-hover:scale-105 motion-safe:transition-transform duration-300" />
                     </Link>
                     <div className="p-3 md:p-4 flex flex-col gap-3 flex-1">
                       <h3 className="text-base md:text-lg font-bold tracking-tight min-h-12 flex items-start text-card-foreground break-words"><Link to={`/lp/${p.slug}`} className="line-clamp-2 leading-snug hover:text-primary transition-colors">{p.title}</Link></h3>
