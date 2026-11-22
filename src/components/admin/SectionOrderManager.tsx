@@ -41,6 +41,7 @@ export interface CustomSectionInfo {
   renderSectionContent?: (sectionId: string) => ReactNode;
   customSections?: CustomSectionInfo[];
   onRemoveCustomSection?: (sectionId: string) => void;
+  builtInSectionIds?: string[];
  }
  
  const SectionOrderManager = ({
@@ -53,6 +54,7 @@ export interface CustomSectionInfo {
   renderSectionContent,
   customSections = [],
   onRemoveCustomSection,
+  builtInSectionIds,
  }: SectionOrderManagerProps) => {
    const [draggedItem, setDraggedItem] = useState<string | null>(null);
  
@@ -64,7 +66,8 @@ export interface CustomSectionInfo {
       isCustom: true,
     }));
 
-    const allSections = [...ALL_SECTIONS, ...customSectionItems];
+    const builtIns = builtInSectionIds ? ALL_SECTIONS.filter(s => builtInSectionIds.includes(s.id)) : ALL_SECTIONS;
+    const allSections = [...builtIns, ...customSectionItems];
 
     // Ensure sectionOrder has all sections
     const baseOrder = sectionOrder?.length > 0 ? sectionOrder : DEFAULT_ORDER;

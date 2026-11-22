@@ -1,4 +1,5 @@
 import HeroVariant01 from "./variants/HeroVariant01";
+import SharedHeroSection from "./SharedHeroSection";
 import HeroVariant02 from "./variants/HeroVariant02";
 import HeroVariant03 from "./variants/HeroVariant03";
 import HeroVariant04 from "./variants/HeroVariant04";
@@ -12,6 +13,7 @@ interface HeroSectionProps {
 }
 
 const HeroSection = ({ page, onOrderClick }: HeroSectionProps) => {
+  if (page.template_styles?.hero?.design) return <SharedHeroSection page={page} onOrderClick={onOrderClick} />;
   const { colors } = getTemplateStyles(page.template_id || 'nature-fresh');
   const variant = page.hero_variant || '01';
 

@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/integrations/cloudflare/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -44,13 +44,13 @@ const SliderManager = ({ sliderImages, onImagesChange, isFullWidth, onFullWidthC
         const fileName = `slider-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
         const filePath = `sliders/${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
+        const { error: uploadError } = await api.storage
           .from("products")
           .upload(filePath, file);
 
         if (uploadError) throw uploadError;
 
-        const { data: urlData } = supabase.storage
+        const { data: urlData } = api.storage
           .from("products")
           .getPublicUrl(filePath);
 
@@ -80,9 +80,9 @@ const SliderManager = ({ sliderImages, onImagesChange, isFullWidth, onFullWidthC
     // Try to delete from storage
     try {
       const url = new URL(imageToRemove.url);
-      const pathMatch = url.pathname.match(/\/storage\/v1\/object\/public\/products\/(.+)/);
+      const pathMatch = url.pathname.match(/\/api\/media\/products\/(.+)/);
       if (pathMatch) {
-        await supabase.storage.from("products").remove([pathMatch[1]]);
+        await api.storage.from("products").remove([decodeURIComponent(pathMatch[1])]);
       }
     } catch (error) {
       console.error("Error deleting file from storage:", error);

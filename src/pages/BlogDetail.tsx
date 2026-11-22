@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/integrations/cloudflare/client";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Calendar } from "lucide-react";
@@ -10,7 +10,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import type { BlogPost, BlogSection } from "@/hooks/useBlogs";
 
-const FONT_FAMILY = "'Hind Siliguri', sans-serif";
+const FONT_FAMILY = "'Baloo Da Digits', 'Hind Siliguri', sans-serif";
 
 const BlogDetail = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -18,7 +18,7 @@ const BlogDetail = () => {
   const { data: blog, isLoading } = useQuery({
     queryKey: ["blog-post", slug],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await api
         .from("blog_posts" as any)
         .select("*, products(name, name_bn, image_url, slug, price, original_price)")
         .eq("slug", slug)

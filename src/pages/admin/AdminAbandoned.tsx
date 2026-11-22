@@ -30,7 +30,7 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import AdminGuard from "@/components/admin/AdminGuard";
 import { useAbandonedCarts } from "@/hooks/useAdmin";
 import { useProducts } from "@/hooks/useProducts";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/integrations/cloudflare/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import AbandonedCartOrderDialog from "@/components/admin/AbandonedCartOrderDialog";
@@ -108,7 +108,7 @@ const AdminAbandoned = () => {
     
     setIsDeleting(true);
     try {
-      const { error } = await supabase
+      const { error } = await api
         .from("abandoned_carts")
         .delete()
         .eq("id", deleteCartId);
@@ -129,7 +129,7 @@ const AdminAbandoned = () => {
   const handleBulkDelete = async () => {
     setIsDeleting(true);
     try {
-      const { error } = await supabase
+      const { error } = await api
         .from("abandoned_carts")
         .delete()
         .in("id", selectedIds);

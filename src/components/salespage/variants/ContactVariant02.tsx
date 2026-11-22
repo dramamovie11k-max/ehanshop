@@ -1,3 +1,4 @@
+import { renderSalesText } from '@/components/salespage/SalesRichText';
 import { motion } from "framer-motion";
 import { SalesPage } from "@/types/salesPage";
 import { Phone, MessageCircle } from "lucide-react";
@@ -16,7 +17,7 @@ const ContactVariant02 = ({ page, colors, isLightTheme }: ContactVariantProps) =
       className="py-8 px-3"
       style={{ backgroundColor: colors.background }}
     >
-      <div className="max-w-md mx-auto">
+      <div className="max-w-md md:max-w-2xl lg:max-w-3xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -30,10 +31,10 @@ const ContactVariant02 = ({ page, colors, isLightTheme }: ContactVariantProps) =
         >
           <div className="text-center mb-4">
             <h2 className="text-lg font-bold" style={{ color: isLightTheme ? colors.text : '#fff' }}>
-              {page.contact_headline}
+              {renderSalesText(page.contact_headline)}
             </h2>
             <p className="text-sm" style={{ color: colors.accent }}>
-              {page.contact_subheadline}
+              {renderSalesText(page.contact_subheadline)}
             </p>
           </div>
 
@@ -50,7 +51,7 @@ const ContactVariant02 = ({ page, colors, isLightTheme }: ContactVariantProps) =
                 <Phone className="w-5 h-5" />
               </div>
               <span className="text-xs font-medium">কল করুন</span>
-              <span className="text-sm font-bold">{page.contact_phone}</span>
+              <span className="text-sm font-bold">{renderSalesText(page.contact_phone)}</span>
             </motion.a>
 
             {/* WhatsApp */}
@@ -67,7 +68,7 @@ const ContactVariant02 = ({ page, colors, isLightTheme }: ContactVariantProps) =
                 <MessageCircle className="w-5 h-5" />
               </div>
               <span className="text-xs font-medium">হোয়াটসঅ্যাপ</span>
-              <span className="text-sm font-bold">{page.contact_whatsapp_text}</span>
+              <span className="text-sm font-bold">{renderSalesText(page.contact_whatsapp_text)}</span>
             </motion.a>
           </div>
 
@@ -78,7 +79,7 @@ const ContactVariant02 = ({ page, colors, isLightTheme }: ContactVariantProps) =
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
               </span>
               <span className="text-xs" style={{ color: isLightTheme ? colors.text : '#fff', opacity: 0.6 }}>
-                {page.contact_availability}
+                {renderSalesText(page.contact_availability)}
               </span>
             </div>
           </div>

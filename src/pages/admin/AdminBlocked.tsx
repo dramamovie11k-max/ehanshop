@@ -43,7 +43,7 @@ import {
 import AdminLayout from "@/components/admin/AdminLayout";
 import AdminGuard from "@/components/admin/AdminGuard";
 import { useBlockedUsers } from "@/hooks/useAdmin";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/integrations/cloudflare/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
@@ -92,10 +92,10 @@ const AdminBlocked = () => {
       blocked_by: user?.id,
     };
 
-    const { error } = await supabase.from("blocked_users").insert(blockData);
+    const { error } = await api.from("blocked_users").insert(blockData);
 
     if (error) {
-      if (error.code === "23505") {
+      if (error.code === "CONFLICT") {
         toast.error("এই ফোন/IP ইতিমধ্যে ব্লক করা আছে");
       } else {
         toast.error("ব্লক করতে ব্যর্থ");
@@ -117,7 +117,7 @@ const AdminBlocked = () => {
   };
 
   const handleUnblock = async (id: string) => {
-    const { error } = await supabase.from("blocked_users").delete().eq("id", id);
+    const { error } = await api.from("blocked_users").delete().eq("id", id);
 
     if (error) {
       toast.error("আনব্লক করতে ব্যর্থ");

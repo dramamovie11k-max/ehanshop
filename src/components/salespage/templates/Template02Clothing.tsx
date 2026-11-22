@@ -1,3 +1,9 @@
+import SectionAppearance from '../SectionAppearance';
+import Template02DefaultHero from '../Template02DefaultHero';
+import ExtraSection from '../ExtraSection';
+import { isExtraDesign } from '@/lib/extraSectionDesigns';
+import { salesPlainText } from '@/lib/salesRichText';
+import { renderSalesText } from '@/components/salespage/SalesRichText';
  import { motion } from "framer-motion";
  import { useState, useEffect, useRef } from "react";
 import { getWhatsAppUrl } from "@/lib/utils";
@@ -23,6 +29,14 @@ import { getWhatsAppUrl } from "@/lib/utils";
    Flame
  } from "lucide-react";
  import CheckoutSection from "../CheckoutSection";
+import SharedHeroSection from "../SharedHeroSection";
+import SharedContactSection from "../ContactSection";
+import SharedReviewsSection from "../SharedReviewsSection";
+import ReviewVideo from "../ReviewVideo";
+import SharedFeaturesSection from "../SharedFeaturesSection";
+import SharedGallerySection from "../SharedGallerySection";
+import Template02Sections from '../Template02Sections';
+import { isTemplate02Design, template02Sections } from '@/lib/template02Designs';
  import { usePixelTracking } from "@/hooks/usePixelTracking";
  
  // Review Carousel Component - 2 columns sliding  
@@ -53,29 +67,29 @@ import { getWhatsAppUrl } from "@/lib/utils";
            animate={{ x: `-${currentIndex * 100}%` }}
            transition={{ duration: 0.5, ease: "easeInOut" }}
          >
-           {slides.map((slideImages, slideIndex) => (
+           {renderSalesText(slides.map((slideImages, slideIndex) => (
              <div key={slideIndex} className="w-full flex-shrink-0">
                <div className="grid grid-cols-2 gap-2">
-                 {slideImages.map((img, imgIndex) => (
+                 {renderSalesText(slideImages.map((img, imgIndex) => (
                    <div
                      key={imgIndex}
                      className="rounded-xl overflow-hidden border border-green-500/20"
                    >
                      <img
                        src={img}
-                       alt={`Review ${slideIndex * imagesPerSlide + imgIndex + 1}`}
+                       alt={salesPlainText(`Review ${slideIndex * imagesPerSlide + imgIndex + 1}`)}
                        className="w-full h-auto object-cover"
                      />
                    </div>
-                 ))}
+                 )))}
                </div>
              </div>
-           ))}
+           )))}
          </motion.div>
        </div>
-       {totalSlides > 1 && (
+       {renderSalesText(totalSlides > 1 && (
          <div className="flex justify-center gap-2 mt-4">
-           {slides.map((_, i) => (
+           {renderSalesText(slides.map((_, i) => (
              <button
                key={i}
                onClick={() => setCurrentIndex(i)}
@@ -85,9 +99,9 @@ import { getWhatsAppUrl } from "@/lib/utils";
                    : "bg-green-400/30"
                }`}
              />
-           ))}
+           )))}
          </div>
-       )}
+       ))}
      </div>
    );
  };
@@ -111,7 +125,7 @@ import { getWhatsAppUrl } from "@/lib/utils";
          <motion.img
            key={currentIndex}
            src={images[currentIndex]}
-           alt={`Product ${currentIndex + 1}`}
+           alt={salesPlainText(`Product ${currentIndex + 1}`)}
       className="w-full aspect-square object-cover"
            initial={{ opacity: 0 }}
            animate={{ opacity: 1 }}
@@ -119,11 +133,11 @@ import { getWhatsAppUrl } from "@/lib/utils";
          />
          
          {/* Product Name Overlay */}
-         {productName && (
+         {renderSalesText(productName && (
            <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-sm px-4 py-2 rounded-lg">
-             <p className="text-white font-semibold text-sm">{productName}</p>
+             <p className="text-white font-semibold text-sm">{renderSalesText(productName)}</p>
            </div>
-         )}
+         ))}
          
          {/* Navigation Arrows */}
          <button
@@ -141,13 +155,13 @@ import { getWhatsAppUrl } from "@/lib/utils";
          
          {/* Pagination */}
          <div className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-lg">
-           <p className="text-white text-sm font-medium">{currentIndex + 1}/{images.length}</p>
+           <p className="text-white text-sm font-medium">{renderSalesText(currentIndex + 1)}/{renderSalesText(images.length)}</p>
          </div>
        </div>
        
        {/* Thumbnails */}
        <div className="flex gap-2 overflow-x-auto pb-2">
-         {images.map((img, i) => (
+         {renderSalesText(images.map((img, i) => (
            <button
              key={i}
              onClick={() => setCurrentIndex(i)}
@@ -157,9 +171,9 @@ import { getWhatsAppUrl } from "@/lib/utils";
                  : "border-white/20 hover:border-white/40"
              }`}
            >
-             <img src={img} alt={`Thumb ${i + 1}`} className="w-full h-full object-cover" />
+             <img src={img} alt={salesPlainText(`Thumb ${i + 1}`)} className="w-full h-full object-cover" />
            </button>
-         ))}
+         )))}
        </div>
      </div>
    );
@@ -197,9 +211,9 @@ import { getWhatsAppUrl } from "@/lib/utils";
    const TimeBox = ({ value, label }: { value: number; label: string }) => (
      <div className="flex flex-col items-center">
        <div className="w-14 h-14 bg-[#0a3d1f] rounded-xl flex items-center justify-center border border-green-500/30 shadow-lg shadow-green-900/50">
-         <span className="text-2xl font-bold text-white">{value.toString().padStart(2, '0')}</span>
+         <span className="text-2xl font-bold text-white">{renderSalesText(value.toString().padStart(2, '0'))}</span>
        </div>
-       <span className="text-xs text-green-300/70 mt-1.5 font-medium">{label}</span>
+       <span className="text-xs text-green-300/70 mt-1.5 font-medium">{renderSalesText(label)}</span>
      </div>
    );
  
@@ -322,9 +336,11 @@ import { getWhatsAppUrl } from "@/lib/utils";
    // ===== HERO SECTION (New Design from Screenshot 1) =====
    const renderHero = () => {
      if (!page.show_hero_section) return null;
+    if (page.template_styles?.hero?.design) return <SharedHeroSection page={page} onOrderClick={scrollToCheckout} />;
+    if (page.template_styles?.hero?.t2d_legacy !== '1') return <Template02DefaultHero key="hero" page={page} onOrderClick={scrollToCheckout} />;
      return (
     <section key="hero" className="relative overflow-hidden bg-gradient-to-b from-[#041f10] to-[#052e16] py-10 px-4">
-         <div className="max-w-lg mx-auto text-center">
+         <div className="max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto text-center">
            {/* Badge */}
            <motion.div
              initial={{ opacity: 0, y: -20 }}
@@ -334,7 +350,7 @@ import { getWhatsAppUrl } from "@/lib/utils";
              <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold bg-gradient-to-r from-orange-500/20 to-red-500/20 text-orange-400 border border-orange-500/40">
                <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
                <Flame className="w-4 h-4" />
-               {page.hero_badge_text || "স্টক ক্লিয়ারেন্স সেল লাইভ"}
+               {renderSalesText(page.hero_badge_text || "স্টক ক্লিয়ারেন্স সেল লাইভ")}
                <Flame className="w-4 h-4" />
              </span>
            </motion.div>
@@ -347,7 +363,7 @@ import { getWhatsAppUrl } from "@/lib/utils";
              className="mb-2"
            >
              <h1 className="text-3xl md:text-4xl font-black text-green-400">
-               মাত্র {page.price_unit}{productPrice} টাকায়
+               মাত্র {renderSalesText(page.price_unit)}{renderSalesText(productPrice)} টাকায়
              </h1>
            </motion.div>
  
@@ -358,11 +374,11 @@ import { getWhatsAppUrl } from "@/lib/utils";
              transition={{ delay: 0.2 }}
              className="text-lg text-white/80 mb-6"
            >
-             {page.hero_subheadline || "৫ সেট প্রিমিয়াম থ্রি-পিস"}
+             {renderSalesText(page.hero_subheadline || "৫ সেট প্রিমিয়াম থ্রি-পিস")}
            </motion.p>
  
            {/* Countdown */}
-           {page.show_countdown && (
+           {renderSalesText(page.show_countdown && (
              <motion.div
                initial={{ opacity: 0, y: 20 }}
                animate={{ opacity: 1, y: 0 }}
@@ -383,7 +399,7 @@ import { getWhatsAppUrl } from "@/lib/utils";
                  }}
                />
              </motion.div>
-           )}
+           ))}
  
            {/* CTA Button */}
            <motion.div
@@ -396,12 +412,12 @@ import { getWhatsAppUrl } from "@/lib/utils";
               onClick={scrollToCheckout}
               className="w-full h-12 text-base font-bold rounded-xl bg-gradient-to-r from-green-500 via-emerald-500 to-green-600 hover:from-green-600 hover:via-emerald-600 hover:to-green-700 text-white shadow-xl shadow-green-500/30 transition-all duration-300 hover:scale-[1.02]"
             >
-               {page.cta_button_text || "এখনই অর্ডার করুন"}
+               {renderSalesText(page.cta_button_text || "এখনই অর্ডার করুন")}
                <ArrowRight className="ml-2 h-6 w-6" />
              </Button>
              <p className="text-sm text-yellow-400/80 mt-3 flex items-center justify-center gap-2">
                <Zap className="w-4 h-4" />
-               {page.cta_urgency_text || "সীমিত স্টক! মিস করবেন না"}
+               {renderSalesText(page.cta_urgency_text || "সীমিত স্টক! মিস করবেন না")}
              </p>
            </motion.div>
          </div>
@@ -412,9 +428,10 @@ import { getWhatsAppUrl } from "@/lib/utils";
    // ===== GALLERY SECTION (New Design from Screenshot 2) =====
    const renderGallery = () => {
      if (!page.show_gallery_section || !page.gallery_images?.length) return null;
+      if (page.template_styles?.gallery?.design) return <SharedGallerySection key="gallery" page={page} onOrderClick={scrollToCheckout} />;
      return (
     <section key="gallery" className="py-8 px-4 bg-gradient-to-b from-[#052e16] to-[#0a3d1f]">
-         <div className="max-w-lg mx-auto">
+         <div className="max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto">
            {/* Header */}
            <motion.div
              initial={{ opacity: 0, y: 15 }}
@@ -423,10 +440,10 @@ import { getWhatsAppUrl } from "@/lib/utils";
              className="text-center mb-5"
            >
              <span className="text-orange-400 text-sm font-medium">
-               {page.gallery_subtitle || "আমাদের কালেকশন"}
+               {renderSalesText(page.gallery_subtitle || "আমাদের কালেকশন")}
              </span>
              <h2 className="text-xl font-bold text-white mt-1">
-               {page.gallery_title || "যেমন দেখছেন, তেমনই পাবেন"}
+               {renderSalesText(page.gallery_title || "যেমন দেখছেন, তেমনই পাবেন")}
              </h2>
            </motion.div>
  
@@ -448,7 +465,7 @@ import { getWhatsAppUrl } from "@/lib/utils";
              onClick={scrollToCheckout}
              className="w-full h-14 mt-5 text-lg font-bold rounded-2xl bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-xl"
            >
-             {page.cta_button_text || "এখনই অর্ডার করুন"}
+             {renderSalesText(page.cta_button_text || "এখনই অর্ডার করুন")}
            </Button>
          </div>
        </section>
@@ -460,7 +477,7 @@ import { getWhatsAppUrl } from "@/lib/utils";
      if (!page.show_features_section || !features.length) return null;
      return (
        <section key="features" className="py-8 px-4 bg-gradient-to-b from-[#052e16] to-[#0a3d1f]">
-         <div className="max-w-lg mx-auto">
+         <div className="max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto">
            {/* Header */}
            <motion.div
              initial={{ opacity: 0, y: 20 }}
@@ -469,16 +486,16 @@ import { getWhatsAppUrl } from "@/lib/utils";
              className="text-center mb-6"
            >
              <h2 className="text-2xl font-bold text-white mb-1">
-               {page.features_headline || "কি কি থাকছে?"}
+               {renderSalesText(page.features_headline || "কি কি থাকছে?")}
              </h2>
              <p className="text-green-300/70 text-sm">
-               {page.features_subheadline || "আমাদের বিশেষত্ব ও গ্যারান্টি"}
+               {renderSalesText(page.features_subheadline || "আমাদের বিশেষত্ব ও গ্যারান্টি")}
              </p>
            </motion.div>
  
            {/* 2x3 Grid of Feature Cards */}
            <div className="grid grid-cols-2 gap-3">
-             {features.slice(0, 6).map((feature, i) => (
+             {renderSalesText(features.slice(0, 6).map((feature, i) => (
                <motion.div
                  key={i}
                  initial={{ opacity: 0, y: 20 }}
@@ -491,101 +508,46 @@ import { getWhatsAppUrl } from "@/lib/utils";
                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${
                    i === 0 ? "bg-gradient-to-br from-orange-500 to-amber-600" : "bg-gradient-to-br from-green-600 to-emerald-700"
                  } shadow-lg`}>
-                   {getFeatureIcon(feature.icon || '', i)}
+                   {renderSalesText(getFeatureIcon(feature.icon || '', i))}
                  </div>
                  
                  {/* Text */}
                  <h3 className="font-bold text-white text-sm mb-1">
-                   {feature.text}
+                   {renderSalesText(feature.text)}
                  </h3>
-                 {feature.description && (
+                 {renderSalesText(feature.description && (
                    <p className="text-xs text-green-300/60 leading-relaxed">
-                     {feature.description}
+                     {renderSalesText(feature.description)}
                    </p>
-                 )}
+                 ))}
                </motion.div>
-             ))}
+             )))}
            </div>
          </div>
        </section>
      );
    };
  
-   // ===== CONTACT SECTION (New Design from Screenshot 4) =====
-   const renderContact = () => {
-     if (!page.show_contact_section) return null;
-     return (
-       <section key="contact" className="py-8 px-4 bg-gradient-to-b from-[#0a3d1f] to-[#052e16]">
-         <div className="max-w-lg mx-auto">
-           <motion.div
-             initial={{ opacity: 0, y: 20 }}
-             whileInView={{ opacity: 1, y: 0 }}
-             viewport={{ once: true }}
-             className="bg-gradient-to-br from-[#0f4a2a] to-[#0a3d1f] rounded-3xl p-6 border border-green-500/30 text-center shadow-2xl"
-           >
-             {/* Phone Icon */}
-             <div className="w-14 h-14 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-green-500/30">
-               <Phone className="w-7 h-7 text-white" />
-             </div>
- 
-             {/* Headline */}
-             <h2 className="text-lg font-bold text-white mb-1">
-               {page.contact_headline || "যেকোনো প্রয়োজনে বা সরাসরি"}
-             </h2>
-             <p className="text-orange-400 font-semibold mb-5">
-               {page.contact_subheadline || "ফোনে অর্ডার করতে কল করুন"}
-             </p>
- 
-             {/* Phone Button */}
-             <a
-               href={page.contact_phone_link || `tel:${page.contact_phone}`}
-               className="flex items-center justify-center gap-3 w-full py-4 rounded-2xl text-[#052e16] font-bold text-lg bg-gradient-to-r from-amber-400 to-yellow-500 shadow-lg hover:from-amber-500 hover:to-yellow-600 transition-all hover:scale-[1.02] mb-3"
-             >
-               <Phone className="w-5 h-5" />
-               {page.contact_phone}
-             </a>
- 
-             {/* WhatsApp Button */}
-             {page.contact_whatsapp && (
-               <a
-                 href={getWhatsAppUrl(page.contact_whatsapp || "")}
-                 target="_blank"
-                 rel="noopener noreferrer"
-                 className="flex items-center justify-center gap-3 w-full py-4 rounded-2xl text-white font-bold text-lg bg-transparent border-2 border-green-500/50 hover:bg-green-500/10 transition-all"
-               >
-                 <MessageCircle className="w-5 h-5" />
-                 {page.contact_whatsapp_text || "হোয়াটসঅ্যাপ মেসেজ"}
-               </a>
-             )}
- 
-             {/* Availability */}
-             {page.contact_availability && (
-               <p className="text-xs text-green-400/50 mt-4 uppercase tracking-wider">
-                 {page.contact_availability}
-               </p>
-             )}
-           </motion.div>
-         </div>
-       </section>
-     );
-   };
- 
+   const renderContact = () => page.show_contact_section ? <SharedContactSection key="contact" page={page} /> : null;
+
    // ===== REVIEWS SECTION (Same as Template01) =====
    const renderReviews = () => {
-     if (!page.show_reviews_section || !page.review_images?.length) return null;
+     if (page.template_styles?.reviews?.design) return page.show_reviews_section ? <SharedReviewsSection key="reviews" page={page} /> : null;
+     if (!page.show_reviews_section || (!page.review_images?.length && !page.review_video_url)) return null;
      return (
        <section key="reviews" className="py-8 px-4 bg-gradient-to-b from-[#052e16] to-[#0a3d1f] overflow-hidden">
-         <div className="max-w-lg mx-auto">
+         <div className="max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto">
            <motion.div
              initial={{ opacity: 0, y: 15 }}
              whileInView={{ opacity: 1, y: 0 }}
              viewport={{ once: true }}
              className="text-center mb-5"
            >
-             <h2 className="text-xl font-bold text-white mb-1">{page.reviews_headline || "কাস্টমার ফিডব্যাক"}</h2>
-             <p className="text-sm text-green-300/60">{page.reviews_subheadline}</p>
+             <h2 className="text-xl font-bold text-white mb-1">{renderSalesText(page.reviews_headline || "কাস্টমার ফিডব্যাক")}</h2>
+             <p className="text-sm text-green-300/60">{renderSalesText(page.reviews_subheadline)}</p>
            </motion.div>
-           <ReviewCarousel images={page.review_images} />
+           {renderSalesText(page.review_video_url && <ReviewVideo url={page.review_video_url} title={salesPlainText(page.reviews_headline || "কাস্টমার ফিডব্যাক")} />)}
+           {renderSalesText(!!page.review_images?.length && <ReviewCarousel images={page.review_images} />)}
          </div>
        </section>
      );
@@ -600,27 +562,27 @@ import { getWhatsAppUrl } from "@/lib/utils";
      if (points.length === 0) return null;
      return (
        <section key="extra1" className="py-8 px-4 bg-gradient-to-b from-[#0a3d1f] to-[#052e16]">
-         <div className="max-w-lg mx-auto">
+         <div className="max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto">
            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-6">
              <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg mb-3">
                <Shield className="w-5 h-5" />
-               <h2 className="text-lg font-bold">{page.extra_section_1_heading || "কেন আমাদের উপর আস্থা রাখবেন?"}</h2>
+               <h2 className="text-lg font-bold">{renderSalesText(page.extra_section_1_heading || "কেন আমাদের উপর আস্থা রাখবেন?")}</h2>
              </div>
            </motion.div>
            <div className="space-y-3">
-             {points.map((point, i) => (
+             {renderSalesText(points.map((point, i) => (
                <motion.div key={i} initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }} className="flex items-start gap-2.5 py-2.5 px-3 bg-white/95 rounded-xl shadow-md border-l-4 border-green-500 hover:shadow-lg transition-shadow">
                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center flex-shrink-0 shadow-md">
                    <Check className="w-4 h-4 text-white" />
                  </div>
                  <div className="flex-1">
-                   <p className="font-bold text-green-800 text-base">{point}</p>
+                   <p className="font-bold text-green-800 text-base">{renderSalesText(point)}</p>
                  </div>
                </motion.div>
-             ))}
+             )))}
            </div>
            <Button size="lg" onClick={scrollToCheckout} className="w-full h-14 mt-6 text-lg font-bold rounded-2xl bg-gradient-to-r from-green-500 via-emerald-500 to-green-600 hover:from-green-600 hover:via-emerald-600 hover:to-green-700 text-white shadow-2xl shadow-green-500/40">
-             {page.cta_button_text || "এখনই অর্ডার করুন"}<ArrowRight className="ml-2 h-5 w-5" />
+             {renderSalesText(page.cta_button_text || "এখনই অর্ডার করুন")}<ArrowRight className="ml-2 h-5 w-5" />
            </Button>
          </div>
        </section>
@@ -635,27 +597,27 @@ import { getWhatsAppUrl } from "@/lib/utils";
      if (points.length === 0) return null;
      return (
        <section key="extra2" className="py-8 px-4 bg-gradient-to-b from-[#052e16] to-[#0a3d1f]">
-         <div className="max-w-lg mx-auto">
+         <div className="max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto">
            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-6">
              <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg mb-3">
                <Star className="w-5 h-5" />
-               <h2 className="text-lg font-bold">{page.extra_section_2_heading || "আমাদের বিশেষত্ব"}</h2>
+               <h2 className="text-lg font-bold">{renderSalesText(page.extra_section_2_heading || "আমাদের বিশেষত্ব")}</h2>
              </div>
            </motion.div>
            <div className="space-y-3">
-             {points.map((point, i) => (
+             {renderSalesText(points.map((point, i) => (
                <motion.div key={i} initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }} className="flex items-start gap-2.5 py-2.5 px-3 bg-white/95 rounded-xl shadow-md border-l-4 border-green-500 hover:shadow-lg transition-shadow">
                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center flex-shrink-0 shadow-md">
                    <Check className="w-4 h-4 text-white" />
                  </div>
                  <div className="flex-1">
-                   <p className="font-bold text-green-800 text-base">{point}</p>
+                   <p className="font-bold text-green-800 text-base">{renderSalesText(point)}</p>
                  </div>
                </motion.div>
-             ))}
+             )))}
            </div>
            <Button size="lg" onClick={scrollToCheckout} className="w-full h-14 mt-6 text-lg font-bold rounded-2xl bg-gradient-to-r from-green-500 via-emerald-500 to-green-600 hover:from-green-600 hover:via-emerald-600 hover:to-green-700 text-white shadow-2xl shadow-green-500/40">
-             {page.cta_button_text || "এখনই অর্ডার করুন"}<ArrowRight className="ml-2 h-5 w-5" />
+             {renderSalesText(page.cta_button_text || "এখনই অর্ডার করুন")}<ArrowRight className="ml-2 h-5 w-5" />
            </Button>
          </div>
        </section>
@@ -670,27 +632,27 @@ import { getWhatsAppUrl } from "@/lib/utils";
      if (points.length === 0) return null;
      return (
        <section key="extra3" className="py-8 px-4 bg-gradient-to-b from-[#0a3d1f] to-[#052e16]">
-         <div className="max-w-lg mx-auto">
+         <div className="max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto">
            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-6">
              <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg mb-3">
                <Gift className="w-5 h-5" />
-               <h2 className="text-lg font-bold">{page.extra_section_3_heading || "গ্রাহক সুবিধা"}</h2>
+               <h2 className="text-lg font-bold">{renderSalesText(page.extra_section_3_heading || "গ্রাহক সুবিধা")}</h2>
              </div>
            </motion.div>
            <div className="space-y-3">
-             {points.map((point, i) => (
+             {renderSalesText(points.map((point, i) => (
                <motion.div key={i} initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }} className="flex items-start gap-2.5 py-2.5 px-3 bg-white/95 rounded-xl shadow-md border-l-4 border-green-500 hover:shadow-lg transition-shadow">
                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center flex-shrink-0 shadow-md">
                    <Check className="w-4 h-4 text-white" />
                  </div>
                  <div className="flex-1">
-                   <p className="font-bold text-green-800 text-base">{point}</p>
+                   <p className="font-bold text-green-800 text-base">{renderSalesText(point)}</p>
                  </div>
                </motion.div>
-             ))}
+             )))}
            </div>
            <Button size="lg" onClick={scrollToCheckout} className="w-full h-14 mt-6 text-lg font-bold rounded-2xl bg-gradient-to-r from-green-500 via-emerald-500 to-green-600 hover:from-green-600 hover:via-emerald-600 hover:to-green-700 text-white shadow-2xl shadow-green-500/40">
-             {page.cta_button_text || "এখনই অর্ডার করুন"}<ArrowRight className="ml-2 h-5 w-5" />
+             {renderSalesText(page.cta_button_text || "এখনই অর্ডার করুন")}<ArrowRight className="ml-2 h-5 w-5" />
            </Button>
          </div>
        </section>
@@ -704,15 +666,20 @@ import { getWhatsAppUrl } from "@/lib/utils";
    };
  
    const renderSection = (sectionId: string) => {
+     const section = template02Sections.find(s => s === sectionId);
+     if (section && isTemplate02Design(page.template_styles?.[section]?.design)) {
+       const visibility = { hero: page.show_hero_section, gallery: page.show_gallery_section, features: page.show_features_section, reviews: page.show_reviews_section, contact: page.show_contact_section };
+       return visibility[section] ? <Template02Sections key={section} page={page} section={section} onOrderClick={scrollToCheckout} /> : null;
+     }
      switch (sectionId) {
        case 'hero': return renderHero();
        case 'gallery': return renderGallery();
-       case 'features': return renderFeatures();
+       case 'features': return page.template_styles?.features?.design ? (page.show_features_section ? <SharedFeaturesSection key="features" page={page} /> : null) : renderFeatures();
        case 'contact': return renderContact();
        case 'reviews': return renderReviews();
-       case 'extra1': return renderExtra1();
-       case 'extra2': return renderExtra2();
-       case 'extra3': return renderExtra3();
+       case 'extra1': return isExtraDesign(page.template_styles?.extra1?.design) ? <ExtraSection key="extra1" page={page} number={1} /> : renderExtra1();
+       case 'extra2': return isExtraDesign(page.template_styles?.extra2?.design) ? <ExtraSection key="extra2" page={page} number={2} /> : renderExtra2();
+       case 'extra3': return isExtraDesign(page.template_styles?.extra3?.design) ? <ExtraSection key="extra3" page={page} number={3} /> : renderExtra3();
        case 'checkout': return renderCheckout();
        default: return null;
      }
@@ -720,16 +687,16 @@ import { getWhatsAppUrl } from "@/lib/utils";
 
   return (
     <div className="min-h-screen font-['Hind_Siliguri'] bg-gradient-to-b from-[#052e16] via-[#0a3d1f] to-[#052e16]">
-      {sectionOrder.map(sectionId => renderSection(sectionId))}
+      {renderSalesText(sectionOrder.map(sectionId => <SectionAppearance key={sectionId} page={page} section={sectionId}>{renderSection(sectionId)}</SectionAppearance>))}
       <footer className="py-6 text-center text-sm bg-[#041f10] space-y-2">
-        {page.footer_text && (
-          <p className="text-green-300/70 text-xs px-4 max-w-lg mx-auto">
-            {page.footer_text}
+        {renderSalesText(page.footer_text && (
+          <p className="text-green-300/70 text-xs px-4 max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto">
+            {renderSalesText(page.footer_text)}
           </p>
-        )}
+        ))}
         <p className="text-green-500/40 flex items-center justify-center gap-2">
           <Sparkles className="w-4 h-4" />
-          © {new Date().getFullYear()} - সকল অধিকার সংরক্ষিত
+          © {renderSalesText(new Date().getFullYear())} - সকল অধিকার সংরক্ষিত
         </p>
       </footer>
     </div>

@@ -1,7 +1,13 @@
+import SectionAppearance from '../SectionAppearance';
+import ExtraSection from '../ExtraSection';
+import { isExtraDesign } from '@/lib/extraSectionDesigns';
+import { salesPlainText } from '@/lib/salesRichText';
+import { renderSalesText } from '@/components/salespage/SalesRichText';
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { SalesPage, SpecItem } from "@/types/salesPage";
 import CheckoutSection from "../CheckoutSection";
+import SharedHeroSection from "../SharedHeroSection";
 import ContactSection from "../ContactSection";
 import VideoSection from "../VideoSection";
 import GallerySection from "../GallerySection";
@@ -37,7 +43,7 @@ const ImageLightbox = ({ src, alt, onClose }: { src: string; alt: string; onClos
     >✕</button>
     <motion.img
       initial={{ scale: 0.8 }} animate={{ scale: 1 }}
-      src={src} alt={alt}
+      src={src} alt={salesPlainText(alt)}
       onClick={(e) => e.stopPropagation()}
       style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: '8px', cursor: 'default' }}
     />
@@ -86,21 +92,21 @@ const ReviewCarousel = ({ images, accentColor }: { images: string[]; accentColor
     <>
       <div style={{ position: 'relative' }}>
         <div style={{ display: 'grid', gridTemplateColumns: visibleImages.length > 1 ? '1fr 1fr' : '1fr', gap: '8px' }}>
-          {visibleImages.map((img, i) => (
+          {renderSalesText(visibleImages.map((img, i) => (
             <div key={`${currentIndex}-${i}`} onClick={() => setLightboxImage(img)} style={{ borderRadius: '12px', overflow: 'hidden', border: `1px solid ${accentColor}20`, cursor: 'zoom-in' }}>
-              <motion.img initial={{ opacity: 0.5 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} src={img} alt={`Review ${i + 1}`} style={{ width: '100%', height: 'auto', objectFit: 'cover', display: 'block' }} />
+              <motion.img initial={{ opacity: 0.5 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} src={img} alt={salesPlainText(`Review ${i + 1}`)} style={{ width: '100%', height: 'auto', objectFit: 'cover', display: 'block' }} />
             </div>
-          ))}
+          )))}
         </div>
-        {images.length > 2 && (
+        {renderSalesText(images.length > 2 && (
           <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginTop: '12px' }}>
-            {images.map((_, i) => (
+            {renderSalesText(images.map((_, i) => (
               <button key={i} onClick={() => goTo(i)} style={{ height: '8px', width: i === currentIndex ? '22px' : '8px', borderRadius: '4px', backgroundColor: i === currentIndex ? accentColor : `${accentColor}40`, border: 'none', cursor: 'pointer', transition: 'all 0.3s' }} />
-            ))}
+            )))}
           </div>
-        )}
+        ))}
       </div>
-      {lightboxImage && <ImageLightbox src={lightboxImage} alt="Review" onClose={() => setLightboxImage(null)} />}
+      {renderSalesText(lightboxImage && <ImageLightbox src={lightboxImage} alt="Review" onClose={() => setLightboxImage(null)} />)}
     </>
   );
 };
@@ -184,7 +190,7 @@ const Template12Gadget3 = ({ page }: TemplateProps) => {
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         borderBottom: `1px solid ${c.accent}20`,
-        fontFamily: "'Hind Siliguri', sans-serif",
+        fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
       }}
     >
       <div
@@ -198,7 +204,7 @@ const Template12Gadget3 = ({ page }: TemplateProps) => {
         }}
       >
         <span style={{ fontWeight: 700, fontSize: '18px', color: '#ffffff' }}>
-          {page.title || 'GadgetStore'}
+          {renderSalesText(page.title || 'GadgetStore')}
         </span>
         <a
           href={`tel:${(page.contact_phone_link || page.contact_phone || '').replace(/[^0-9+]/g, '')}`}
@@ -211,7 +217,7 @@ const Template12Gadget3 = ({ page }: TemplateProps) => {
             fontWeight: 600,
             fontSize: '14px',
             cursor: 'pointer',
-            fontFamily: "'Hind Siliguri', sans-serif",
+            fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
             boxShadow: `0 2px 12px ${c.button}40`,
             textDecoration: 'none',
             display: 'inline-flex',
@@ -219,7 +225,7 @@ const Template12Gadget3 = ({ page }: TemplateProps) => {
             gap: '6px',
           }}
         >
-          📞 {page.contact_phone || '01XXXXXXXXX'}
+          📞 {renderSalesText(page.contact_phone || '01XXXXXXXXX')}
         </a>
       </div>
     </div>
@@ -248,12 +254,12 @@ const Template12Gadget3 = ({ page }: TemplateProps) => {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
           src={images[currentSlide]}
-          alt={`Product ${currentSlide + 1}`}
+          alt={salesPlainText(`Product ${currentSlide + 1}`)}
           style={{ width: '100%', height: isMobile ? '380px' : '480px', objectFit: 'cover', display: 'block' }}
         />
-        {images.length > 1 && (
+        {renderSalesText(images.length > 1 && (
           <div style={{ position: 'absolute', bottom: '12px', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '6px' }}>
-            {images.map((_, i) => (
+            {renderSalesText(images.map((_, i) => (
               <button
                 key={i}
                 onClick={() => { setCurrentSlide(i); if (sliderInterval.current) clearInterval(sliderInterval.current); }}
@@ -267,9 +273,9 @@ const Template12Gadget3 = ({ page }: TemplateProps) => {
                   transition: 'all 0.3s',
                 }}
               />
-            ))}
+            )))}
           </div>
-        )}
+        ))}
       </div>
     );
   };
@@ -277,6 +283,7 @@ const Template12Gadget3 = ({ page }: TemplateProps) => {
   // ===== HERO SECTION =====
   const renderHero = () => {
     if (!page.show_hero_section) return null;
+    if (page.template_styles?.hero?.design) return <SharedHeroSection page={page} onOrderClick={scrollToCheckout} />;
 
     const heroImages = page.hero_images?.filter(img => img && img.trim()) || [];
     const heroVideoUrl = page.hero_video_url;
@@ -285,14 +292,14 @@ const Template12Gadget3 = ({ page }: TemplateProps) => {
       <section
         key="hero"
         style={{
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
           background: `linear-gradient(180deg, ${c.bg} 0%, #1e293b 50%, ${c.bg} 100%)`,
           padding: '40px 8px 36px',
         }}
       >
         <div style={{ maxWidth: '480px', margin: '0 auto', textAlign: 'center' }}>
           {/* Animated Badge */}
-          {page.hero_badge_text && (
+          {renderSalesText(page.hero_badge_text && (
             <motion.div
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
@@ -310,11 +317,11 @@ const Template12Gadget3 = ({ page }: TemplateProps) => {
                 }}
               >
                 <span style={{ color: c.button, fontSize: '14px', fontWeight: 600 }}>
-                  🔥 {page.hero_badge_text}
+                  🔥 {renderSalesText(page.hero_badge_text)}
                 </span>
               </div>
             </motion.div>
-          )}
+          ))}
 
           {/* Headline with gradient highlighted text */}
           <motion.h1
@@ -328,12 +335,12 @@ const Template12Gadget3 = ({ page }: TemplateProps) => {
               lineHeight: 1.45,
               marginBottom: '14px',
               padding: '0 4px',
-              fontFamily: "'Hind Siliguri', sans-serif",
+              fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
               letterSpacing: '-0.3px',
             }}
           >
-            {page.hero_headline || 'আপনার প্রোডাক্টের আকর্ষণীয় হেডলাইন'}{' '}
-            {page.hero_subheadline && (
+            {renderSalesText(page.hero_headline || 'আপনার প্রোডাক্টের আকর্ষণীয় হেডলাইন')}{renderSalesText(' ')}
+            {renderSalesText(page.hero_subheadline && (
               <span
                 style={{
                   background: `linear-gradient(135deg, ${c.button}, ${c.accent || '#ffde59'})`,
@@ -342,13 +349,13 @@ const Template12Gadget3 = ({ page }: TemplateProps) => {
                   backgroundClip: 'text',
                 }}
               >
-                {page.hero_subheadline}
+                {renderSalesText(page.hero_subheadline)}
               </span>
-            )}
+            ))}
           </motion.h1>
 
           {/* Description */}
-          {page.offer_details && (
+          {renderSalesText(page.offer_details && (
             <motion.p
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
@@ -359,15 +366,15 @@ const Template12Gadget3 = ({ page }: TemplateProps) => {
                 lineHeight: 1.75,
                 marginBottom: '20px',
                 padding: '0 8px',
-                fontFamily: "'Hind Siliguri', sans-serif",
+                fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
               }}
             >
-              {page.offer_details}
+              {renderSalesText(page.offer_details)}
             </motion.p>
-          )}
+          ))}
 
           {/* Hero Images Slider */}
-          {heroImages.length > 0 && (
+          {renderSalesText(heroImages.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
@@ -375,24 +382,24 @@ const Template12Gadget3 = ({ page }: TemplateProps) => {
             >
               <HeroImageSlider images={heroImages} />
             </motion.div>
-          )}
+          ))}
 
           {/* Hero Video */}
-          {heroVideoUrl && (
+          {renderSalesText(heroVideoUrl && (
             <motion.div
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.3 }}
               style={{ marginBottom: '24px', borderRadius: '16px', overflow: 'hidden', margin: '0 12px 24px' }}
             >
-              <iframe
+              <iframe loading="lazy"
                 src={heroVideoUrl.replace('watch?v=', 'embed/')}
                 style={{ width: '100%', height: isMobile ? '220px' : '280px', border: 'none' }}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               />
             </motion.div>
-          )}
+          ))}
 
           {/* CTA Button */}
           <motion.div
@@ -416,7 +423,7 @@ const Template12Gadget3 = ({ page }: TemplateProps) => {
                 cursor: 'pointer',
                 boxShadow: `0 10px 30px ${c.button}66`,
                 transition: 'all 0.3s',
-                fontFamily: "'Hind Siliguri', sans-serif",
+                fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-3px)';
@@ -427,18 +434,18 @@ const Template12Gadget3 = ({ page }: TemplateProps) => {
                 e.currentTarget.style.boxShadow = `0 10px 30px ${c.button}66`;
               }}
             >
-              🛒 {page.cta_button_text || 'এখনই অর্ডার করুন'} →
+              🛒 {renderSalesText(page.cta_button_text || 'এখনই অর্ডার করুন')} →
             </button>
           </motion.div>
         </div>
 
         {/* Pulse animation keyframes */}
-        <style>{`
+        <style>{renderSalesText(`
           @keyframes pulse12 {
             0%, 100% { opacity: 1; transform: scale(1); }
             50% { opacity: 0.85; transform: scale(1.03); }
           }
-        `}</style>
+        `)}</style>
       </section>
     );
   };
@@ -469,7 +476,7 @@ const Template12Gadget3 = ({ page }: TemplateProps) => {
       <section
         key="features"
         style={{
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
           background: `linear-gradient(180deg, ${c.bg} 0%, #1e293b 100%)`,
           padding: '40px 15px',
         }}
@@ -483,23 +490,23 @@ const Template12Gadget3 = ({ page }: TemplateProps) => {
             style={{ textAlign: 'center', marginBottom: '24px' }}
           >
             <h2 style={{ fontSize: '24px', fontWeight: 700, color: c.headline, marginBottom: '6px' }}>
-              {page.features_headline || 'কেন কিনবেন?'}
+              {renderSalesText(page.features_headline || 'কেন কিনবেন?')}
             </h2>
-            {page.features_subheadline && (
+            {renderSalesText(page.features_subheadline && (
               <p style={{ fontSize: '14px', color: '#94a3b8' }}>
-                {page.features_subheadline}
+                {renderSalesText(page.features_subheadline)}
               </p>
-            )}
+            ))}
           </motion.div>
 
           {/* Feature Images (if any) */}
-          {page.feature_section_images && page.feature_section_images.length > 0 && (
+          {renderSalesText(page.feature_section_images && page.feature_section_images.length > 0 && (
             <div style={{ marginBottom: '20px' }}>
-              {page.feature_section_images.map((img, i) => (
+              {renderSalesText(page.feature_section_images.map((img, i) => (
                 <img
                   key={i}
                   src={img}
-                  alt={`Feature ${i + 1}`}
+                  alt={salesPlainText(`Feature ${i + 1}`)}
                   style={{
                     width: '100%',
                     borderRadius: '12px',
@@ -507,13 +514,13 @@ const Template12Gadget3 = ({ page }: TemplateProps) => {
                     boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
                   }}
                 />
-              ))}
+              )))}
             </div>
-          )}
+          ))}
 
           {/* Feature Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '10px' }}>
-            {featureItems.map((item, i) => (
+            {renderSalesText(featureItems.map((item, i) => (
               <motion.div
                 key={i}
                 initial={{ opacity: 0, y: 15 }}
@@ -530,15 +537,15 @@ const Template12Gadget3 = ({ page }: TemplateProps) => {
                   gap: '10px',
                 }}
               >
-                <span style={{ fontSize: '22px', flexShrink: 0 }}>{item.icon}</span>
+                <span style={{ fontSize: '22px', flexShrink: 0 }}>{renderSalesText(item.icon)}</span>
                 <div>
-                  <h3 style={{ fontSize: '15px', fontWeight: 600, color: '#ffffff', margin: 0 }}>{item.text}</h3>
-                  {item.description && (
-                    <p style={{ fontSize: '12px', color: '#94a3b8', margin: '4px 0 0' }}>{item.description}</p>
-                  )}
+                  <h3 style={{ fontSize: '15px', fontWeight: 600, color: '#ffffff', margin: 0 }}>{renderSalesText(item.text)}</h3>
+                  {renderSalesText(item.description && (
+                    <p style={{ fontSize: '12px', color: '#94a3b8', margin: '4px 0 0' }}>{renderSalesText(item.description)}</p>
+                  ))}
                 </div>
               </motion.div>
-            ))}
+            )))}
           </div>
 
           {/* CTA Button */}
@@ -563,10 +570,10 @@ const Template12Gadget3 = ({ page }: TemplateProps) => {
                 borderRadius: '50px',
                 cursor: 'pointer',
                 boxShadow: `0 8px 20px ${c.button}50`,
-                fontFamily: "'Hind Siliguri', sans-serif",
+                fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
               }}
             >
-              {page.cta_button_text || "🛒 এখনই অর্ডার করুন"}
+              {renderSalesText(page.cta_button_text || "🛒 এখনই অর্ডার করুন")}
             </button>
           </motion.div>
         </div>
@@ -594,19 +601,19 @@ const Template12Gadget3 = ({ page }: TemplateProps) => {
       <section
         key={`extra-${num}`}
         style={{
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
           background: c.bg,
           padding: '30px 15px',
         }}
       >
         <div style={{ maxWidth: '480px', margin: '0 auto' }}>
-          {heading && (
+          {renderSalesText(heading && (
             <h2 style={{ fontSize: '22px', fontWeight: 700, color: c.headline, textAlign: 'center', marginBottom: '16px' }}>
-              {heading}
+              {renderSalesText(heading)}
             </h2>
-          )}
+          ))}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {allPoints.map((point, i) => (
+            {renderSalesText(allPoints.map((point, i) => (
               <div
                 key={i}
                 style={{
@@ -622,9 +629,9 @@ const Template12Gadget3 = ({ page }: TemplateProps) => {
                 }}
               >
                 <span style={{ color: c.accent, fontWeight: 700, fontSize: '16px' }}>✓</span>
-                {point}
+                {renderSalesText(point)}
               </div>
-            ))}
+            )))}
           </div>
         </div>
       </section>
@@ -641,17 +648,17 @@ const Template12Gadget3 = ({ page }: TemplateProps) => {
       <section
         key="spec"
         style={{
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
           background: c.bg,
           padding: '30px 15px',
         }}
       >
         <div style={{ maxWidth: '480px', margin: '0 auto' }}>
           <h2 style={{ fontSize: '22px', fontWeight: 700, color: c.headline, textAlign: 'center', marginBottom: '16px' }}>
-            {page.spec_section_heading || 'স্পেসিফিকেশন'}
+            {renderSalesText(page.spec_section_heading || 'স্পেসিফিকেশন')}
           </h2>
           <div style={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
-            {items.map((item, i) => (
+            {renderSalesText(items.map((item, i) => (
               <div
                 key={i}
                 style={{
@@ -661,13 +668,13 @@ const Template12Gadget3 = ({ page }: TemplateProps) => {
                 }}
               >
                 <div style={{ padding: '10px 14px', background: 'rgba(255,255,255,0.06)', fontWeight: 600, color: '#e2e8f0', fontSize: '13px' }}>
-                  {item.label}
+                  {renderSalesText(item.label)}
                 </div>
                 <div style={{ padding: '10px 14px', color: '#94a3b8', fontSize: '13px' }}>
-                  {item.value}
+                  {renderSalesText(item.value)}
                 </div>
               </div>
-            ))}
+            )))}
           </div>
         </div>
       </section>
@@ -684,7 +691,7 @@ const Template12Gadget3 = ({ page }: TemplateProps) => {
       <section
         key="reviews"
         style={{
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
           background: `linear-gradient(180deg, #1e293b, ${c.bg})`,
           padding: '30px 15px',
         }}
@@ -697,26 +704,26 @@ const Template12Gadget3 = ({ page }: TemplateProps) => {
             style={{ textAlign: 'center', marginBottom: '20px' }}
           >
             <h2 style={{ fontSize: '22px', fontWeight: 700, color: c.headline }}>
-              {page.reviews_headline || 'কাস্টমার ফিডব্যাক'}
+              {renderSalesText(page.reviews_headline || 'কাস্টমার ফিডব্যাক')}
             </h2>
-            {page.reviews_subheadline && (
+            {renderSalesText(page.reviews_subheadline && (
               <p style={{ fontSize: '14px', color: '#94a3b8', marginTop: '4px' }}>
-                {page.reviews_subheadline}
+                {renderSalesText(page.reviews_subheadline)}
               </p>
-            )}
+            ))}
           </motion.div>
 
           {/* Review Video */}
-          {page.review_video_url && (
+          {renderSalesText(page.review_video_url && (
             <div style={{ marginBottom: '16px', borderRadius: '12px', overflow: 'hidden' }}>
-              <iframe
+              <iframe loading="lazy"
                 src={page.review_video_url.replace('watch?v=', 'embed/')}
                 style={{ width: '100%', height: isMobile ? '200px' : '280px', border: 'none' }}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               />
             </div>
-          )}
+          ))}
 
           <ReviewCarousel images={images} accentColor={c.accent} />
         </div>
@@ -749,9 +756,9 @@ const Template12Gadget3 = ({ page }: TemplateProps) => {
           </div>
         );
       case 'features': return renderFeatures();
-      case 'extra1': return renderExtraSection(1);
-      case 'extra2': return renderExtraSection(2);
-      case 'extra3': return renderExtraSection(3);
+      case 'extra1': return isExtraDesign(page.template_styles?.extra1?.design) ? <ExtraSection key="extra1" page={page} number={1} /> : renderExtraSection(1);
+      case 'extra2': return isExtraDesign(page.template_styles?.extra2?.design) ? <ExtraSection key="extra2" page={page} number={2} /> : renderExtraSection(2);
+      case 'extra3': return isExtraDesign(page.template_styles?.extra3?.design) ? <ExtraSection key="extra3" page={page} number={3} /> : renderExtraSection(3);
       case 'spec': return renderSpecSection();
       case 'reviews': return renderReviews();
       case 'contact':
@@ -777,9 +784,9 @@ const Template12Gadget3 = ({ page }: TemplateProps) => {
   };
 
   return (
-    <div style={{ fontFamily: "'Hind Siliguri', sans-serif", background: c.bg, minHeight: '100vh' }}>
-      {renderTopBar()}
-      {sectionOrder.map((sectionId) => renderSection(sectionId))}
+    <div style={{ fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif", background: c.bg, minHeight: '100vh' }}>
+      {renderSalesText(renderTopBar())}
+      {renderSalesText(sectionOrder.map((sectionId) => <SectionAppearance key={sectionId} page={page} section={sectionId}>{renderSection(sectionId)}</SectionAppearance>))}
 
       {/* Footer */}
       <div
@@ -789,10 +796,10 @@ const Template12Gadget3 = ({ page }: TemplateProps) => {
           background: `linear-gradient(180deg, ${c.bg}, #000000)`,
           color: '#94a3b8',
           fontSize: '13px',
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
         }}
       >
-        <p>{page.footer_text || `© ${new Date().getFullYear()} - সকল অধিকার সংরক্ষিত`}</p>
+        <p>{renderSalesText(page.footer_text || `© ${new Date().getFullYear()} - সকল অধিকার সংরক্ষিত`)}</p>
       </div>
     </div>
   );

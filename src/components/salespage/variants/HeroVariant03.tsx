@@ -1,3 +1,5 @@
+import { salesPlainText } from '@/lib/salesRichText';
+import { renderSalesText } from '@/components/salespage/SalesRichText';
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { SalesPage } from "@/types/salesPage";
@@ -20,7 +22,7 @@ const HeroVariant03 = ({ page, colors, onOrderClick }: HeroVariantProps) => {
         background: `linear-gradient(180deg, ${colors.primary} 0%, ${colors.background} 100%)`
       }}
     >
-      <div className="relative z-10 max-w-lg mx-auto text-center">
+      <div className="relative z-10 max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto text-center">
         {/* Badge */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -34,7 +36,7 @@ const HeroVariant03 = ({ page, colors, onOrderClick }: HeroVariantProps) => {
               color: '#fff'
             }}
           >
-            ✨ {page.hero_badge_text || "সীমিত সময়ের অফার"} ✨
+            ✨ {renderSalesText(page.hero_badge_text || "সীমিত সময়ের অফার")} ✨
           </span>
         </motion.div>
 
@@ -45,7 +47,7 @@ const HeroVariant03 = ({ page, colors, onOrderClick }: HeroVariantProps) => {
           transition={{ delay: 0.1 }}
           className="text-3xl md:text-4xl font-black text-white mb-2"
         >
-          মাত্র <span style={{ color: colors.accent }}>{page.price_unit}{page.offer_price}</span> টাকায়
+          মাত্র <span style={{ color: colors.accent }}>{renderSalesText(page.price_unit)}{renderSalesText(page.offer_price)}</span> টাকায়
         </motion.h1>
 
         <motion.p
@@ -54,7 +56,7 @@ const HeroVariant03 = ({ page, colors, onOrderClick }: HeroVariantProps) => {
           transition={{ delay: 0.15 }}
           className="text-lg md:text-xl font-medium text-white/90 mb-6"
         >
-          {page.hero_headline}
+          {renderSalesText(page.hero_headline)}
         </motion.p>
 
         {/* Image Grid - 2x2 */}
@@ -64,14 +66,14 @@ const HeroVariant03 = ({ page, colors, onOrderClick }: HeroVariantProps) => {
           transition={{ delay: 0.2 }}
           className="grid grid-cols-2 gap-3 mb-6"
         >
-          {images.map((image, i) => (
+          {renderSalesText(images.map((image, i) => (
             <div 
               key={i}
               className="relative rounded-xl overflow-hidden aspect-[3/4] group"
             >
               <img 
                 src={image} 
-                alt={`Product ${i + 1}`}
+                alt={salesPlainText(`Product ${i + 1}`)}
                 className="w-full h-full object-cover"
               />
               {/* Order button on each image */}
@@ -87,7 +89,7 @@ const HeroVariant03 = ({ page, colors, onOrderClick }: HeroVariantProps) => {
                 </Button>
               </div>
             </div>
-          ))}
+          )))}
         </motion.div>
 
         {/* CTA Button */}
@@ -105,7 +107,7 @@ const HeroVariant03 = ({ page, colors, onOrderClick }: HeroVariantProps) => {
               boxShadow: `0 8px 30px -8px ${colors.accent}80`
             }}
           >
-            {page.cta_button_text || "এখনই অর্ডার করুন"}
+            {renderSalesText(page.cta_button_text || "এখনই অর্ডার করুন")}
             <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
         </motion.div>

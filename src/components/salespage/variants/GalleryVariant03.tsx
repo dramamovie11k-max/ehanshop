@@ -1,3 +1,5 @@
+import { salesPlainText } from '@/lib/salesRichText';
+import { renderSalesText } from '@/components/salespage/SalesRichText';
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -23,7 +25,7 @@ const GalleryVariant03 = ({ page, colors, isLightTheme, onOrderClick }: GalleryV
       className="py-8 px-3"
       style={{ backgroundColor: colors.background }}
     >
-      <div className="max-w-lg mx-auto">
+      <div className="max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -31,14 +33,14 @@ const GalleryVariant03 = ({ page, colors, isLightTheme, onOrderClick }: GalleryV
           className="text-center mb-4"
         >
           <h2 className="text-lg font-bold" style={{ color: isLightTheme ? colors.text : '#fff' }}>
-            {page.gallery_title || 'প্রোডাক্ট গ্যালারি'}
+            {renderSalesText(page.gallery_title || 'প্রোডাক্ট গ্যালারি')}
           </h2>
         </motion.div>
 
         {/* Horizontal scroll container */}
         <div className="overflow-x-auto pb-4 scrollbar-hide -mx-3 px-3">
           <div className="flex gap-3" style={{ width: 'max-content' }}>
-            {images.map((img, idx) => (
+            {renderSalesText(images.map((img, idx) => (
               <motion.div
                 key={idx}
                 initial={{ opacity: 0, x: 20 }}
@@ -50,7 +52,7 @@ const GalleryVariant03 = ({ page, colors, isLightTheme, onOrderClick }: GalleryV
               >
                 <img
                   src={img}
-                  alt={`Product ${idx + 1}`}
+                  alt={salesPlainText(`Product ${idx + 1}`)}
                   className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
@@ -67,13 +69,13 @@ const GalleryVariant03 = ({ page, colors, isLightTheme, onOrderClick }: GalleryV
                   </Button>
                 </div>
               </motion.div>
-            ))}
+            )))}
           </div>
         </div>
 
         {/* Scroll indicator dots */}
         <div className="flex justify-center gap-1 mt-2">
-          {images.map((_, idx) => (
+          {renderSalesText(images.map((_, idx) => (
             <div 
               key={idx}
               className="w-2 h-2 rounded-full transition-colors"
@@ -81,13 +83,13 @@ const GalleryVariant03 = ({ page, colors, isLightTheme, onOrderClick }: GalleryV
                 backgroundColor: idx === 0 ? colors.accent : isLightTheme ? '#ddd' : 'rgba(255,255,255,0.2)'
               }}
             />
-          ))}
+          )))}
         </div>
       </div>
 
       {/* Lightbox */}
       <AnimatePresence>
-        {selectedImage && (
+        {renderSalesText(selectedImage && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -110,7 +112,7 @@ const GalleryVariant03 = ({ page, colors, isLightTheme, onOrderClick }: GalleryV
               <X className="w-5 h-5 text-white" />
             </button>
           </motion.div>
-        )}
+        ))}
       </AnimatePresence>
     </section>
   );

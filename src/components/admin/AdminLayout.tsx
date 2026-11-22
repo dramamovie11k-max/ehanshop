@@ -63,7 +63,6 @@ const getMenuItems = (isAdmin: boolean): MenuItem[] => {
     { icon: ShoppingBag, label: "Abandoned Orders", path: "/admin/abandoned", roles: ["admin", "moderator"] },
     { icon: Boxes, label: "Inventory", path: "/admin/inventory", roles: ["admin"] },
     { icon: FileText, label: "Sales Pages", path: "/admin/sales-pages", roles: ["admin"] },
-    { icon: FileText, label: "Pages", path: "/admin/pages", roles: ["admin"] },
     { icon: RotateCw, label: "Spin Settings", path: "/admin/spin-settings", roles: ["admin", "moderator"] },
     { icon: Settings, label: "Settings", path: "/admin/settings", roles: ["admin"] },
   ];

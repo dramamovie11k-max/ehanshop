@@ -1,3 +1,4 @@
+import { renderSalesText } from '@/components/salespage/SalesRichText';
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -45,7 +46,7 @@ const HeroVariant02 = ({ page, colors, onOrderClick }: HeroVariantProps) => {
       className="relative min-h-[70vh] flex items-center justify-center overflow-hidden px-3 py-8"
       style={{ backgroundColor: colors.background }}
     >
-      <div className="relative z-10 text-center max-w-lg mx-auto w-full">
+      <div className="relative z-10 text-center max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto w-full">
         {/* Fire Badge */}
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
@@ -58,7 +59,7 @@ const HeroVariant02 = ({ page, colors, onOrderClick }: HeroVariantProps) => {
         >
           <span className="text-lg">🔥</span>
           <span className="text-sm font-bold" style={{ color: colors.accent }}>
-            {page.hero_badge_text || "স্টক ক্লিয়ারেন্স সেল লাইভ"}
+            {renderSalesText(page.hero_badge_text || "স্টক ক্লিয়ারেন্স সেল লাইভ")}
           </span>
           <span className="text-lg">🔥</span>
         </motion.div>
@@ -71,7 +72,7 @@ const HeroVariant02 = ({ page, colors, onOrderClick }: HeroVariantProps) => {
           className="text-4xl md:text-5xl font-black mb-2"
           style={{ color: colors.accent }}
         >
-          মাত্র {page.price_unit}{page.offer_price} টাকায়
+          মাত্র {renderSalesText(page.price_unit)}{renderSalesText(page.offer_price)} টাকায়
         </motion.h1>
 
         {/* Subtitle */}
@@ -82,7 +83,7 @@ const HeroVariant02 = ({ page, colors, onOrderClick }: HeroVariantProps) => {
           className="text-lg mb-6"
           style={{ color: colors.text, opacity: 0.9 }}
         >
-          {page.offer_details || page.hero_headline}
+          {renderSalesText(page.offer_details || page.hero_headline)}
         </motion.p>
 
         {/* Countdown Timer */}
@@ -100,7 +101,7 @@ const HeroVariant02 = ({ page, colors, onOrderClick }: HeroVariantProps) => {
           </div>
           
           <div className="flex justify-center gap-3">
-            {[
+            {renderSalesText([
               { value: timeLeft.days, label: page.countdown_label_days || "দিন" },
               { value: timeLeft.hours, label: page.countdown_label_hours || "ঘন্টা" },
               { value: timeLeft.minutes, label: page.countdown_label_minutes || "মিনিট" },
@@ -115,14 +116,14 @@ const HeroVariant02 = ({ page, colors, onOrderClick }: HeroVariantProps) => {
                   }}
                 >
                   <span className="text-2xl md:text-3xl font-black text-white">
-                    {formatNumber(item.value)}
+                    {renderSalesText(formatNumber(item.value))}
                   </span>
                 </div>
                 <p className="text-xs" style={{ color: colors.text, opacity: 0.6 }}>
-                  {item.label}
+                  {renderSalesText(item.label)}
                 </p>
               </div>
-            ))}
+            )))}
           </div>
         </motion.div>
 
@@ -141,7 +142,7 @@ const HeroVariant02 = ({ page, colors, onOrderClick }: HeroVariantProps) => {
               boxShadow: `0 8px 30px -8px ${colors.accent}80`
             }}
           >
-            {page.cta_button_text || "এখনই অর্ডার করুন"}
+            {renderSalesText(page.cta_button_text || "এখনই অর্ডার করুন")}
             <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
         </motion.div>
@@ -155,7 +156,7 @@ const HeroVariant02 = ({ page, colors, onOrderClick }: HeroVariantProps) => {
           style={{ color: colors.accent }}
         >
           <Zap className="w-4 h-4" />
-          {page.cta_urgency_text || "সীমিত স্টক! মিস করবেন না"}
+          {renderSalesText(page.cta_urgency_text || "সীমিত স্টক! মিস করবেন না")}
         </motion.p>
       </div>
     </section>

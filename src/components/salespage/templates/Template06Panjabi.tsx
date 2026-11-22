@@ -1,3 +1,8 @@
+import SectionAppearance from '../SectionAppearance';
+import ExtraSection from '../ExtraSection';
+import { isExtraDesign } from '@/lib/extraSectionDesigns';
+import { salesPlainText } from '@/lib/salesRichText';
+import { renderSalesText } from '@/components/salespage/SalesRichText';
 import { motion } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
 import { getWhatsAppUrl } from "@/lib/utils";
@@ -16,6 +21,7 @@ import {
   Zap,
 } from "lucide-react";
 import CheckoutSection from "../CheckoutSection";
+import SharedHeroSection from "../SharedHeroSection";
 import { usePixelTracking } from "@/hooks/usePixelTracking";
 
 interface TemplateProps {
@@ -141,11 +147,11 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
         style={{
           background: `linear-gradient(180deg, ${c.buttonLight} 0%, ${c.button} 40%, ${c.buttonDark} 100%)`,
           boxShadow: `0 6px 20px ${c.button}60`,
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
           animation: 'pulseGlow06 2.5s infinite',
         }}
       >
-        🛒 {page.cta_button_text || "অর্ডার করতে চাই"}
+        🛒 {renderSalesText(page.cta_button_text || "অর্ডার করতে চাই")}
       </button>
     </motion.div>
   );
@@ -165,16 +171,16 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
           border: `2px solid ${c.headline}40`,
           borderRadius: '8px',
           backgroundColor: `${c.headline}08`,
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
         }}
       >
-        {text}
+        {renderSalesText(text)}
       </h2>
-      {subtitle && (
+      {renderSalesText(subtitle && (
         <p className="text-[15px] mt-2 font-medium" style={{ color: c.text, opacity: 0.8 }}>
-          {subtitle}
+          {renderSalesText(subtitle)}
         </p>
-      )}
+      ))}
     </motion.div>
   );
 
@@ -207,7 +213,7 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
   // ── Slider Dots ──
   const SliderDots = ({ count, activeIndex, onSelect }: { count: number; activeIndex: number; onSelect: (i: number) => void }) => (
     <div className="flex justify-center gap-2 mt-4">
-      {Array.from({ length: count }).map((_, idx) => (
+      {renderSalesText(Array.from({ length: count }).map((_, idx) => (
         <button
           key={idx}
           onClick={() => onSelect(idx)}
@@ -222,7 +228,7 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
             boxShadow: activeIndex === idx ? `0 2px 8px ${c.button}80` : 'none',
           }}
         />
-      ))}
+      )))}
     </div>
   );
 
@@ -233,6 +239,7 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
   // ══════════════════════════════════════════════
   const renderHero = () => {
     if (!page.show_hero_section) return null;
+    if (page.template_styles?.hero?.design) return <SharedHeroSection page={page} onOrderClick={scrollToCheckout} />;
 
     const discountPercent = productOriginalPrice && productOriginalPrice > productPrice
       ? Math.round(((productOriginalPrice - productPrice) / productOriginalPrice) * 100)
@@ -244,7 +251,7 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
         className="relative overflow-hidden"
         style={{
           background: c.bg,
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
@@ -270,7 +277,7 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
           {/* ─── Header Content ─── */}
           <div style={{ padding: '30px 20px 20px' }}>
             {/* Tagline Badge */}
-            {page.hero_badge_text && (
+            {renderSalesText(page.hero_badge_text && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -286,13 +293,13 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
                     borderRadius: '50px',
                     fontSize: '14px',
                     fontWeight: 600,
-                    fontFamily: "'Hind Siliguri', sans-serif",
+                    fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
                   }}
                 >
-                  {page.hero_badge_text}
+                  {renderSalesText(page.hero_badge_text)}
                 </span>
               </motion.div>
-            )}
+            ))}
 
             {/* Main Heading — Two Colors */}
             <motion.div
@@ -307,23 +314,23 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
                   margin: '10px 0',
                   lineHeight: 1.4,
                   fontWeight: 700,
-                  fontFamily: "'Hind Siliguri', sans-serif",
+                  fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
                 }}
               >
-                {page.hero_headline}
-                {page.hero_subheadline && (
+                {renderSalesText(page.hero_headline)}
+                {renderSalesText(page.hero_subheadline && (
                   <>
                     <br />
                     <span style={{ color: c.headline || '#e67e22' }}>
-                      {page.hero_subheadline}
+                      {renderSalesText(page.hero_subheadline)}
                     </span>
                   </>
-                )}
+                ))}
               </h2>
             </motion.div>
 
             {/* Delivery Badge — Green pill */}
-            {page.offer_details && (
+            {renderSalesText(page.offer_details && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -339,13 +346,13 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
                     borderRadius: '50px',
                     fontSize: '13px',
                     fontWeight: 500,
-                    fontFamily: "'Hind Siliguri', sans-serif",
+                    fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
                   }}
                 >
-                  {page.offer_details}
+                  {renderSalesText(page.offer_details)}
                 </span>
               </motion.div>
-            )}
+            ))}
 
             {/* Price Area with Discount Tag */}
             <motion.div
@@ -359,7 +366,7 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
               }}
             >
               {/* Discount Tag — Floating on top */}
-              {(discountPercent > 0 || page.discount_text) && (
+              {renderSalesText((discountPercent > 0 || page.discount_text) && (
                 <span
                   style={{
                     background: '#ff4757',
@@ -374,12 +381,12 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
                     fontWeight: 'bold',
                     zIndex: 2,
                     whiteSpace: 'nowrap',
-                    fontFamily: "'Hind Siliguri', sans-serif",
+                    fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
                   }}
                 >
-                  {page.discount_text || `${discountPercent}% অফ`}
+                  {renderSalesText(page.discount_text || `${discountPercent}% অফ`)}
                 </span>
-              )}
+              ))}
 
               {/* Price Box */}
               <div
@@ -398,27 +405,27 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
                     textDecoration: 'line-through',
                     color: '#94a3b8',
                     fontSize: '20px',
-                    fontFamily: "'Hind Siliguri', sans-serif",
+                    fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
                   }}
                 >
-                  {productOriginalPrice || productPrice}{page.price_unit || '৳'}
+                  {renderSalesText(productOriginalPrice || productPrice)}{renderSalesText(page.price_unit || '৳')}
                 </span>
                 <span
                   style={{
                     color: c.accent || '#10b981',
                     fontSize: '28px',
                     fontWeight: 800,
-                    fontFamily: "'Hind Siliguri', sans-serif",
+                    fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
                   }}
                 >
-                  {productPrice}{page.price_unit || '৳'}
+                  {renderSalesText(productPrice)}{renderSalesText(page.price_unit || '৳')}
                 </span>
               </div>
             </motion.div>
           </div>
 
           {/* ─── Image Section with Overlays ─── */}
-          {page.hero_images?.[0] && (
+          {renderSalesText(page.hero_images?.[0] && (
             <motion.div
               initial={{ opacity: 0, scale: 0.97 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -431,7 +438,7 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
             >
               <img
                 src={page.hero_images[0]}
-                alt={page.hero_headline}
+                alt={salesPlainText(page.hero_headline)}
                 style={{
                   width: '100%',
                   borderRadius: '20px',
@@ -441,7 +448,7 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
               />
 
               {/* CTA Urgency Bar — Bottom overlay on image */}
-              {page.cta_urgency_text && (
+              {renderSalesText(page.cta_urgency_text && (
                 <div
                   style={{
                     background: 'rgba(0, 0, 0, 0.85)',
@@ -456,15 +463,15 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
                     letterSpacing: '1px',
                     borderBottomLeftRadius: '5px',
                     borderBottomRightRadius: '5px',
-                    fontFamily: "'Hind Siliguri', sans-serif",
+                    fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
                     textAlign: 'center',
                   }}
                 >
-                  {page.cta_urgency_text}
+                  {renderSalesText(page.cta_urgency_text)}
                 </div>
-              )}
+              ))}
             </motion.div>
-          )}
+          ))}
 
           {/* ─── Order CTA Button inside card ─── */}
           <div style={{ padding: '5px 20px 25px' }}>
@@ -481,14 +488,14 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
                 color: '#fff',
                 background: `linear-gradient(180deg, ${c.buttonLight} 0%, ${c.button} 40%, ${c.buttonDark} 100%)`,
                 boxShadow: `0 6px 20px ${c.button}60`,
-                fontFamily: "'Hind Siliguri', sans-serif",
+                fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
                 animation: 'pulseGlow06 2.5s infinite',
                 transition: 'transform 0.15s',
               }}
               onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.96)')}
               onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
             >
-              🛒 {page.cta_button_text || "অর্ডার করতে চাই"}
+              🛒 {renderSalesText(page.cta_button_text || "অর্ডার করতে চাই")}
             </button>
           </div>
         </motion.div>
@@ -515,10 +522,10 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
         className="py-8 px-4"
         style={{
           background: c.bg,
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
         }}
       >
-        <div className="max-w-lg mx-auto">
+        <div className="max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto">
           <SectionHeading text={page.video_title || 'প্রোডাক্ট ভিডিও'} subtitle={page.video_subtitle} />
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
@@ -532,11 +539,11 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
                 boxShadow: `0 8px 32px rgba(0,0,0,0.4)`,
               }}
             >
-              {youtubeId ? (
+              {renderSalesText(youtubeId ? (
                 <div className="aspect-video">
-                  <iframe
+                  <iframe loading="lazy"
                     src={`https://www.youtube.com/embed/${youtubeId}?rel=0`}
-                    title={page.video_title}
+                    title={salesPlainText(page.video_title)}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
                     className="w-full h-full"
@@ -546,7 +553,7 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
                 <div className="aspect-video">
                   <video src={page.video_url} controls className="w-full h-full object-cover" />
                 </div>
-              )}
+              ))}
             </div>
           </motion.div>
           <CTAButton />
@@ -599,10 +606,10 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
                   fontWeight: 700,
                   color: c.headline,
                   margin: '0 0 5px 0',
-                  fontFamily: "'Hind Siliguri', sans-serif",
+                  fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
                 }}
               >
-                {page.gallery_title || 'এক্সক্লুসিভ কালেকশন'}
+                {renderSalesText(page.gallery_title || 'এক্সক্লুসিভ কালেকশন')}
               </h2>
               <p
                 style={{
@@ -611,10 +618,10 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
                   fontSize: '0.9rem',
                   fontStyle: 'italic',
                   opacity: 0.7,
-                  fontFamily: "'Hind Siliguri', sans-serif",
+                  fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
                 }}
               >
-                {page.gallery_subtitle || 'প্রিমিয়াম কোয়ালিটি নিশ্চিত'}
+                {renderSalesText(page.gallery_subtitle || 'প্রিমিয়াম কোয়ালিটি নিশ্চিত')}
               </p>
             </motion.div>
 
@@ -640,7 +647,7 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
               >
                 <img
                   src={images[currentIndex]}
-                  alt={`Product ${currentIndex + 1}`}
+                  alt={salesPlainText(`Product ${currentIndex + 1}`)}
                   className="w-full h-full object-cover block transition-opacity duration-300"
                 />
 
@@ -682,15 +689,15 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
                     fontWeight: 600,
                     zIndex: 10,
                     border: `1px solid ${c.headline}40`,
-                    fontFamily: "'Hind Siliguri', sans-serif",
+                    fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
                   }}
                 >
-                  {currentIndex + 1} / {images.length}
+                  {renderSalesText(currentIndex + 1)} / {renderSalesText(images.length)}
                 </div>
               </div>
 
               {/* Navigation Arrows */}
-              {images.length > 1 && (
+              {renderSalesText(images.length > 1 && (
                 <>
                   <button
                     onClick={prevSlide}
@@ -727,7 +734,7 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
                     <ChevronRight className="w-5 h-5" style={{ color: c.headline }} />
                   </button>
                 </>
-              )}
+              ))}
             </motion.div>
 
             {/* Thumbnails Row */}
@@ -735,7 +742,7 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
               className="flex justify-center flex-wrap"
               style={{ gap: '10px', marginTop: '15px' }}
             >
-              {images.map((img, idx) => (
+              {renderSalesText(images.map((img, idx) => (
                 <button
                   key={idx}
                   onClick={() => setCurrentIndex(idx)}
@@ -753,9 +760,9 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
                     cursor: 'pointer',
                   }}
                 >
-                  <img src={img} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                  <img src={img} alt={salesPlainText(`Thumbnail ${idx + 1}`)} className="w-full h-full object-cover" />
                 </button>
-              ))}
+              )))}
             </div>
 
             {/* Order Button */}
@@ -774,16 +781,16 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
                   boxShadow: `0 4px 15px ${c.button}50`,
                   border: 'none',
                   minWidth: '180px',
-                  fontFamily: "'Hind Siliguri', sans-serif",
+                  fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
                 }}
               >
-                🛒 {page.cta_button_text || 'অর্ডার করতে ক্লিক করুন'}
+                🛒 {renderSalesText(page.cta_button_text || 'অর্ডার করতে ক্লিক করুন')}
               </button>
             </div>
           </motion.div>
 
           {/* Fullscreen Modal */}
-          {fullscreenImage && (
+          {renderSalesText(fullscreenImage && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -824,7 +831,7 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
                 ✕
               </button>
             </motion.div>
-          )}
+          ))}
         </>
       );
     };
@@ -835,7 +842,7 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
         className="py-6 px-3"
         style={{
           background: c.bg,
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
         }}
       >
         <GallerySlider />
@@ -857,17 +864,17 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
         className="py-8 px-4"
         style={{
           background: c.bg,
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
         }}
       >
-        <div className="max-w-lg mx-auto">
+        <div className="max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto">
           <SectionHeading
             text={page.features_headline || 'কেন আমাদের থেকে কিনবেন?'}
             subtitle={page.features_subheadline}
           />
 
           <div className="grid grid-cols-2 gap-3">
-            {features.map((feature, idx) => {
+            {renderSalesText(features.map((feature, idx) => {
               const Icon = defaultIcons[idx % defaultIcons.length];
               return (
                 <motion.div
@@ -892,13 +899,13 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
                   >
                     <Icon className="w-5 h-5" style={{ color: c.accent }} />
                   </div>
-                  <p className="text-sm font-semibold mb-1" style={{ color: c.text }}>{feature.text}</p>
-                  {feature.description && (
-                    <p className="text-xs" style={{ color: `${c.text}80` }}>{feature.description}</p>
-                  )}
+                  <p className="text-sm font-semibold mb-1" style={{ color: c.text }}>{renderSalesText(feature.text)}</p>
+                  {renderSalesText(feature.description && (
+                    <p className="text-xs" style={{ color: `${c.text}80` }}>{renderSalesText(feature.description)}</p>
+                  ))}
                 </motion.div>
               );
-            })}
+            }))}
           </div>
 
           <CTAButton />
@@ -951,11 +958,11 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.3 }}
               src={reviews[activeIndex]}
-              alt={`Review ${activeIndex + 1}`}
+              alt={salesPlainText(`Review ${activeIndex + 1}`)}
               className="w-full object-contain"
               style={{ maxHeight: '500px', minHeight: '250px' }}
             />
-            {reviews.length > 1 && <SliderArrows onPrev={prevSlide} onNext={nextSlide} />}
+            {renderSalesText(reviews.length > 1 && <SliderArrows onPrev={prevSlide} onNext={nextSlide} />)}
             <div
               className="absolute bottom-3 right-3 px-3 py-1 rounded-full text-xs font-bold text-white"
               style={{
@@ -963,12 +970,12 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
                 boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
               }}
             >
-              {activeIndex + 1} / {reviews.length}
+              {renderSalesText(activeIndex + 1)} / {renderSalesText(reviews.length)}
             </div>
           </div>
-          {reviews.length > 1 && (
+          {renderSalesText(reviews.length > 1 && (
             <SliderDots count={reviews.length} activeIndex={activeIndex} onSelect={setActiveIndex} />
-          )}
+          ))}
         </motion.div>
       );
     };
@@ -984,24 +991,24 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
         className="py-8 px-4"
         style={{
           background: c.bg,
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
         }}
       >
-        <div className="max-w-lg mx-auto">
+        <div className="max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto">
           <SectionHeading
             text={`★★★ ${page.reviews_headline || 'সম্মানিত কাস্টমারদের মতামত'} ★★★`}
             subtitle={page.reviews_subheadline}
           />
 
-          {reviewVideoUrl && (
+          {renderSalesText(reviewVideoUrl && (
             <motion.div initial={{ opacity: 0, scale: 0.96 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} className="mb-6">
               <div
                 className="rounded-xl overflow-hidden"
                 style={{ border: `3px solid ${c.border}`, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}
               >
-                {getYoutubeId(reviewVideoUrl) ? (
+                {renderSalesText(getYoutubeId(reviewVideoUrl) ? (
                   <div className="aspect-video">
-                    <iframe
+                    <iframe loading="lazy"
                       src={`https://www.youtube.com/embed/${getYoutubeId(reviewVideoUrl)}?rel=0`}
                       title="Customer Review Video"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -1013,10 +1020,10 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
                   <div className="aspect-video">
                     <video src={reviewVideoUrl} controls className="w-full h-full object-cover" />
                   </div>
-                )}
+                ))}
               </div>
             </motion.div>
-          )}
+          ))}
 
           <ReviewSlider />
           <CTAButton />
@@ -1036,10 +1043,10 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
         className="py-10 px-4"
         style={{
           background: c.bg,
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
         }}
       >
-        <div className="max-w-lg mx-auto text-center">
+        <div className="max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto text-center">
           <motion.h2
             initial={{ opacity: 0, y: -10 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -1047,7 +1054,7 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
             className="text-xl md:text-2xl font-bold mb-2"
             style={{ color: c.headline }}
           >
-            {page.contact_headline || "যোগাযোগ করুন"}
+            {renderSalesText(page.contact_headline || "যোগাযোগ করুন")}
           </motion.h2>
           <motion.p
             initial={{ opacity: 0 }}
@@ -1056,11 +1063,11 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
             className="mb-6 text-sm md:text-base"
             style={{ color: c.text, opacity: 0.7 }}
           >
-            {page.contact_subheadline || "অর্ডার বা জিজ্ঞাসার জন্য কল করুন"}
+            {renderSalesText(page.contact_subheadline || "অর্ডার বা জিজ্ঞাসার জন্য কল করুন")}
           </motion.p>
 
           <div className="flex flex-col gap-3">
-            {page.contact_phone && (
+            {renderSalesText(page.contact_phone && (
               <motion.a
                 initial={{ opacity: 0, y: 10 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -1073,10 +1080,10 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
                 }}
               >
                 <Phone className="w-5 h-5" />
-                {page.contact_phone}
+                {renderSalesText(page.contact_phone)}
               </motion.a>
-            )}
-            {page.contact_whatsapp && (
+            ))}
+            {renderSalesText(page.contact_whatsapp && (
               <motion.a
                 initial={{ opacity: 0, y: 10 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -1089,16 +1096,16 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
                 style={{ boxShadow: '0 4px 15px rgba(34, 197, 94, 0.4)' }}
               >
                 <MessageCircle className="w-5 h-5" />
-                {page.contact_whatsapp_text || "WhatsApp করুন"}
+                {renderSalesText(page.contact_whatsapp_text || "WhatsApp করুন")}
               </motion.a>
-            )}
+            ))}
           </div>
 
-          {page.contact_availability && (
+          {renderSalesText(page.contact_availability && (
             <p className="text-sm mt-4" style={{ color: c.text, opacity: 0.6 }}>
-              {page.contact_availability}
+              {renderSalesText(page.contact_availability)}
             </p>
-          )}
+          ))}
         </div>
       </section>
     );
@@ -1129,14 +1136,14 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
         className="py-8 px-4"
         style={{
           background: c.bg,
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
         }}
       >
-        <div className="max-w-lg mx-auto">
-          {heading && <SectionHeading text={heading} />}
+        <div className="max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto">
+          {renderSalesText(heading && <SectionHeading text={heading} />)}
 
           <div className="space-y-3">
-            {points.map((point, idx) => (
+            {renderSalesText(points.map((point, idx) => (
               <motion.div
                 key={idx}
                 initial={{ opacity: 0, x: -20 }}
@@ -1163,12 +1170,12 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
                   className="text-[16px] md:text-[18px] font-medium leading-relaxed"
                   style={{
                     color: c.text,
-                    fontFamily: "'Hind Siliguri', sans-serif",
+                    fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
                   }}
-                  dangerouslySetInnerHTML={{ __html: point }}
-                />
+                  
+                >{renderSalesText(point)}</p>
               </motion.div>
-            ))}
+            )))}
           </div>
 
           <CTAButton />
@@ -1188,7 +1195,7 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
         ref={checkoutRef}
         style={{
           background: c.bg,
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
         }}
       >
         <CheckoutSection page={page} />
@@ -1207,9 +1214,9 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
       case 'features': return renderFeatures();
       case 'reviews': return renderReviews();
       case 'contact': return renderContact();
-      case 'extra1': return renderExtraSection(1);
-      case 'extra2': return renderExtraSection(2);
-      case 'extra3': return renderExtraSection(3);
+      case 'extra1': return isExtraDesign(page.template_styles?.extra1?.design) ? <ExtraSection key="extra1" page={page} number={1} /> : renderExtraSection(1);
+      case 'extra2': return isExtraDesign(page.template_styles?.extra2?.design) ? <ExtraSection key="extra2" page={page} number={2} /> : renderExtraSection(2);
+      case 'extra3': return isExtraDesign(page.template_styles?.extra3?.design) ? <ExtraSection key="extra3" page={page} number={3} /> : renderExtraSection(3);
       case 'checkout': return renderCheckout();
       default: return null;
     }
@@ -1220,10 +1227,10 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
       className="min-h-screen"
       style={{
         background: c.bg,
-        fontFamily: "'Hind Siliguri', sans-serif",
+        fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
       }}
     >
-      {sectionOrder.map(sectionId => renderSection(sectionId))}
+      {renderSalesText(sectionOrder.map(sectionId => <SectionAppearance key={sectionId} page={page} section={sectionId}>{renderSection(sectionId)}</SectionAppearance>))}
 
       {/* Footer */}
       <div
@@ -1234,18 +1241,18 @@ const Template06Panjabi = ({ page }: TemplateProps) => {
         }}
       >
         <p style={{ color: `${c.text}60` }}>
-          {page.footer_text || `© ${new Date().getFullYear()} - সকল অধিকার সংরক্ষিত`}
+          {renderSalesText(page.footer_text || `© ${new Date().getFullYear()} - সকল অধিকার সংরক্ষিত`)}
         </p>
       </div>
 
       {/* Pulse Animation */}
-      <style>{`
+      <style>{renderSalesText(`
         @keyframes pulseGlow06 {
           0% { box-shadow: 0 6px 20px ${c.button}60; }
           50% { box-shadow: 0 6px 20px ${c.button}60, 0 0 0 8px ${c.button}15; }
           100% { box-shadow: 0 6px 20px ${c.button}60; }
         }
-      `}</style>
+      `)}</style>
     </div>
   );
 };

@@ -1,301 +1,39 @@
-import { useState, useCallback, useEffect, memo, useMemo } from "react";
-import { Play, ChevronLeft, ChevronRight } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import useEmblaCarousel from "embla-carousel-react";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { imageVariant, imageSrcSet } from "@/lib/responsiveImage";
+import { useState, useCallback, useEffect, memo, useMemo } from 'react';
+import { Play, ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import useEmblaCarousel from 'embla-carousel-react';
+import { cn } from '@/lib/utils';
 
 interface ProductMediaProps {
-  imageUrl: string | null;
-  videoUrl: string | null;
-  images?: string[] | null;
-  isNew?: boolean;
-  discount?: number;
-  showVideoFirst?: boolean;
+  imageUrl: string | null; videoUrl: string | null; images?: string[] | null;
+  isNew?: boolean; discount?: number; showVideoFirst?: boolean;
 }
-
-// Helper function to extract YouTube video ID
-const getYoutubeVideoId = (url: string): string | null => {
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-  const match = url.match(regExp);
-  return match && match[2].length === 11 ? match[2] : null;
-};
-
-type SlideItem = {
-  type: "image" | "video";
-  src: string;
-  videoId?: string;
-};
-
-const ProductMedia = memo(({ 
-  imageUrl, 
-  videoUrl, 
-  images = [], 
-  isNew, 
-  discount, 
-  showVideoFirst = false 
-}: ProductMediaProps) => {
-  const { t } = useLanguage();
-  const videoId = videoUrl ? getYoutubeVideoId(videoUrl) : null;
-  const [selectedIndex, setSelectedIndex] = useState(0);
-
-  // Memoize slides array to prevent unnecessary re-renders
-  const allSlides = useMemo(() => {
-    const slides: SlideItem[] = [];
-    const galleryImages = images?.filter(img => img !== imageUrl) || [];
-    const hasVideo = !!videoId;
-    
-    if (imageUrl) {
-      slides.push({ type: "image", src: imageUrl });
-    }
-    
-    if (hasVideo && videoId) {
-      slides.push({ 
-        type: "video", 
-        src: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
-        videoId: videoId
-      });
-    }
-    
-    galleryImages.forEach(img => {
-      slides.push({ type: "image", src: img });
-    });
-    
-    return slides;
-  }, [imageUrl, videoUrl, images, videoId]);
-
-  const showThumbNav = allSlides.length > 5;
-
-  // Embla Carousel for main display
-  const [emblaRef, emblaApi] = useEmblaCarousel({ 
-    loop: true,
-    dragFree: false,
-  });
-
-  // Embla Carousel for thumbnails
-  const [thumbEmblaRef, thumbEmblaApi] = useEmblaCarousel({
-    containScroll: "keepSnaps",
-    dragFree: true,
-  });
-
-  const scrollPrev = useCallback(() => {
-    if (emblaApi) emblaApi.scrollPrev();
-  }, [emblaApi]);
-
-  const scrollNext = useCallback(() => {
-    if (emblaApi) emblaApi.scrollNext();
-  }, [emblaApi]);
-
-  const scrollTo = useCallback((index: number) => {
-    if (emblaApi) emblaApi.scrollTo(index);
-  }, [emblaApi]);
-
-  const onSelect = useCallback(() => {
-    if (!emblaApi) return;
-    const index = emblaApi.selectedScrollSnap();
-    setSelectedIndex(index);
-    
-    if (thumbEmblaApi) {
-      thumbEmblaApi.scrollTo(Math.max(0, index - 1));
-    }
-  }, [emblaApi, thumbEmblaApi]);
-
-  useEffect(() => {
-    if (!emblaApi) return;
-    onSelect();
-    emblaApi.on("select", onSelect);
-    return () => {
-      emblaApi.off("select", onSelect);
-    };
-  }, [emblaApi, onSelect]);
-
-  const scrollThumbPrev = useCallback(() => {
-    if (thumbEmblaApi) thumbEmblaApi.scrollPrev();
-  }, [thumbEmblaApi]);
-
-  const scrollThumbNext = useCallback(() => {
-    if (thumbEmblaApi) thumbEmblaApi.scrollNext();
-  }, [thumbEmblaApi]);
-
-  return (
-    <div className="space-y-2 w-full max-w-full overflow-hidden">
-      {/* Main Media Display - Full Width */}
-      <div className="relative w-full">
-        {allSlides.length > 0 ? (
-          <div className="relative w-full">
-            <div className="overflow-hidden rounded-xl w-full" ref={emblaRef}>
-              <div className="flex">
-                {allSlides.map((slide, idx) => (
-                  <div 
-                    key={idx} 
-                    className="flex-[0_0_100%] min-w-0"
-                  >
-                    {slide.type === "video" && slide.videoId ? (
-                      <div className="aspect-square bg-black flex items-center justify-center overflow-hidden w-full">
-                        {/* Only load iframe when video slide is selected */}
-                        {selectedIndex === idx ? (
-                          <iframe
-                            src={`https://www.youtube.com/embed/${slide.videoId}?autoplay=0`}
-                            className="w-full h-full"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                            title="Product Video"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <img
-                            src={slide.src}
-                            alt="Video thumbnail"
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                            decoding="async"
-                          />
-                        )}
-                      </div>
-                    ) : (
-                      <div className="aspect-square bg-secondary/50 flex items-center justify-center overflow-hidden w-full">
-                        <img
-                          src={slide.src}
-                          alt={`Product ${idx + 1}`}
-                          className="w-full h-full object-cover"
-                          draggable={false}
-                          loading={idx === 0 ? "eager" : "lazy"}
-                          decoding={idx === 0 ? "sync" : "async"}
-                          fetchPriority={idx === 0 ? "high" : "auto"}
-                        />
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Navigation Arrows - Inside Image */}
-            {allSlides.length > 1 && (
-              <>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute left-1 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-black/30 hover:bg-black/50 text-white"
-                  onClick={scrollPrev}
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-1 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-black/30 hover:bg-black/50 text-white"
-                  onClick={scrollNext}
-                >
-                  <ChevronRight className="h-5 w-5" />
-                </Button>
-              </>
-            )}
-
-            {/* Badges */}
-            {isNew && (
-              <Badge className="absolute top-3 left-3 bg-primary text-primary-foreground z-10 text-xs">
-                {t('card.new')}
-              </Badge>
-            )}
-            {discount && discount > 0 && (
-              <Badge className="absolute top-3 right-3 bg-accent text-accent-foreground z-10 text-xs">
-                {discount}{t('card.discount')}
-              </Badge>
-            )}
-
-            {/* Dot Indicators */}
-            {allSlides.length > 1 && (
-              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-10">
-                {allSlides.map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => scrollTo(idx)}
-                    className={cn(
-                      "w-1.5 h-1.5 rounded-full transition-all",
-                      idx === selectedIndex 
-                        ? "bg-white w-3" 
-                        : "bg-white/50 hover:bg-white/70"
-                    )}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="aspect-square rounded-xl bg-secondary/50 flex items-center justify-center overflow-hidden w-full">
-            <span className="text-9xl">📦</span>
-          </div>
-        )}
-      </div>
-
-      {/* Thumbnails Row - With Carousel */}
-      {allSlides.length > 1 && (
-        <div className="relative w-full">
-          {showThumbNav && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 h-6 w-6 rounded-full bg-background shadow-sm"
-              onClick={scrollThumbPrev}
-            >
-              <ChevronLeft className="h-3 w-3" />
-            </Button>
-          )}
-          
-          <div 
-            className={cn(
-              "overflow-hidden",
-              showThumbNav && "mx-7"
-            )}
-            ref={thumbEmblaRef}
-          >
-            <div className="flex gap-1.5">
-              {allSlides.map((slide, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => scrollTo(idx)}
-                  className={cn(
-                    "w-12 h-12 md:w-14 md:h-14 shrink-0 rounded-md overflow-hidden border-2 transition-colors relative",
-                    selectedIndex === idx 
-                      ? "border-primary" 
-                      : "border-transparent hover:border-primary/50"
-                  )}
-                >
-                  <img
-                    src={slide.src}
-                    alt={`Thumbnail ${idx + 1}`}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                  {slide.type === "video" && (
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                      <Play className="h-3 w-3 text-white fill-white" />
-                    </div>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {showThumbNav && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-0 top-1/2 -translate-y-1/2 z-10 h-6 w-6 rounded-full bg-background shadow-sm"
-              onClick={scrollThumbNext}
-            >
-              <ChevronRight className="h-3 w-3" />
-            </Button>
-          )}
-        </div>
-      )}
+const ProductMedia = memo(({imageUrl,videoUrl,images=[]}: ProductMediaProps)=>{
+  const [selected,setSelected]=useState(0);
+  const candidate=videoUrl?.match(/^.*(?:youtu\.be\/|v\/|u\/\w\/|embed\/|shorts\/|watch\?v=|&v=)([^#&?]*).*/)?.[1];
+  const videoId=candidate && /^[\w-]{11}$/.test(candidate)?candidate:undefined;
+  const slides=useMemo(()=>{
+    const photos=[...new Set([imageUrl,...(images || [])].filter((src):src is string=>!!src))].map(src=>({src,video:false}));
+    if(videoId)photos.splice(imageUrl?1:0,0,{src:`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,video:true});
+    return photos;
+  },[imageUrl,images,videoId]);
+  const [ref,api]=useEmblaCarousel({loop:slides.length>1});
+  const sync=useCallback(()=>setSelected(api?.selectedScrollSnap() || 0),[api]);
+  useEffect(()=>{if(!api)return;sync();api.on('select',sync).on('reInit',sync);return()=>{api.off('select',sync).off('reInit',sync);};},[api,sync]);
+  return <div data-product-media className="flex min-w-0 flex-col-reverse gap-3 lg:grid lg:grid-cols-[64px_minmax(0,1fr)] lg:items-start">
+    {slides.length>0 && <div aria-label="প্রোডাক্টের ছোট ছবি" className="flex gap-2 overflow-x-auto pb-1 lg:max-h-[420px] lg:flex-col lg:overflow-y-auto lg:overflow-x-hidden lg:py-3">
+      {slides.map((slide,index)=><button type="button" key={`${slide.src}-${index}`} aria-label={`প্রোডাক্টের ছবি ${index+1}`} aria-pressed={selected===index} onClick={()=>api?.scrollTo(index)} className={cn('relative h-16 w-16 shrink-0 overflow-hidden rounded-sm border bg-white p-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400',selected===index?'border-[#fa861c]':'border-gray-200 hover:border-orange-300')}>
+        <img src={imageVariant(slide.src,384)} decoding="async" alt={`থাম্বনেইল ${index+1}`} loading="lazy" className="h-full w-full object-contain" />
+        {slide.video?<Play className="absolute inset-0 m-auto h-5 w-5 fill-white text-orange-500"/>:selected===index?<span className="absolute bottom-1 right-1 rounded-full bg-[#fa861c] p-0.5 text-white"><Check className="h-3 w-3"/></span>:null}
+      </button>)}
+    </div>}
+    <div className="relative min-w-0 overflow-hidden rounded-sm border border-gray-200 bg-white">
+      {slides.length?<div ref={ref} className="overflow-hidden"><div className="flex">{slides.map((slide,index)=><div key={`${slide.src}-${index}`} className="min-w-0 flex-[0_0_100%]"><div className="flex aspect-square items-center justify-center bg-white lg:aspect-auto lg:h-[420px]">
+        {slide.video && selected===index?<iframe src={`https://www.youtube.com/embed/${videoId}?autoplay=0`} title="Product video" className="h-full w-full" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />:<img src={imageVariant(slide.src,960)} srcSet={imageSrcSet(slide.src)} sizes="(min-width: 1024px) 50vw, 100vw" decoding="async" alt={`প্রোডাক্ট ${index+1}`} className="h-full w-full object-contain" draggable={false} loading={index===0?'eager':'lazy'} fetchPriority={index===0?'high':'auto'} />}
+      </div></div>)}</div></div>:<div className="flex aspect-square items-center justify-center bg-white lg:aspect-auto lg:h-[420px]"><span className="text-7xl">📦</span></div>}
+      {slides.length>1 && <><button type="button" aria-label="আগের প্রোডাক্ট ছবি" onClick={()=>api?.scrollPrev()} className="absolute left-1 top-1/2 -translate-y-1/2 rounded-full bg-white/80 p-1 text-slate-400 hover:text-orange-500"><ChevronLeft className="h-4 w-4"/></button><button type="button" aria-label="পরের প্রোডাক্ট ছবি" onClick={()=>api?.scrollNext()} className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full bg-white/80 p-1 text-blue-500 hover:text-orange-500"><ChevronRight className="h-4 w-4"/></button></>}
     </div>
-  );
+  </div>;
 });
-
-ProductMedia.displayName = "ProductMedia";
-
+ProductMedia.displayName='ProductMedia';
 export default ProductMedia;

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { SalesPage, FeaturePoint, SpecItem, MultiProductItem } from "@/types/salesPage";
-import { apiFetch } from "@/lib/apiClient";
+import { api } from "@/integrations/cloudflare/client";
+import { SalesPage, FeaturePoint, SpecItem } from "@/types/salesPage";
 import { toast } from "sonner";
 
 // Helper to safely parse JSONB arrays from database
@@ -13,8 +13,13 @@ export const useSalesPages = () => {
   return useQuery({
     queryKey: ["sales-pages"],
     queryFn: async () => {
-      const data = await apiFetch<any[]>("/sales-pages");
-      return (Array.isArray(data) ? data : []).map((item) => ({
+      const { data, error } = await api
+        .from("sales_pages")
+        .select("*, products(id, name, name_bn, price, image_url)")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data.map(item => ({
         ...item,
         feature_points: parseJsonArray<FeaturePoint>(item.feature_points, []),
         extra_section_1_points: parseJsonArray<string>(item.extra_section_1_points, []),
@@ -22,9 +27,6 @@ export const useSalesPages = () => {
         extra_section_3_points: parseJsonArray<string>(item.extra_section_3_points, []),
         spec_items: parseJsonArray<SpecItem>(item.spec_items, []),
         gallery_product_prices: parseJsonArray<number>(item.gallery_product_prices, []),
-        multi_products: parseJsonArray<MultiProductItem>(item.multi_products, []),
-        show_multi_products: item.show_multi_products ?? false,
-        allow_multi_select: item.allow_multi_select ?? false,
       })) as SalesPage[];
     },
   });
@@ -34,8 +36,14 @@ export const useSalesPage = (slug: string) => {
   return useQuery({
     queryKey: ["sales-page", slug],
     queryFn: async () => {
-      const data = await apiFetch<any>(`/sales-pages/${encodeURIComponent(slug)}`);
-      if (!data) throw new Error("সেলস পেজ পাওয়া যায়নি");
+      const { data, error } = await api
+        .from("sales_pages")
+        .select("*, products(id, name, name_bn, price, original_price, image_url, shipping_inside_dhaka, shipping_outside_dhaka, free_shipping, has_variations, variation_type)")
+        .eq("slug", slug)
+        .eq("is_active", true)
+        .single();
+
+      if (error) throw error;
       
       // Add defaults for new fields
       const result = {
@@ -84,9 +92,6 @@ export const useSalesPage = (slug: string) => {
         extra_section_3_points: parseJsonArray<string>(data.extra_section_3_points, []),
         spec_items: parseJsonArray<SpecItem>(data.spec_items, []),
         gallery_product_prices: parseJsonArray<number>(data.gallery_product_prices, []),
-        multi_products: parseJsonArray<MultiProductItem>((data as any).multi_products, []),
-        show_multi_products: (data as any).show_multi_products ?? false,
-        allow_multi_select: (data as any).allow_multi_select ?? false,
         // Spec section defaults
         show_spec_section: data.show_spec_section ?? false,
         spec_section_heading: data.spec_section_heading ?? 'টেকনিক্যাল স্পেসিফিকেশন',
@@ -102,13 +107,23 @@ export const useCreateSalesPage = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (salesPage: Omit<Partial<SalesPage>, 'products'>) =>
-      apiFetch("/sales-pages", { method: "POST", body: JSON.stringify(salesPage) }),
+    mutationFn: async (salesPage: Omit<Partial<SalesPage>, 'products'>) => {
+      const { data, error } = await api
+        .from("sales_pages")
+        .insert(salesPage as any)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sales-pages"] });
       toast.success("সেলস পেজ তৈরি হয়েছে!");
     },
-    onError: (error: any) => toast.error(error.message || "সেলস পেজ তৈরি করতে সমস্যা হয়েছে"),
+    onError: (error: any) => {
+      toast.error(error.message || "সেলস পেজ তৈরি করতে সমস্যা হয়েছে");
+    },
   });
 };
 
@@ -116,18 +131,26 @@ export const useUpdateSalesPage = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, ...updates }: Partial<SalesPage> & { id: string }) => {
+    mutationFn: async ({ id, ...updates }: Partial<SalesPage> & { id: string }) => {
+      // Remove products from updates as it's a joined field
       const { products, ...cleanUpdates } = updates as any;
-      return apiFetch(`/sales-pages/${encodeURIComponent(id)}`, {
-        method: "PATCH",
-        body: JSON.stringify(cleanUpdates),
-      });
+      const { data, error } = await api
+        .from("sales_pages")
+        .update(cleanUpdates)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sales-pages"] });
       toast.success("সেলস পেজ আপডেট হয়েছে!");
     },
-    onError: (error: any) => toast.error(error.message || "আপডেট করতে সমস্যা হয়েছে"),
+    onError: (error: any) => {
+      toast.error(error.message || "আপডেট করতে সমস্যা হয়েছে");
+    },
   });
 };
 
@@ -135,12 +158,20 @@ export const useDeleteSalesPage = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) =>
-      apiFetch(`/sales-pages/${encodeURIComponent(id)}`, { method: "DELETE" }),
+    mutationFn: async (id: string) => {
+      const { error } = await api
+        .from("sales_pages")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sales-pages"] });
       toast.success("সেলস পেজ ডিলিট হয়েছে!");
     },
-    onError: (error: any) => toast.error(error.message || "ডিলিট করতে সমস্যা হয়েছে"),
+    onError: (error: any) => {
+      toast.error(error.message || "ডিলিট করতে সমস্যা হয়েছে");
+    },
   });
 };

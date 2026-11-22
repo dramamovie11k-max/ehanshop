@@ -30,7 +30,7 @@ const Login = () => {
       toast.error(error.message || t('auth.login_failed'));
     } else {
       toast.success(t('auth.login_success'));
-      navigate("/");
+      navigate("/admin");
     }
 
     setLoading(false);

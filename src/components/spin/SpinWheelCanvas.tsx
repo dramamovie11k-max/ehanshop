@@ -11,6 +11,7 @@ interface SpinOffer {
 
 interface SpinWheelCanvasProps {
   offers: SpinOffer[];
+  winnerIndex: number;
   onSpinEnd: (winnerIndex: number) => void;
   isSpinning: boolean;
   setIsSpinning: (v: boolean) => void;
@@ -18,7 +19,7 @@ interface SpinWheelCanvasProps {
 
 const DEFAULT_EMOJIS = ["🏷️", "💵", "💸", "📉", "🎁", "🔄", "⭐", "🎯"];
 
-const SpinWheelCanvas = ({ offers, onSpinEnd, isSpinning, setIsSpinning }: SpinWheelCanvasProps) => {
+const SpinWheelCanvas = ({ offers, winnerIndex, onSpinEnd, isSpinning, setIsSpinning }: SpinWheelCanvasProps) => {
   const [rotation, setRotation] = useState(0);
   const animationRef = useRef<number>();
   const spinningRef = useRef(false);
@@ -30,14 +31,6 @@ const SpinWheelCanvas = ({ offers, onSpinEnd, isSpinning, setIsSpinning }: SpinW
   useEffect(() => {
     if (!isSpinning || spinningRef.current || n === 0) return;
     spinningRef.current = true;
-
-    const totalWeight = offers.reduce((s, o) => s + o.probability, 0);
-    let r = Math.random() * totalWeight;
-    let winnerIndex = 0;
-    for (let i = 0; i < n; i++) {
-      r -= offers[i].probability;
-      if (r <= 0) { winnerIndex = i; break; }
-    }
 
     const target = 360 - (winnerIndex * segDeg + segDeg / 2);
     const total = 360 * 6 + target;

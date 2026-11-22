@@ -3,7 +3,7 @@ import { Plus, X, Loader2, GripVertical, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/integrations/cloudflare/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -47,7 +47,7 @@ const GalleryImageUploader = ({
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
         const filePath = `products/gallery/${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
+        const { error: uploadError } = await api.storage
           .from("products")
           .upload(filePath, file);
 
@@ -58,7 +58,7 @@ const GalleryImageUploader = ({
 
         const {
           data: { publicUrl },
-        } = supabase.storage.from("products").getPublicUrl(filePath);
+        } = api.storage.from("products").getPublicUrl(filePath);
 
         newImages.push(publicUrl);
       }

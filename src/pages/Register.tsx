@@ -30,8 +30,8 @@ const Register = () => {
       return;
     }
 
-    if (password.length < 6) {
-      toast.error(t('auth.password_min'));
+    if (password.length < 10) {
+      toast.error("পাসওয়ার্ড কমপক্ষে ১০ অক্ষরের হতে হবে");
       return;
     }
 

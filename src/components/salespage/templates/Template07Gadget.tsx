@@ -1,7 +1,13 @@
+import SectionAppearance from '../SectionAppearance';
+import ExtraSection from '../ExtraSection';
+import { isExtraDesign } from '@/lib/extraSectionDesigns';
+import { salesPlainText } from '@/lib/salesRichText';
+import { renderSalesText } from '@/components/salespage/SalesRichText';
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { SalesPage, SpecItem } from "@/types/salesPage";
 import CheckoutSection from "../CheckoutSection";
+import SharedHeroSection from "../SharedHeroSection";
 import ContactSection from "../ContactSection";
 import VideoSection from "../VideoSection";
 import GallerySection from "../GallerySection";
@@ -57,7 +63,7 @@ const CountdownTimer = ({
           lineHeight: 1,
         }}
       >
-        {value.toString().padStart(2, '0')}
+        {renderSalesText(value.toString().padStart(2, '0'))}
       </span>
       <label
         style={{
@@ -69,7 +75,7 @@ const CountdownTimer = ({
           letterSpacing: '1px',
         }}
       >
-        {label}
+        {renderSalesText(label)}
       </label>
     </div>
   );
@@ -111,10 +117,10 @@ const ReviewCarousel = ({ images, accentColor }: { images: string[]; accentColor
           animate={{ x: `-${currentIndex * 100}%` }}
           transition={{ duration: 0.5, ease: "easeInOut" }}
         >
-          {slides.map((slideImages, slideIndex) => (
+          {renderSalesText(slides.map((slideImages, slideIndex) => (
             <div key={slideIndex} className="w-full flex-shrink-0">
               <div className="grid grid-cols-2 gap-2">
-                {slideImages.map((img, imgIndex) => (
+                {renderSalesText(slideImages.map((img, imgIndex) => (
                   <div
                     key={imgIndex}
                     className="rounded-xl overflow-hidden"
@@ -122,19 +128,19 @@ const ReviewCarousel = ({ images, accentColor }: { images: string[]; accentColor
                   >
                     <img
                       src={img}
-                      alt={`Review ${slideIndex * imagesPerSlide + imgIndex + 1}`}
+                      alt={salesPlainText(`Review ${slideIndex * imagesPerSlide + imgIndex + 1}`)}
                       className="w-full h-auto object-cover"
                     />
                   </div>
-                ))}
+                )))}
               </div>
             </div>
-          ))}
+          )))}
         </motion.div>
       </div>
-      {totalSlides > 1 && (
+      {renderSalesText(totalSlides > 1 && (
         <div className="flex justify-center gap-2 mt-4">
-          {slides.map((_, i) => (
+          {renderSalesText(slides.map((_, i) => (
             <button
               key={i}
               onClick={() => setCurrentIndex(i)}
@@ -144,9 +150,9 @@ const ReviewCarousel = ({ images, accentColor }: { images: string[]; accentColor
                 backgroundColor: i === currentIndex ? accentColor : `${accentColor}40`,
               }}
             />
-          ))}
+          )))}
         </div>
-      )}
+      ))}
     </div>
   );
 };
@@ -221,12 +227,13 @@ const Template07Gadget = ({ page }: TemplateProps) => {
   // ===== HERO SECTION =====
   const renderHero = () => {
     if (!page.show_hero_section) return null;
+    if (page.template_styles?.hero?.design) return <SharedHeroSection page={page} onOrderClick={scrollToCheckout} />;
 
     return (
       <section
         key="hero"
         style={{
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
           background: c.bg,
           padding: '20px 15px',
           width: '100%',
@@ -265,14 +272,14 @@ const Template07Gadget = ({ page }: TemplateProps) => {
                 fontSize: '20px',
                 fontWeight: 700,
                 color: c.accent,
-                fontFamily: "'Hind Siliguri', sans-serif",
+                fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
               }}
             >
-              {page.hero_badge_text || "⏰ অফার শেষ হতে সময় বাকি"}
+              {renderSalesText(page.hero_badge_text || "⏰ অফার শেষ হতে সময় বাকি")}
             </motion.h3>
 
             {/* কাউন্টডাউন টাইমার */}
-            {page.show_countdown && (
+            {renderSalesText(page.show_countdown && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -288,7 +295,7 @@ const Template07Gadget = ({ page }: TemplateProps) => {
                   }}
                 />
               </motion.div>
-            )}
+            ))}
           </div>
 
           {/* ২. কন্টেন্ট বডি — হোয়াইট এরিয়া */}
@@ -304,14 +311,14 @@ const Template07Gadget = ({ page }: TemplateProps) => {
                 fontWeight: 700,
                 marginBottom: '8px',
                 lineHeight: 1.3,
-                fontFamily: "'Hind Siliguri', sans-serif",
+                fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
               }}
             >
-              {page.hero_headline || "প্রিমিয়াম গ্যাজেট"}
+              {renderSalesText(page.hero_headline || "প্রিমিয়াম গ্যাজেট")}
             </motion.h1>
 
             {/* প্রোডাক্ট নেম ব্যাজ */}
-            {page.hero_subheadline && (
+            {renderSalesText(page.hero_subheadline && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -326,14 +333,14 @@ const Template07Gadget = ({ page }: TemplateProps) => {
                   borderRadius: '10px',
                   margin: '15px 0',
                   border: '1px dashed #2d6a4f',
-                  fontFamily: "'Hind Siliguri', sans-serif",
+                  fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
                 }}
-                dangerouslySetInnerHTML={{ __html: page.hero_subheadline }}
-              />
-            )}
+                
+              >{renderSalesText(page.hero_subheadline)}</motion.div>
+            ))}
 
             {/* Price Display */}
-            {page.offer_price > 0 && (
+            {renderSalesText(page.offer_price > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -351,7 +358,7 @@ const Template07Gadget = ({ page }: TemplateProps) => {
                     border: `1.5px dashed ${c.headline}40`,
                   }}
                 >
-                  {page.original_price && page.original_price > page.offer_price && (
+                  {renderSalesText(page.original_price && page.original_price > page.offer_price && (
                     <span
                       style={{
                         textDecoration: 'line-through',
@@ -359,9 +366,9 @@ const Template07Gadget = ({ page }: TemplateProps) => {
                         fontSize: '1.1rem',
                       }}
                     >
-                      {page.price_unit}{page.original_price}
+                      {renderSalesText(page.price_unit)}{renderSalesText(page.original_price)}
                     </span>
-                  )}
+                  ))}
                   <span
                     style={{
                       fontSize: '1.6rem',
@@ -369,9 +376,9 @@ const Template07Gadget = ({ page }: TemplateProps) => {
                       color: c.headline,
                     }}
                   >
-                    {page.price_unit}{page.offer_price}
+                    {renderSalesText(page.price_unit)}{renderSalesText(page.offer_price)}
                   </span>
-                  {page.discount_text && (
+                  {renderSalesText(page.discount_text && (
                     <span
                       style={{
                         background: c.headline,
@@ -382,15 +389,15 @@ const Template07Gadget = ({ page }: TemplateProps) => {
                         fontWeight: 700,
                       }}
                     >
-                      {page.discount_text}
+                      {renderSalesText(page.discount_text)}
                     </span>
-                  )}
+                  ))}
                 </div>
               </motion.div>
-            )}
+            ))}
 
             {/* প্রোডাক্ট ইমেজ */}
-            {page.hero_images?.[0] && (
+            {renderSalesText(page.hero_images?.[0] && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -407,7 +414,7 @@ const Template07Gadget = ({ page }: TemplateProps) => {
                 >
                   <img
                     src={page.hero_images[0]}
-                    alt={page.hero_headline}
+                    alt={salesPlainText(page.hero_headline)}
                     style={{
                       width: '100%',
                       display: 'block',
@@ -418,7 +425,7 @@ const Template07Gadget = ({ page }: TemplateProps) => {
                   />
                 </div>
               </motion.div>
-            )}
+            ))}
 
             {/* অর্ডার বাটন */}
             <motion.div
@@ -444,7 +451,7 @@ const Template07Gadget = ({ page }: TemplateProps) => {
                   borderRadius: '50px',
                   cursor: 'pointer',
                   boxShadow: `0 10px 20px ${c.button}50`,
-                  fontFamily: "'Hind Siliguri', sans-serif",
+                  fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
                   animation: 'pulse07 2s infinite',
                   transition: 'all 0.3s ease',
                 }}
@@ -459,19 +466,19 @@ const Template07Gadget = ({ page }: TemplateProps) => {
                 onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.96)')}
                 onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
               >
-                {page.cta_button_text || "🛒 অর্ডার করতে ক্লিক করুন"}
+                {renderSalesText(page.cta_button_text || "🛒 অর্ডার করতে ক্লিক করুন")}
               </button>
             </motion.div>
           </div>
         </motion.div>
 
-        <style>{`
+        <style>{renderSalesText(`
           @keyframes pulse07 {
             0% { transform: scale(1); }
             50% { transform: scale(1.03); }
             100% { transform: scale(1); }
           }
-        `}</style>
+        `)}</style>
       </section>
     );
   };
@@ -504,7 +511,7 @@ const Template07Gadget = ({ page }: TemplateProps) => {
       <section
         key="features"
         style={{
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
           padding: '20px 15px',
           background: c.bg,
         }}
@@ -534,10 +541,10 @@ const Template07Gadget = ({ page }: TemplateProps) => {
               color: '#fff',
               position: 'relative',
               paddingBottom: '10px',
-              fontFamily: "'Hind Siliguri', sans-serif",
+              fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
             }}
           >
-            {page.features_headline || 'কেন কিনবেন?'}
+            {renderSalesText(page.features_headline || 'কেন কিনবেন?')}
             <span
               style={{
                 position: 'absolute',
@@ -554,9 +561,9 @@ const Template07Gadget = ({ page }: TemplateProps) => {
           </h2>
 
           {/* Feature Section Images */}
-          {page.feature_section_images && page.feature_section_images.length > 0 && (
+          {renderSalesText(page.feature_section_images && page.feature_section_images.length > 0 && (
             <div style={{ marginBottom: '25px' }}>
-              {page.feature_section_images.map((img, idx) => (
+              {renderSalesText(page.feature_section_images.map((img, idx) => (
                 <motion.div
                   key={idx}
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -567,7 +574,7 @@ const Template07Gadget = ({ page }: TemplateProps) => {
                 >
                   <img
                     src={img}
-                    alt={`Feature ${idx + 1}`}
+                    alt={salesPlainText(`Feature ${idx + 1}`)}
                     style={{
                       width: '100%',
                       borderRadius: '12px',
@@ -576,12 +583,12 @@ const Template07Gadget = ({ page }: TemplateProps) => {
                     }}
                   />
                 </motion.div>
-              ))}
+              )))}
             </div>
-          )}
+          ))}
 
           {/* Single Feature Image (legacy) */}
-          {!page.feature_section_images?.length && page.feature_section_image && (
+          {renderSalesText(!page.feature_section_images?.length && page.feature_section_image && (
             <div style={{ marginBottom: '25px' }}>
               <img
                 src={page.feature_section_image}
@@ -594,11 +601,11 @@ const Template07Gadget = ({ page }: TemplateProps) => {
                 }}
               />
             </div>
-          )}
+          ))}
 
           {/* Feature List */}
           <div style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-            {featureItems.map((item, index) => (
+            {renderSalesText(featureItems.map((item, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, x: -20 }}
@@ -655,13 +662,13 @@ const Template07Gadget = ({ page }: TemplateProps) => {
                     fontSize: '18px',
                     lineHeight: 1.5,
                     fontWeight: 500,
-                    fontFamily: "'Hind Siliguri', sans-serif",
+                    fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
                   }}
                 >
-                  {item.text}
+                  {renderSalesText(item.text)}
                 </span>
               </motion.div>
-            ))}
+            )))}
           </div>
 
           {/* CTA Button */}
@@ -682,7 +689,7 @@ const Template07Gadget = ({ page }: TemplateProps) => {
                 border: '2px solid transparent',
                 boxShadow: '0 5px 15px rgba(0,0,0,0.3)',
                 cursor: 'pointer',
-                fontFamily: "'Hind Siliguri', sans-serif",
+                fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = c.accent || '#ffcc00';
@@ -697,7 +704,7 @@ const Template07Gadget = ({ page }: TemplateProps) => {
                 e.currentTarget.style.boxShadow = '0 5px 15px rgba(0,0,0,0.3)';
               }}
             >
-              🛒 {page.cta_button_text || 'অর্ডার করতে চাই'}
+              🛒 {renderSalesText(page.cta_button_text || 'অর্ডার করতে চাই')}
             </button>
           </div>
         </motion.div>
@@ -721,7 +728,7 @@ const Template07Gadget = ({ page }: TemplateProps) => {
       <section
         key="spec"
         style={{
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
           padding: '20px 15px',
           background: c.bg,
         }}
@@ -751,10 +758,10 @@ const Template07Gadget = ({ page }: TemplateProps) => {
               color: '#fff',
               position: 'relative',
               paddingBottom: '10px',
-              fontFamily: "'Hind Siliguri', sans-serif",
+              fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
             }}
           >
-            {heading}
+            {renderSalesText(heading)}
             <span
               style={{
                 position: 'absolute',
@@ -778,7 +785,7 @@ const Template07Gadget = ({ page }: TemplateProps) => {
               gap: '10px',
             }}
           >
-            {specItems.map((item, index) => {
+            {renderSalesText(specItems.map((item, index) => {
               const isLastAndFullWidth = hasFullWidthLast && index === specItems.length - 1;
               return (
                 <motion.div
@@ -812,10 +819,10 @@ const Template07Gadget = ({ page }: TemplateProps) => {
                       color: c.accent || '#ffcc00',
                       fontWeight: 500,
                       marginBottom: '4px',
-                      fontFamily: "'Hind Siliguri', sans-serif",
+                      fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
                     }}
                   >
-                    {item.label}
+                    {renderSalesText(item.label)}
                   </span>
                   <span
                     style={{
@@ -823,14 +830,14 @@ const Template07Gadget = ({ page }: TemplateProps) => {
                       color: '#fff',
                       fontWeight: 600,
                       lineHeight: 1.3,
-                      fontFamily: "'Hind Siliguri', sans-serif",
+                      fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
                     }}
                   >
-                    {item.value}
+                    {renderSalesText(item.value)}
                   </span>
                 </motion.div>
               );
-            })}
+            }))}
           </div>
 
           {/* CTA Button */}
@@ -851,7 +858,7 @@ const Template07Gadget = ({ page }: TemplateProps) => {
                 border: '2px solid transparent',
                 boxShadow: '0 5px 15px rgba(0,0,0,0.3)',
                 cursor: 'pointer',
-                fontFamily: "'Hind Siliguri', sans-serif",
+                fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = c.accent || '#ffcc00';
@@ -866,7 +873,7 @@ const Template07Gadget = ({ page }: TemplateProps) => {
                 e.currentTarget.style.boxShadow = '0 5px 15px rgba(0,0,0,0.3)';
               }}
             >
-              🛒 {page.cta_button_text || 'এখনই অর্ডার করুন'}
+              🛒 {renderSalesText(page.cta_button_text || 'এখনই অর্ডার করুন')}
             </button>
           </div>
         </motion.div>
@@ -892,10 +899,10 @@ const Template07Gadget = ({ page }: TemplateProps) => {
         className="py-8 px-4"
         style={{
           background: c.bg,
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
         }}
       >
-        <div className="max-w-md mx-auto">
+        <div className="max-w-md md:max-w-2xl lg:max-w-3xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -903,15 +910,15 @@ const Template07Gadget = ({ page }: TemplateProps) => {
             className="text-center mb-5"
           >
             <span className="text-sm font-medium" style={{ color: c.headline }}>
-              {page.reviews_subheadline || "কাস্টমার ফিডব্যাক"}
+              {renderSalesText(page.reviews_subheadline || "কাস্টমার ফিডব্যাক")}
             </span>
             <h2 className="text-xl font-bold mt-1" style={{ color: c.text }}>
-              {page.reviews_headline || "গ্রাহকদের মতামত"}
+              {renderSalesText(page.reviews_headline || "গ্রাহকদের মতামত")}
             </h2>
           </motion.div>
 
           {/* Review Video */}
-          {reviewVideoUrl && (
+          {renderSalesText(reviewVideoUrl && (
             <motion.div
               initial={{ opacity: 0, scale: 0.96 }}
               whileInView={{ opacity: 1, scale: 1 }}
@@ -922,9 +929,9 @@ const Template07Gadget = ({ page }: TemplateProps) => {
                 className="rounded-xl overflow-hidden"
                 style={{ border: `2px solid ${c.headline}30`, boxShadow: '0 8px 32px rgba(0,0,0,0.1)' }}
               >
-                {youtubeId ? (
+                {renderSalesText(youtubeId ? (
                   <div className="aspect-video">
-                    <iframe
+                    <iframe loading="lazy"
                       src={`https://www.youtube.com/embed/${youtubeId}?rel=0`}
                       title="Customer Review Video"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -936,10 +943,10 @@ const Template07Gadget = ({ page }: TemplateProps) => {
                   <div className="aspect-video">
                     <video src={reviewVideoUrl} controls className="w-full h-full object-cover" />
                   </div>
-                )}
+                ))}
               </div>
             </motion.div>
-          )}
+          ))}
 
           {/* Review Images */}
           <ReviewCarousel images={page.review_images} accentColor={c.headline} />
@@ -955,7 +962,7 @@ const Template07Gadget = ({ page }: TemplateProps) => {
                 boxShadow: `0 4px 15px ${c.button}50`,
               }}
             >
-              {page.cta_button_text || "🛒 অর্ডার করতে ক্লিক করুন"}
+              {renderSalesText(page.cta_button_text || "🛒 অর্ডার করতে ক্লিক করুন")}
             </button>
           </div>
         </div>
@@ -967,7 +974,7 @@ const Template07Gadget = ({ page }: TemplateProps) => {
   const renderContact = () => {
     if (!page.show_contact_section) return null;
     return (
-      <div key="contact" style={{ background: c.bg, fontFamily: "'Hind Siliguri', sans-serif" }}>
+      <div key="contact" style={{ background: c.bg, fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif" }}>
         <ContactSection page={page} />
       </div>
     );
@@ -977,7 +984,7 @@ const Template07Gadget = ({ page }: TemplateProps) => {
   const renderVideo = () => {
     if (!page.show_video_section || !page.video_url) return null;
     return (
-      <div key="video" style={{ background: c.bg, fontFamily: "'Hind Siliguri', sans-serif" }}>
+      <div key="video" style={{ background: c.bg, fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif" }}>
         <VideoSection page={page} />
       </div>
     );
@@ -987,7 +994,7 @@ const Template07Gadget = ({ page }: TemplateProps) => {
   const renderGallery = () => {
     if (!page.show_gallery_section) return null;
     return (
-      <div key="gallery" style={{ background: c.bg, fontFamily: "'Hind Siliguri', sans-serif" }}>
+      <div key="gallery" style={{ background: c.bg, fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif" }}>
         <GallerySection page={page} onOrderClick={scrollToCheckout} />
       </div>
     );
@@ -1020,7 +1027,7 @@ const Template07Gadget = ({ page }: TemplateProps) => {
       <section
         key={`extra${sectionNumber}`}
         style={{
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
           padding: '20px 15px',
           background: c.bg,
         }}
@@ -1050,10 +1057,10 @@ const Template07Gadget = ({ page }: TemplateProps) => {
               color: '#fff',
               position: 'relative',
               paddingBottom: '10px',
-              fontFamily: "'Hind Siliguri', sans-serif",
+              fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
             }}
           >
-            {heading || defaultHeadings[sectionNumber]}
+            {renderSalesText(heading || defaultHeadings[sectionNumber])}
             <span
               style={{
                 position: 'absolute',
@@ -1071,7 +1078,7 @@ const Template07Gadget = ({ page }: TemplateProps) => {
 
           {/* Points List */}
           <div style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-            {points.map((point, idx) => (
+            {renderSalesText(points.map((point, idx) => (
               <motion.div
                 key={idx}
                 initial={{ opacity: 0, x: -20 }}
@@ -1122,12 +1129,12 @@ const Template07Gadget = ({ page }: TemplateProps) => {
                     fontSize: '18px',
                     lineHeight: 1.5,
                     fontWeight: 500,
-                    fontFamily: "'Hind Siliguri', sans-serif",
+                    fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
                   }}
-                  dangerouslySetInnerHTML={{ __html: point }}
-                />
+                  
+                >{renderSalesText(point)}</span>
               </motion.div>
-            ))}
+            )))}
           </div>
 
           {/* CTA Button */}
@@ -1148,7 +1155,7 @@ const Template07Gadget = ({ page }: TemplateProps) => {
                 border: '2px solid transparent',
                 boxShadow: '0 5px 15px rgba(0,0,0,0.3)',
                 cursor: 'pointer',
-                fontFamily: "'Hind Siliguri', sans-serif",
+                fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = c.accent || '#ffcc00';
@@ -1159,7 +1166,7 @@ const Template07Gadget = ({ page }: TemplateProps) => {
                 e.currentTarget.style.color = '#ffffff';
               }}
             >
-              🛒 {page.cta_button_text || 'অর্ডার করতে চাই'}
+              🛒 {renderSalesText(page.cta_button_text || 'অর্ডার করতে চাই')}
             </button>
           </div>
         </motion.div>
@@ -1175,7 +1182,7 @@ const Template07Gadget = ({ page }: TemplateProps) => {
   const renderCheckout = () => {
     if (!page.show_checkout_section) return null;
     return (
-      <div key="checkout" style={{ background: c.bg, fontFamily: "'Hind Siliguri', sans-serif" }}>
+      <div key="checkout" style={{ background: c.bg, fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif" }}>
         <CheckoutSection page={page} />
       </div>
     );
@@ -1195,19 +1202,19 @@ const Template07Gadget = ({ page }: TemplateProps) => {
       case 'spec': return renderSpecification();
       case 'reviews': return renderReviews();
       case 'contact': return renderContact();
-      case 'extra1': return renderExtra1();
-      case 'extra2': return renderExtra2();
-      case 'extra3': return renderExtra3();
+      case 'extra1': return isExtraDesign(page.template_styles?.extra1?.design) ? <ExtraSection key="extra1" page={page} number={1} /> : renderExtra1();
+      case 'extra2': return isExtraDesign(page.template_styles?.extra2?.design) ? <ExtraSection key="extra2" page={page} number={2} /> : renderExtra2();
+      case 'extra3': return isExtraDesign(page.template_styles?.extra3?.design) ? <ExtraSection key="extra3" page={page} number={3} /> : renderExtra3();
       case 'checkout': return renderCheckout();
       default: return null;
     }
   };
 
   return (
-    <div className="min-h-screen" style={{ background: c.bg, fontFamily: "'Hind Siliguri', sans-serif" }}>
-      {sectionOrder.map(sectionId => (
-        <div key={sectionId}>{renderSection(sectionId)}</div>
-      ))}
+    <div className="min-h-screen" style={{ background: c.bg, fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif" }}>
+      {renderSalesText(sectionOrder.map(sectionId => (
+        <SectionAppearance key={sectionId} page={page} section={sectionId}><div>{renderSalesText(renderSection(sectionId))}</div></SectionAppearance>
+      )))}
 
       {/* Footer */}
       <div
@@ -1215,7 +1222,7 @@ const Template07Gadget = ({ page }: TemplateProps) => {
         style={{ background: c.bg, borderTop: `1px solid #eee` }}
       >
         <p style={{ color: '#999' }}>
-          {page.footer_text || `© ${new Date().getFullYear()} - সকল অধিকার সংরক্ষিত`}
+          {renderSalesText(page.footer_text || `© ${new Date().getFullYear()} - সকল অধিকার সংরক্ষিত`)}
         </p>
       </div>
     </div>

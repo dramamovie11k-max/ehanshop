@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 import { X, Gift, Copy, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { fetchSpinOffers, createSpinEntry } from "@/lib/dataApi";
+import { api } from "@/integrations/cloudflare/client";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import SpinWheelCanvas from "./SpinWheelCanvas";
 import { Input } from "@/components/ui/input";
@@ -24,15 +24,6 @@ type SpinStep = "form" | "spinning" | "result";
 
 const SPIN_STORAGE_KEY = "spin_last_shown";
 
-const generateCouponCode = (): string => {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let code = "SPN-";
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return code;
-};
-
 const SpinWheel = () => {
   const location = useLocation();
   const { getSetting, isLoading: settingsLoading } = useSiteSettings();
@@ -41,6 +32,7 @@ const SpinWheel = () => {
   const [step, setStep] = useState<SpinStep>("form");
   const [offers, setOffers] = useState<SpinOffer[]>([]);
   const [isSpinning, setIsSpinning] = useState(false);
+  const [winnerIndex, setWinnerIndex] = useState(0);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [wonOffer, setWonOffer] = useState<SpinOffer | null>(null);
@@ -65,15 +57,17 @@ const SpinWheel = () => {
 
   // Fetch offers
   useEffect(() => {
-    const loadOffers = async () => {
-      try {
-        const data = await fetchSpinOffers();
-        if (Array.isArray(data) && data.length > 0) setOffers(data as SpinOffer[]);
-      } catch (error) {
-        console.error("Error loading spin offers:", error);
+    const fetchOffers = async () => {
+      const { data } = await api
+        .from("spin_offers")
+        .select("*")
+        .eq("is_active", true)
+        .order("sort_order");
+      if (data && data.length > 0) {
+        setOffers(data as SpinOffer[]);
       }
     };
-    loadOffers();
+    fetchOffers();
   }, []);
 
   // Timer to show popup
@@ -100,7 +94,7 @@ const SpinWheel = () => {
     localStorage.setItem(SPIN_STORAGE_KEY, new Date().toDateString());
   };
 
-  const handleStartSpin = () => {
+  const handleStartSpin = async () => {
     if (!name.trim() || !phone.trim()) {
       toast.error("নাম ও ফোন নম্বর দিন");
       return;
@@ -109,33 +103,18 @@ const SpinWheel = () => {
       toast.error("সঠিক ফোন নম্বর দিন");
       return;
     }
+    const { data, error } = await api.rpc("spin", { name: name.trim(), phone: phone.trim() });
+    if (error) { toast.error(error.message); return; }
+    const index = offers.findIndex(o => o.id === data.offer.id);
+    if (index < 0) { toast.error("অফার পরিবর্তন হয়েছে। পেজ রিফ্রেশ করুন।"); return; }
+    setWonOffer(data.offer);
+    setCouponCode(data.coupon_code);
+    setWinnerIndex(index);
     setStep("spinning");
     setIsSpinning(true);
   };
 
-  const handleSpinEnd = async (winnerIndex: number) => {
-    const winner = offers[winnerIndex];
-    setWonOffer(winner);
-    const code = generateCouponCode();
-    setCouponCode(code);
-
-    try {
-      await createSpinEntry({
-        customer_name: name.trim(),
-        customer_phone: phone.trim().replace(/\D/g, ""),
-        offer_id: winner.id,
-        offer_text: winner.offer_text,
-        discount_type: winner.discount_type,
-        discount_value: winner.discount_value,
-      });
-    } catch (err) {
-      console.error("Error saving spin entry:", err);
-      toast.error("অফার সংরক্ষণ করা যায়নি, আবার চেষ্টা করুন");
-      setStep("form");
-      setIsSpinning(false);
-      return;
-    }
-
+  const handleSpinEnd = () => {
     localStorage.setItem(SPIN_STORAGE_KEY, new Date().toDateString());
     setStep("result");
   };
@@ -181,7 +160,7 @@ const SpinWheel = () => {
             <div className="p-4 pt-8">
               {/* Wheel */}
               <div className="flex justify-center my-3">
-                <SpinWheelCanvas
+                <SpinWheelCanvas winnerIndex={winnerIndex}
                   offers={offers}
                   onSpinEnd={() => {}}
                   isSpinning={false}
@@ -244,7 +223,7 @@ const SpinWheel = () => {
                 🎯 স্পিন চলছে...
               </h2>
               <div className="flex justify-center my-3">
-                <SpinWheelCanvas
+                <SpinWheelCanvas winnerIndex={winnerIndex}
                   offers={offers}
                   onSpinEnd={handleSpinEnd}
                   isSpinning={isSpinning}

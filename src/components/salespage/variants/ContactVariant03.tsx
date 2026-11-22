@@ -1,3 +1,4 @@
+import { renderSalesText } from '@/components/salespage/SalesRichText';
 import { motion } from "framer-motion";
 import { SalesPage } from "@/types/salesPage";
 import { Phone, MessageCircle, Headphones } from "lucide-react";
@@ -16,7 +17,7 @@ const ContactVariant03 = ({ page, colors, isLightTheme }: ContactVariantProps) =
       className="py-8 px-3"
       style={{ backgroundColor: colors.background }}
     >
-      <div className="max-w-md mx-auto text-center">
+      <div className="max-w-md md:max-w-2xl lg:max-w-3xl mx-auto text-center">
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -30,10 +31,10 @@ const ContactVariant03 = ({ page, colors, isLightTheme }: ContactVariantProps) =
             <Headphones className="w-7 h-7 text-white" />
           </div>
           <h2 className="text-xl font-bold mb-1" style={{ color: isLightTheme ? colors.text : '#fff' }}>
-            {page.contact_headline}
+            {renderSalesText(page.contact_headline)}
           </h2>
           <p className="text-sm" style={{ color: isLightTheme ? colors.text : '#fff', opacity: 0.6 }}>
-            {page.contact_subheadline}
+            {renderSalesText(page.contact_subheadline)}
           </p>
         </motion.div>
 
@@ -91,7 +92,7 @@ const ContactVariant03 = ({ page, colors, isLightTheme }: ContactVariantProps) =
           className="mt-5 text-xs"
           style={{ color: isLightTheme ? colors.text : '#fff', opacity: 0.5 }}
         >
-          {page.contact_availability}
+          {renderSalesText(page.contact_availability)}
         </motion.p>
       </div>
     </section>

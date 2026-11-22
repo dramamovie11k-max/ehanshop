@@ -1,8 +1,14 @@
+import SectionAppearance from '../SectionAppearance';
+import ExtraSection from '../ExtraSection';
+import { isExtraDesign } from '@/lib/extraSectionDesigns';
+import { salesPlainText } from '@/lib/salesRichText';
+import { renderSalesText } from '@/components/salespage/SalesRichText';
 import { useRef } from "react";
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 import { SalesPage } from "@/types/salesPage";
 import CheckoutSection from "../CheckoutSection";
+import SharedHeroSection from "../SharedHeroSection";
 
 import ContactSection from "../ContactSection";
 import GallerySection from "../GallerySection";
@@ -30,7 +36,7 @@ const Template14VideoOrganic = ({ page }: Template14Props) => {
     switch (sectionKey) {
       case 'hero':
         return page.show_hero_section !== false && (
-          <HeroSection key="hero" page={page} onOrderClick={scrollToCheckout} getYoutubeEmbedUrl={getYoutubeEmbedUrl} />
+          page.template_styles?.hero?.design ? <SharedHeroSection key="hero" page={page} onOrderClick={scrollToCheckout} /> : <HeroSection key="hero" page={page} onOrderClick={scrollToCheckout} getYoutubeEmbedUrl={getYoutubeEmbedUrl} />
         );
       case 'gallery':
         return page.show_gallery_section && (
@@ -67,6 +73,7 @@ const Template14VideoOrganic = ({ page }: Template14Props) => {
           </div>
         );
       case 'extra1':
+        if (isExtraDesign(page.template_styles?.extra1?.design)) return <ExtraSection key="extra1" page={page} number={1} />;
         return page.show_extra_section_1 && (
           <div key="extra1" className="px-3 md:px-4">
             <div className="max-w-[650px] mx-auto">
@@ -75,6 +82,7 @@ const Template14VideoOrganic = ({ page }: Template14Props) => {
           </div>
         );
       case 'extra2':
+        if (isExtraDesign(page.template_styles?.extra2?.design)) return <ExtraSection key="extra2" page={page} number={2} />;
         return page.show_extra_section_2 && (
           <div key="extra2" className="px-3 md:px-4">
             <div className="max-w-[650px] mx-auto">
@@ -83,6 +91,7 @@ const Template14VideoOrganic = ({ page }: Template14Props) => {
           </div>
         );
       case 'extra3':
+        if (isExtraDesign(page.template_styles?.extra3?.design)) return <ExtraSection key="extra3" page={page} number={3} />;
         return page.show_extra_section_3 && (
           <div key="extra3" className="px-3 md:px-4">
             <div className="max-w-[650px] mx-auto">
@@ -106,12 +115,12 @@ const Template14VideoOrganic = ({ page }: Template14Props) => {
   };
 
   return (
-    <div className="min-h-screen space-y-[5px]" style={{ backgroundColor: '#f4f4f4', fontFamily: "'Hind Siliguri', sans-serif" }}>
-      {sectionOrder.map(renderSection)}
+    <div className="min-h-screen space-y-[5px]" style={{ backgroundColor: '#f4f4f4', fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif" }}>
+      {renderSalesText(sectionOrder.map(key => <SectionAppearance key={key} page={page} section={key}>{renderSection(key)}</SectionAppearance>))}
 
       {/* Footer */}
       <div className="py-6 text-center text-sm" style={{ backgroundColor: '#065f46', color: '#ffffff' }}>
-        <p className="opacity-70">© {new Date().getFullYear()} - সকল অধিকার সংরক্ষিত</p>
+        <p className="opacity-70">© {renderSalesText(new Date().getFullYear())} - সকল অধিকার সংরক্ষিত</p>
       </div>
     </div>
   );
@@ -153,11 +162,11 @@ const HeroSection = ({ page, onOrderClick, getYoutubeEmbedUrl }: HeroSectionProp
             fontWeight: 700,
           }}
         >
-          <p className="md:text-[20px]">{page.hero_headline}</p>
+          <p className="md:text-[20px]">{renderSalesText(page.hero_headline)}</p>
         </motion.div>
 
         {/* Sub Header */}
-        {page.hero_subheadline && (
+        {renderSalesText(page.hero_subheadline && (
           <motion.h2
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -165,12 +174,12 @@ const HeroSection = ({ page, onOrderClick, getYoutubeEmbedUrl }: HeroSectionProp
             className="text-[18px] md:text-[22px] font-bold mb-4 md:mb-5 px-2"
             style={{ color: '#16a34a' }}
           >
-            {page.hero_subheadline}
+            {renderSalesText(page.hero_subheadline)}
           </motion.h2>
-        )}
+        ))}
 
         {/* Video Section */}
-        {page.hero_video_url && (
+        {renderSalesText(page.hero_video_url && (
           <motion.div
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -183,7 +192,7 @@ const HeroSection = ({ page, onOrderClick, getYoutubeEmbedUrl }: HeroSectionProp
               background: '#000',
             }}
           >
-            <iframe
+            <iframe loading="lazy"
               src={getYoutubeEmbedUrl(page.hero_video_url)}
               title="Product Video"
               className="absolute top-0 left-0 w-full h-full"
@@ -191,10 +200,10 @@ const HeroSection = ({ page, onOrderClick, getYoutubeEmbedUrl }: HeroSectionProp
               allowFullScreen
             />
           </motion.div>
-        )}
+        ))}
 
         {/* Product Image (fallback if no video) */}
-        {!page.hero_video_url && page.hero_images?.[0] && (
+        {renderSalesText(!page.hero_video_url && page.hero_images?.[0] && (
           <motion.div
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -203,15 +212,15 @@ const HeroSection = ({ page, onOrderClick, getYoutubeEmbedUrl }: HeroSectionProp
           >
             <img
               src={page.hero_images[0]}
-              alt={page.hero_headline}
+              alt={salesPlainText(page.hero_headline)}
               className="w-full rounded-[12px] object-contain mx-auto"
               style={{ maxHeight: '400px', border: '4px solid #4ade80' }}
             />
           </motion.div>
-        )}
+        ))}
 
         {/* Bottom Text / Offer Details */}
-        {page.offer_details && (
+        {renderSalesText(page.offer_details && (
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -219,9 +228,9 @@ const HeroSection = ({ page, onOrderClick, getYoutubeEmbedUrl }: HeroSectionProp
             className="text-[18px] md:text-[22px] font-bold mb-5 md:mb-6 leading-snug"
             style={{ color: '#16a34a' }}
           >
-            {page.offer_details}
+            {renderSalesText(page.offer_details)}
           </motion.p>
-        )}
+        ))}
 
         {/* CTA Button */}
         <motion.div
@@ -240,7 +249,7 @@ const HeroSection = ({ page, onOrderClick, getYoutubeEmbedUrl }: HeroSectionProp
               border: '2px solid #ffffff',
             }}
           >
-            {page.cta_button_text || 'অর্ডার করুন'}
+            {renderSalesText(page.cta_button_text || 'অর্ডার করুন')}
           </button>
         </motion.div>
       </motion.div>
@@ -266,7 +275,7 @@ const Template14Features = ({ page, onOrderClick }: { page: SalesPage; onOrderCl
       className="py-6 px-4 rounded-[15px] overflow-hidden"
       style={{ backgroundColor: '#065f46' }}
     >
-      {(page.feature_section_image || page.feature_section_images?.[0]) && (
+      {renderSalesText((page.feature_section_image || page.feature_section_images?.[0]) && (
         <motion.div
           initial={{ opacity: 0, scale: 0.98 }}
           whileInView={{ opacity: 1, scale: 1 }}
@@ -275,12 +284,12 @@ const Template14Features = ({ page, onOrderClick }: { page: SalesPage; onOrderCl
         >
           <img
             src={page.feature_section_image || page.feature_section_images[0]}
-            alt={page.features_headline}
+            alt={salesPlainText(page.features_headline)}
             className="w-full object-cover"
             style={{ maxHeight: '350px' }}
           />
         </motion.div>
-      )}
+      ))}
 
       <motion.div
         initial={{ opacity: 0, y: 15 }}
@@ -289,13 +298,13 @@ const Template14Features = ({ page, onOrderClick }: { page: SalesPage; onOrderCl
         className="text-center mb-5"
       >
         <h2 className="text-2xl md:text-3xl font-bold mb-1 text-white">
-          {page.features_headline}
+          {renderSalesText(page.features_headline)}
         </h2>
-        {page.features_subheadline && (
+        {renderSalesText(page.features_subheadline && (
           <p className="text-base md:text-lg text-white/70">
-            {page.features_subheadline}
+            {renderSalesText(page.features_subheadline)}
           </p>
-        )}
+        ))}
       </motion.div>
 
       <motion.div
@@ -305,7 +314,7 @@ const Template14Features = ({ page, onOrderClick }: { page: SalesPage; onOrderCl
         transition={{ staggerChildren: 0.08 }}
         className="space-y-2"
       >
-        {features.map((feature, index) => (
+        {renderSalesText(features.map((feature, index) => (
           <motion.div
             key={index}
             initial={{ opacity: 0, x: -10 }}
@@ -319,24 +328,24 @@ const Template14Features = ({ page, onOrderClick }: { page: SalesPage; onOrderCl
               className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
               style={{ backgroundColor: '#4ade80' }}
             >
-              {feature.icon ? (
-                <span className="text-sm">{feature.icon}</span>
+              {renderSalesText(feature.icon ? (
+                <span className="text-sm">{renderSalesText(feature.icon)}</span>
               ) : (
                 <Check className="w-4 h-4 text-[#065f46]" />
-              )}
+              ))}
             </div>
             <div>
               <h3 className="font-semibold text-sm text-white">
-                {feature.text}
+                {renderSalesText(feature.text)}
               </h3>
-              {feature.desc && (
+              {renderSalesText(feature.desc && (
                 <p className="text-xs text-white/60 mt-0.5">
-                  {feature.desc}
+                  {renderSalesText(feature.desc)}
                 </p>
-              )}
+              ))}
             </div>
           </motion.div>
-        ))}
+        )))}
       </motion.div>
 
       {/* CTA Button - same style as hero */}
@@ -357,7 +366,7 @@ const Template14Features = ({ page, onOrderClick }: { page: SalesPage; onOrderCl
             border: '2px solid #ffffff',
           }}
         >
-          {page.cta_button_text || 'অর্ডার করুন'}
+          {renderSalesText(page.cta_button_text || 'অর্ডার করুন')}
         </button>
       </motion.div>
     </section>
@@ -378,7 +387,7 @@ const Template14Reviews = ({ page }: { page: SalesPage }) => {
 
   return (
     <section className="py-6 px-4 rounded-[15px] overflow-hidden" style={{ backgroundColor: '#065f46' }}>
-      {page.reviews_headline && (
+      {renderSalesText(page.reviews_headline && (
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -386,17 +395,17 @@ const Template14Reviews = ({ page }: { page: SalesPage }) => {
           className="text-center mb-5"
         >
           <h2 className="text-2xl md:text-3xl font-bold text-white">
-            {page.reviews_headline}
+            {renderSalesText(page.reviews_headline)}
           </h2>
-          {page.reviews_subheadline && (
+          {renderSalesText(page.reviews_subheadline && (
             <p className="text-base md:text-lg text-white/70 mt-1">
-              {page.reviews_subheadline}
+              {renderSalesText(page.reviews_subheadline)}
             </p>
-          )}
+          ))}
         </motion.div>
-      )}
+      ))}
 
-      {hasVideo && page.review_video_url && (
+      {renderSalesText(hasVideo && page.review_video_url && (
         <motion.div
           initial={{ opacity: 0, scale: 0.98 }}
           whileInView={{ opacity: 1, scale: 1 }}
@@ -404,7 +413,7 @@ const Template14Reviews = ({ page }: { page: SalesPage }) => {
           className="relative mb-4 rounded-[12px] overflow-hidden"
           style={{ paddingBottom: '56.25%', height: 0, border: '3px solid #4ade80' }}
         >
-          <iframe
+          <iframe loading="lazy"
             src={getYoutubeEmbedUrl(page.review_video_url)}
             title="Review Video"
             className="absolute top-0 left-0 w-full h-full"
@@ -412,11 +421,11 @@ const Template14Reviews = ({ page }: { page: SalesPage }) => {
             allowFullScreen
           />
         </motion.div>
-      )}
+      ))}
 
-      {hasImages && (
+      {renderSalesText(hasImages && (
         <div className="grid grid-cols-2 gap-3">
-          {page.review_images.map((img, index) => (
+          {renderSalesText(page.review_images.map((img, index) => (
             <motion.div
               key={index}
               initial={{ opacity: 0, y: 10 }}
@@ -426,14 +435,14 @@ const Template14Reviews = ({ page }: { page: SalesPage }) => {
             >
               <img
                 src={img}
-                alt={`Review ${index + 1}`}
+                alt={salesPlainText(`Review ${index + 1}`)}
                 className="w-full rounded-[10px] object-cover"
                 style={{ border: '3px solid #4ade80' }}
               />
             </motion.div>
-          ))}
+          )))}
         </div>
-      )}
+      ))}
     </section>
   );
 };
@@ -458,7 +467,7 @@ const Template14ExtraSection = ({ page, sectionNumber, onOrderClick }: { page: S
         className="text-center mb-5"
       >
         <h2 className="text-2xl md:text-3xl font-bold text-white">
-          {heading || 'বিশেষ সুবিধা'}
+          {renderSalesText(heading || 'বিশেষ সুবিধা')}
         </h2>
       </motion.div>
 
@@ -468,7 +477,7 @@ const Template14ExtraSection = ({ page, sectionNumber, onOrderClick }: { page: S
         viewport={{ once: true }}
         className="space-y-2"
       >
-        {points.map((point, index) => (
+        {renderSalesText(points.map((point, index) => (
           <motion.div
             key={index}
             initial={{ opacity: 0, x: -10 }}
@@ -484,9 +493,9 @@ const Template14ExtraSection = ({ page, sectionNumber, onOrderClick }: { page: S
             >
               <Check className="w-4 h-4 text-[#065f46]" />
             </div>
-            <p className="font-semibold text-sm text-white">{point}</p>
+            <p className="font-semibold text-sm text-white">{renderSalesText(point)}</p>
           </motion.div>
-        ))}
+        )))}
       </motion.div>
 
       <motion.div
@@ -506,7 +515,7 @@ const Template14ExtraSection = ({ page, sectionNumber, onOrderClick }: { page: S
             border: '2px solid #ffffff',
           }}
         >
-          {page.cta_button_text || 'অর্ডার করুন'}
+          {renderSalesText(page.cta_button_text || 'অর্ডার করুন')}
         </button>
       </motion.div>
     </section>

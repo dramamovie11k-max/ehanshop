@@ -1,3 +1,4 @@
+import { renderSalesText } from '@/components/salespage/SalesRichText';
 import { motion } from "framer-motion";
 import { SalesPage } from "@/types/salesPage";
 
@@ -38,7 +39,7 @@ const FeatureVariant02 = ({ page, colors, isLightTheme }: FeatureVariantProps) =
         style={{ backgroundColor: colors.accent }}
       />
 
-      <div className="relative max-w-lg mx-auto">
+      <div className="relative max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -46,10 +47,10 @@ const FeatureVariant02 = ({ page, colors, isLightTheme }: FeatureVariantProps) =
           className="text-center mb-5"
         >
           <h2 className="text-3xl font-bold mb-1" style={{ color: isLightTheme ? colors.text : '#fff' }}>
-            {page.features_headline}
+            {renderSalesText(page.features_headline)}
           </h2>
           <p className="text-lg" style={{ color: isLightTheme ? colors.text : '#fff', opacity: 0.7 }}>
-            {page.features_subheadline}
+            {renderSalesText(page.features_subheadline)}
           </p>
         </motion.div>
 
@@ -60,7 +61,7 @@ const FeatureVariant02 = ({ page, colors, isLightTheme }: FeatureVariantProps) =
           viewport={{ once: true }}
           className="grid grid-cols-2 gap-3"
         >
-          {features.map((feature, index) => (
+          {renderSalesText(features.map((feature, index) => (
             <motion.div
               key={index}
               variants={itemVariants}
@@ -75,18 +76,18 @@ const FeatureVariant02 = ({ page, colors, isLightTheme }: FeatureVariantProps) =
                 className="w-10 h-10 rounded-xl flex items-center justify-center text-lg mb-2"
                 style={{ background: `linear-gradient(135deg, ${colors.primary}, ${colors.accent})` }}
               >
-                {feature.icon}
+                {renderSalesText(feature.icon)}
               </div>
               <h3 className="font-semibold text-sm mb-1" style={{ color: isLightTheme ? colors.text : '#fff' }}>
-                {feature.text}
+                {renderSalesText(feature.text)}
               </h3>
-              {feature.desc && (
+              {renderSalesText(feature.desc && (
                 <p className="text-xs" style={{ color: isLightTheme ? colors.text : '#fff', opacity: 0.6 }}>
-                  {feature.desc}
+                  {renderSalesText(feature.desc)}
                 </p>
-              )}
+              ))}
             </motion.div>
-          ))}
+          )))}
         </motion.div>
       </div>
     </section>

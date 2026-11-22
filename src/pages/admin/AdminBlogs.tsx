@@ -474,7 +474,7 @@ const AdminBlogs = () => {
                   borderRadius: sectionStyle.buttonBorderRadius || "8px",
                   fontSize: sectionStyle.buttonFontSize || "16px",
                   padding: sectionStyle.buttonPadding || "10px 20px",
-                  fontFamily: "'Hind Siliguri', sans-serif",
+                  fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
                   cursor: "pointer",
                 }}
               >
@@ -494,7 +494,7 @@ const AdminBlogs = () => {
                   textAlign: (sectionStyle.textAlign as any) || undefined,
                   padding: sectionStyle.padding || undefined,
                   borderRadius: sectionStyle.borderRadius || undefined,
-                  fontFamily: "'Hind Siliguri', sans-serif",
+                  fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
                 }}
                 dangerouslySetInnerHTML={{ __html: section.content.slice(0, 200) }}
               />

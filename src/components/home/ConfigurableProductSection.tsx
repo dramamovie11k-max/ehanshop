@@ -3,7 +3,7 @@ import ProductCard from "./ProductCard";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/integrations/cloudflare/client";
 import { Product } from "@/types";
 
 interface ConfigurableProductSectionProps {
@@ -21,21 +21,21 @@ const ConfigurableProductSection = ({
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products", sectionKey, defaultCategorySlug],
     queryFn: async () => {
-      let query = supabase
+      let query = api
         .from("products")
         .select("*, categories(*)")
         .order("created_at", { ascending: false })
         .limit(8);
 
       if (defaultCategorySlug) {
-        const { data: category } = await supabase
+        const { data: category } = await api
           .from("categories")
           .select("id")
           .eq("slug", defaultCategorySlug)
           .single();
 
         if (category) {
-          query = supabase
+          query = api
             .from("products")
             .select("*, categories(*)")
             .eq("category_id", category.id)
@@ -71,7 +71,7 @@ const ConfigurableProductSection = ({
           <div>
             <h2 
               className="text-xl md:text-2xl font-bold text-foreground mb-2"
-              style={{ fontFamily: "'Hind Siliguri', sans-serif" }}
+              style={{ fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif" }}
             >
               {defaultTitle}
             </h2>

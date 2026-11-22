@@ -33,7 +33,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AdminLayout from "@/components/admin/AdminLayout";
 import AdminGuard from "@/components/admin/AdminGuard";
-import { apiFetch } from "@/lib/apiClient";
+import { api } from "@/integrations/cloudflare/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
@@ -104,16 +104,37 @@ const AdminInventory = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [prodData, histData, suppData] = await Promise.all([
-        apiFetch<Product[]>("/products?limit=200"),
-        apiFetch<StockHistory[]>("/inventory/stock"),
-        apiFetch<Supplier[]>("/inventory/suppliers"),
-      ]);
-      const safeProducts = Array.isArray(prodData) ? prodData : [];
-      setProducts(safeProducts);
-      setLowStockProducts(safeProducts.filter((p) => (p.stock || 0) <= (p.low_stock_threshold || 5)));
-      setStockHistory(Array.isArray(histData) ? histData : []);
-      setSuppliers(Array.isArray(suppData) ? suppData : []);
+      // Fetch products
+      const { data: prodData } = await api
+        .from("products")
+        .select("id, name_bn, stock, low_stock_threshold, cost_price, price")
+        .order("name_bn");
+
+      if (prodData) {
+        setProducts(prodData);
+        // Filter low stock products
+        const lowStock = prodData.filter(
+          (p) => (p.stock || 0) <= (p.low_stock_threshold || 5)
+        );
+        setLowStockProducts(lowStock);
+      }
+
+      // Fetch stock history
+      const { data: histData } = await api
+        .from("stock_history")
+        .select("*, products(name_bn)")
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (histData) setStockHistory(histData as StockHistory[]);
+
+      // Fetch suppliers
+      const { data: suppData } = await api
+        .from("suppliers")
+        .select("*")
+        .order("name");
+
+      if (suppData) setSuppliers(suppData);
     } catch (error) {
       console.error("Error fetching data:", error);
       toast.error("ডাটা লোড করতে সমস্যা হয়েছে");
@@ -134,20 +155,17 @@ const AdminInventory = () => {
       const product = products.find((p) => p.id === adjustForm.product_id);
       if (!product) throw new Error("Product not found");
 
-      const quantityChange = parseInt(adjustForm.quantity, 10);
-      if (!Number.isFinite(quantityChange) || quantityChange === 0) {
-        toast.error("সঠিক পরিমাণ দিন");
-        setAdjusting(false);
-        return;
-      }
+      const quantityChange = parseInt(adjustForm.quantity);
       const previousStock = product.stock || 0;
       let newStock = previousStock;
 
+      // Calculate new stock based on change type
       if (adjustForm.change_type === "purchase" || adjustForm.change_type === "return") {
         newStock = previousStock + Math.abs(quantityChange);
       } else if (adjustForm.change_type === "sale") {
         newStock = previousStock - Math.abs(quantityChange);
       } else {
+        // Adjustment can be positive or negative
         newStock = previousStock + quantityChange;
       }
 
@@ -157,17 +175,26 @@ const AdminInventory = () => {
         return;
       }
 
-      await apiFetch("/inventory/stock", {
-        method: "POST",
-        body: JSON.stringify({
-          product_id: adjustForm.product_id,
-          change_type: adjustForm.change_type,
-          quantity_change: adjustForm.change_type === "sale" ? -Math.abs(quantityChange) :
-            adjustForm.change_type === "adjustment" ? quantityChange : Math.abs(quantityChange),
-          notes: adjustForm.notes || null,
-          created_by: user?.id,
-        }),
+      // Update product stock
+      const { error: updateError } = await api
+        .from("products")
+        .update({ stock: newStock })
+        .eq("id", adjustForm.product_id);
+
+      if (updateError) throw updateError;
+
+      // Create stock history entry
+      const { error: histError } = await api.from("stock_history").insert({
+        product_id: adjustForm.product_id,
+        change_type: adjustForm.change_type,
+        quantity_change: quantityChange,
+        previous_stock: previousStock,
+        new_stock: newStock,
+        notes: adjustForm.notes || null,
+        created_by: user?.id,
       });
+
+      if (histError) throw histError;
 
       toast.success("স্টক আপডেট হয়েছে!");
       setAdjustDialogOpen(false);
@@ -195,15 +222,14 @@ const AdminInventory = () => {
 
     setSavingSupplier(true);
     try {
-      await apiFetch("/inventory/suppliers", {
-        method: "POST",
-        body: JSON.stringify({
-          name: supplierForm.name,
-          phone: supplierForm.phone || null,
-          email: supplierForm.email || null,
-          address: supplierForm.address || null,
-        }),
+      const { error } = await api.from("suppliers").insert({
+        name: supplierForm.name,
+        phone: supplierForm.phone || null,
+        email: supplierForm.email || null,
+        address: supplierForm.address || null,
       });
+
+      if (error) throw error;
 
       toast.success("সাপ্লায়ার যোগ হয়েছে!");
       setSupplierDialogOpen(false);

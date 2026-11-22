@@ -1,3 +1,5 @@
+import { salesPlainText } from '@/lib/salesRichText';
+import { renderSalesText } from '@/components/salespage/SalesRichText';
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { SalesPage } from "@/types/salesPage";
@@ -16,9 +18,9 @@ const HeroVariant01 = ({ page, colors, onOrderClick }: HeroVariantProps) => {
       className="relative overflow-hidden px-3 py-6"
       style={{ backgroundColor: colors.background }}
     >
-      <div className="relative z-10 max-w-lg mx-auto text-center">
+      <div className="relative z-10 max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto text-center">
         {/* Badge */}
-        {page.hero_badge_text && (
+        {renderSalesText(page.hero_badge_text && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -32,10 +34,10 @@ const HeroVariant01 = ({ page, colors, onOrderClick }: HeroVariantProps) => {
                 border: `1px solid ${colors.accent}40`
               }}
             >
-              🔥 {page.hero_badge_text} 🔥
+              🔥 {renderSalesText(page.hero_badge_text)} 🔥
             </span>
           </motion.div>
-        )}
+        ))}
 
         {/* Price Title */}
         <motion.h1
@@ -45,7 +47,7 @@ const HeroVariant01 = ({ page, colors, onOrderClick }: HeroVariantProps) => {
           className="text-3xl md:text-4xl lg:text-5xl font-black mb-2"
           style={{ color: colors.accent }}
         >
-          মাত্র {page.price_unit}{page.offer_price} টাকায়
+          মাত্র {renderSalesText(page.price_unit)}{renderSalesText(page.offer_price)} টাকায়
         </motion.h1>
 
         {/* Subtitle */}
@@ -56,11 +58,11 @@ const HeroVariant01 = ({ page, colors, onOrderClick }: HeroVariantProps) => {
           className="text-lg md:text-xl font-medium mb-6"
           style={{ color: colors.text, opacity: 0.9 }}
         >
-          {page.hero_headline}
+          {renderSalesText(page.hero_headline)}
         </motion.p>
 
         {/* Product Image */}
-        {page.hero_images?.[0] && (
+        {renderSalesText(page.hero_images?.[0] && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -69,12 +71,12 @@ const HeroVariant01 = ({ page, colors, onOrderClick }: HeroVariantProps) => {
           >
             <img 
               src={page.hero_images[0]} 
-              alt={page.hero_headline}
+              alt={salesPlainText(page.hero_headline)}
               className="w-[97%] mx-auto rounded-xl shadow-lg object-contain"
               style={{ maxHeight: '350px' }}
             />
           </motion.div>
-        )}
+        ))}
 
         {/* CTA Button */}
         <motion.div
@@ -91,7 +93,7 @@ const HeroVariant01 = ({ page, colors, onOrderClick }: HeroVariantProps) => {
               boxShadow: `0 8px 30px -8px ${colors.accent}80`
             }}
           >
-            {page.cta_button_text || "এখনই অর্ডার করুন"}
+            {renderSalesText(page.cta_button_text || "এখনই অর্ডার করুন")}
             <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
         </motion.div>

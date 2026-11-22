@@ -50,11 +50,11 @@ export const salesPageTemplates: SalesPageTemplate[] = [
    // NEW TEMPLATE SYSTEM (Self-contained components)
    // ═══════════════════════════════════════════════════════════════════
    
-   // Template 01: অর্গানিক গ্রিন - ফুড/অর্গানিক প্রোডাক্ট
+   // Template 01: টেমপ্লেট - ০১ (formerly অর্গানিক গ্রিন) - ফুড/অর্গানিক প্রোডাক্ট
   {
      id: 'template-01-organic',
-     name: 'অর্গানিক গ্রিন',
-     nameEn: 'Organic Green',
+     name: 'টেমপ্লেট - ০১',
+     nameEn: 'Template - 01',
      description: 'সবুজ থিম, চেকলিস্ট ফিচার, ফুড/অর্গানিক প্রোডাক্টের জন্য',
      category: 'food',
      isNew: true,
@@ -88,11 +88,11 @@ export const salesPageTemplates: SalesPageTemplate[] = [
     },
   },
    
-   // Template 02: ক্লথিং স্পেশাল - ফ্যাশন/ক্লথিং প্রোডাক্ট
+   // Template 02: টেমপ্লেট - ০২ (formerly ক্লথিং স্পেশাল)
    {
      id: 'template-02-clothing',
-     name: 'ক্লথিং স্পেশাল',
-     nameEn: 'Clothing Special',
+     name: 'টেমপ্লেট - ০২',
+     nameEn: 'Template - 02',
      description: 'কাউন্টডাউন সহ ক্লথিং সেল, থাম্বনেইল গ্যালারি',
      category: 'fashion',
      isNew: true,
@@ -600,11 +600,11 @@ export const salesPageTemplates: SalesPageTemplate[] = [
      },
     },
 
-   // Template 15: ইউনিভার্সাল - সম্পূর্ণ কাস্টমাইজেবল
+   // Template 15: কাস্টম (formerly ইউনিভার্সাল)
    {
      id: 'template-15-universal',
-     name: 'ইউনিভার্সাল',
-     nameEn: 'Universal',
+     name: 'কাস্টম',
+     nameEn: 'Custom',
      description: 'সম্পূর্ণ কাস্টমাইজেবল, সব সেকশন, নিজের মত ডিজাইন করুন',
      category: 'general',
      isNew: true,
@@ -1009,6 +1009,11 @@ export const salesPageTemplates: SalesPageTemplate[] = [
 export const getTemplate = (templateId: string): SalesPageTemplate => {
   return salesPageTemplates.find(t => t.id === templateId) || salesPageTemplates[0];
 };
+
+// Keep retired templates available for existing sales pages, but offer only these six for new selections.
+export const selectableSalesPageTemplates = salesPageTemplates.filter(t =>
+  ['template-01-organic', 'template-02-clothing', 'template-15-universal'].includes(t.id)
+);
 
 export const getTemplateStyles = (templateId: string) => {
   const template = getTemplate(templateId);

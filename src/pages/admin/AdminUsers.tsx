@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import AdminLayout from "@/components/admin/AdminLayout";
 import AdminGuard from "@/components/admin/AdminGuard";
-import { apiFetch } from "@/lib/apiClient";
+import { api } from "@/integrations/cloudflare/client";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Label } from "@/components/ui/label";
@@ -72,26 +72,46 @@ const AdminUsers = () => {
   const [newUserRole, setNewUserRole] = useState<AppRole>("moderator");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Fetch ALL users from profiles, then get their roles
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["adminUsers"],
     queryFn: async () => {
-      const rows = await apiFetch<any[]>("/users");
-      return (Array.isArray(rows) ? rows : []).map((r) => ({
-        id: r.user_id,
-        user_id: r.user_id,
-        full_name: r.full_name ?? null,
-        phone: r.phone ?? null,
-        email: r.email ?? null,
-        role: (r.role as AppRole) || "user",
-        created_at: r.created_at,
-      })) as UserWithRole[];
+      // Get all profiles (staff can view all profiles now)
+      const { data: profiles, error: profilesError } = await api
+        .from("profiles")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (profilesError) throw profilesError;
+
+      // Get all user roles
+      const { data: roles, error: rolesError } = await api
+        .from("user_roles")
+        .select("*");
+
+      if (rolesError) throw rolesError;
+
+      // Combine data - show ALL users, with their role if they have one
+      const usersWithRoles: UserWithRole[] = (profiles || []).map((profile) => {
+        const userRole = roles?.find((r) => r.user_id === profile.user_id);
+        return {
+          id: profile.id,
+          user_id: profile.user_id,
+          full_name: profile.full_name || null,
+          phone: profile.phone || null,
+          email: null, // Email is in auth.users, we can't access it directly
+          role: (userRole?.role as AppRole) || "user",
+          created_at: profile.created_at,
+        };
+      });
+
+      return usersWithRoles;
     },
   });
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
       (user.full_name?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
-      (user.email?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
       (user.phone || "").includes(searchQuery) ||
       user.user_id.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesRole = roleFilter === "all" || user.role === roleFilter;
@@ -107,15 +127,47 @@ const AdminUsers = () => {
     setIsSubmitting(true);
 
     try {
-      const value = newUserEmail.trim();
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
-      await apiFetch("/users", {
-        method: "POST",
-        body: JSON.stringify(
-          isUuid ? { user_id: value, role: newUserRole } : { email: value, role: newUserRole },
-        ),
-      });
-      toast.success("ইউজার রোল আপডেট হয়েছে");
+      // First, we need to find the user by email via profiles or user lookup
+      // Since we can't directly query auth.users, we'll need the user_id
+      // For now, let's assume the admin inputs the user_id directly
+      
+      // Check if this might be a user_id (UUID format)
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      
+      let userId = newUserEmail.trim();
+      
+      if (!uuidRegex.test(userId)) {
+        toast.error("সঠিক User ID দিন (UUID ফরম্যাটে)");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Check if user already has a role
+      const { data: existingRole } = await api
+        .from("user_roles")
+        .select("*")
+        .eq("user_id", userId)
+        .single();
+
+      if (existingRole) {
+        // Update existing role
+        const { error } = await api
+          .from("user_roles")
+          .update({ role: newUserRole })
+          .eq("user_id", userId);
+
+        if (error) throw error;
+        toast.success("ইউজার রোল আপডেট হয়েছে");
+      } else {
+        // Insert new role
+        const { error } = await api
+          .from("user_roles")
+          .insert({ user_id: userId, role: newUserRole });
+
+        if (error) throw error;
+        toast.success("ইউজার রোল যোগ হয়েছে");
+      }
+
       queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
       setIsAddDialogOpen(false);
       setNewUserEmail("");
@@ -129,10 +181,30 @@ const AdminUsers = () => {
 
   const handleUpdateRole = async (userId: string, newRole: AppRole) => {
     try {
-      await apiFetch("/users", {
-        method: "POST",
-        body: JSON.stringify({ user_id: userId, role: newRole }),
-      });
+      // Check if user already has a role entry
+      const { data: existingRole } = await api
+        .from("user_roles")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (existingRole) {
+        // Update existing role
+        const { error } = await api
+          .from("user_roles")
+          .update({ role: newRole })
+          .eq("user_id", userId);
+
+        if (error) throw error;
+      } else {
+        // Insert new role entry
+        const { error } = await api
+          .from("user_roles")
+          .insert({ user_id: userId, role: newRole });
+
+        if (error) throw error;
+      }
+
       toast.success("রোল আপডেট হয়েছে");
       queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
     } catch (error: any) {
@@ -142,10 +214,14 @@ const AdminUsers = () => {
 
   const handleDeleteRole = async () => {
     if (!selectedUser) return;
+
     try {
-      await apiFetch(`/users?user_id=${encodeURIComponent(selectedUser.user_id)}`, {
-        method: "DELETE",
-      });
+      const { error } = await api
+        .from("user_roles")
+        .delete()
+        .eq("id", selectedUser.id);
+
+      if (error) throw error;
       toast.success("ইউজার রোল মুছে ফেলা হয়েছে");
       queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
       setIsDeleteDialogOpen(false);
@@ -164,7 +240,7 @@ const AdminUsers = () => {
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="ইউজার খুঁজুন (নাম, ইমেইল, ফোন, ID)..."
+                placeholder="ইউজার খুঁজুন (নাম, ফোন, ID)..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -218,7 +294,7 @@ const AdminUsers = () => {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  মোট ইউজার
+                  মোট রোল অ্যাসাইন্ড
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -275,13 +351,7 @@ const AdminUsers = () => {
                                     <p className="font-medium">
                                       {user.full_name || "নাম নেই"}
                                     </p>
-                                    {user.email && (
-                                      <p className="text-xs text-muted-foreground">
-                                        {user.email}
-                                      </p>
-                                    )}
                                   </div>
-
                                 </div>
                               </TableCell>
                               <TableCell className="font-mono text-xs">

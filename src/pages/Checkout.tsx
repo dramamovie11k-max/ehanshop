@@ -10,14 +10,13 @@ import Footer from "@/components/layout/Footer";
 import DuplicateOrderBlockAlert from "@/components/checkout/DuplicateOrderBlockAlert";
 import CouponField from "@/components/checkout/CouponField";
 
-import { useCart } from "@/contexts/CartContext";
+import { useCart, cartItemPrice, cartItemVariationLabel, cartItemKey } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDuplicateOrderBlock } from "@/hooks/useDuplicateOrderBlock";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { useLanguage } from "@/contexts/LanguageContext";
 
-import { apiFetch } from "@/lib/apiClient";
-import { createOrder, saveOrderTracking } from "@/lib/dataApi";
+import { api } from "@/integrations/cloudflare/client";
 import { toast } from "sonner";
 import { usePixelTracking } from "@/hooks/usePixelTracking";
 import { useOrderSource } from "@/hooks/useOrderSource";
@@ -227,35 +226,40 @@ const Checkout = () => {
 
   useEffect(() => {
     const fetchShippingSettings = async () => {
-      const settings = await apiFetch<any>("/settings").catch(() => null);
-      const list = Array.isArray(settings) ? settings : settings?.data;
-      if (!Array.isArray(list)) return;
-      const next = { inside: 60, outside: 120 };
-      list.forEach((item: any) => {
-        if (item.setting_key === "default_shipping_inside_dhaka") next.inside = Number(item.setting_value) || 60;
-        if (item.setting_key === "default_shipping_outside_dhaka") next.outside = Number(item.setting_value) || 120;
-      });
-      setDefaultShipping(next);
+      const { data, error } = await api
+        .from("site_settings")
+        .select("setting_key, setting_value")
+        .in("setting_key", ["default_shipping_inside_dhaka", "default_shipping_outside_dhaka"]);
+      
+      if (!error && data) {
+        const settings: { inside: number; outside: number } = { inside: 60, outside: 120 };
+        data.forEach((item) => {
+          if (item.setting_key === "default_shipping_inside_dhaka") {
+            settings.inside = parseInt(item.setting_value || "60");
+          }
+          if (item.setting_key === "default_shipping_outside_dhaka") {
+            settings.outside = parseInt(item.setting_value || "120");
+          }
+        });
+        setDefaultShipping(settings);
+      }
     };
     fetchShippingSettings();
   }, []);
 
-  const isItemFreeShipping = (item: typeof cartItems[number]) =>
-    item.variation?.free_shipping === true || (!item.variation && item.product.free_shipping === true);
-
-  const hasAllFreeShipping = cartItems.every(isItemFreeShipping);
+  const hasAllFreeShipping = cartItems.every(item => item.product.free_shipping === true);
   const isDhaka = formData.city === "ঢাকার ভিতরে";
   
   const calculateShippingCost = useCallback(() => {
     if (hasAllFreeShipping) return 0;
     
     const customShippings = cartItems
-      .filter((item) => !isItemFreeShipping(item))
+      .filter(item => !item.product.free_shipping)
       .map(item => {
         if (isDhaka) {
-          return item.variation?.shipping_inside_dhaka ?? item.product.shipping_inside_dhaka ?? defaultShipping.inside;
+          return item.product.shipping_inside_dhaka ?? defaultShipping.inside;
         }
-        return item.variation?.shipping_outside_dhaka ?? item.product.shipping_outside_dhaka ?? defaultShipping.outside;
+        return item.product.shipping_outside_dhaka ?? defaultShipping.outside;
       });
     
     return customShippings.length > 0 ? Math.max(...customShippings) : 0;
@@ -275,14 +279,14 @@ const Checkout = () => {
       const items = cartItems.map(item => ({
         product_id: item.product.id,
         product_name: item.product.name_bn,
-        price: item.variation?.price ?? item.product.price,
+        price: cartItemPrice(item),
         original_price: item.product.original_price,
         quantity: item.quantity,
         category: item.product.category_id || undefined,
         stock: item.product.stock,
         stock_status: item.product.stock > 0 ? 'instock' : 'outofstock',
-        variation_name: item.variation?.variation_name,
-        variation_id: item.variation?.id,
+        variation_name: cartItemVariationLabel(item) || undefined,
+        variation_id: item.variations?.[0]?.id || item.variation?.id,
       }));
       trackInitiateCheckout(items, "Website Checkout", {
         subtotal: cartTotal,
@@ -321,10 +325,10 @@ const Checkout = () => {
       items: cartItems.map((item) => ({
         product_id: item.product.id,
         product_name: item.product.name_bn,
-        price: item.variation?.price ?? item.product.price,
+        price: cartItemPrice(item),
         quantity: item.quantity,
-        variation_id: item.variation?.id,
-        variation_name: item.variation?.variation_name,
+        variation_id: item.variations?.[0]?.id || item.variation?.id,
+        variation_name: cartItemVariationLabel(item) || undefined,
       })),
       total: grandTotal,
       form: {
@@ -336,16 +340,16 @@ const Checkout = () => {
     };
 
     try {
-      await apiFetch("/abandoned-carts", {
-        method: "POST",
-        body: JSON.stringify({
-          session_id: sessionId.current,
-          user_id: user?.id || null,
-          customer_phone: normalizedPhone,
-          cart_data: cartData,
-          checkout_step: "checkout",
-        }),
+      const { error } = await api.rpc("save_abandoned_cart", {
+        _session_id: sessionId.current,
+        _customer_phone: normalizedPhone,
+        _cart_data: cartData as any,
+        _checkout_step: "checkout",
       });
+
+      if (error) {
+        console.error("Error saving abandoned cart:", error);
+      }
     } catch (error) {
       console.error("Error saving abandoned cart:", error);
     }
@@ -374,9 +378,10 @@ const Checkout = () => {
   const deleteAbandonedCart = async () => {
     try {
       const normalizedPhone = normalizePhoneNumber(formData.phone);
-      const query = new URLSearchParams({ session_id: sessionId.current });
-      if (normalizedPhone) query.set("customer_phone", normalizedPhone);
-      await apiFetch(`/abandoned-carts?${query.toString()}`, { method: "DELETE" });
+      await api.rpc("remove_abandoned_cart", {
+        _session_id: sessionId.current,
+        _customer_phone: normalizedPhone,
+      });
     } catch (error) {
       console.error("Error deleting abandoned cart:", error);
     }
@@ -438,44 +443,59 @@ const Checkout = () => {
     setLoading(true);
 
     try {
+      const generatedOrderId = crypto.randomUUID();
       const fullAddress = thanaDistrictEnabled && (formData.thana || formData.district)
         ? `${formData.address}, থানা: ${formData.thana}, জেলা: ${formData.district}`
         : formData.address;
       const paymentNote = ["bkash","nagad","rocket"].includes(formData.paymentMethod)
         ? `পেমেন্ট: ${formData.paymentMethod.toUpperCase()} | সেন্ডার: ${formData.senderNumber} | TrxID: ${formData.transactionId}`
         : null;
+      const orderInput = {
+          id: generatedOrderId,
+          user_id: user?.id || null,
+          customer_name: formData.name,
+          customer_phone: formData.phone,
+          customer_address: fullAddress,
+          customer_city: formData.city,
+          total_amount: grandTotal,
+          shipping_cost: shippingCost,
+          payment_method: formData.paymentMethod,
+          notes: paymentNote,
+          order_source: getOrderSource(),
+          coupon_code: appliedCoupon?.couponCode || null,
+          coupon_discount: couponDiscount || 0,
+          customer_ip: userIP || null,
+      };
 
-      // অর্ডার সবসময় সার্ভার রুট দিয়ে — দাম, কুপন, ব্লক-লিস্ট ও স্টক সার্ভারেই যাচাই হয়
-      const createdOrder: any = await createOrder({
-        customer_name: formData.name,
-        customer_phone: formData.phone,
-        customer_address: fullAddress,
-        customer_city: formData.city,
-        shipping_cost: shippingCost,
-        payment_method: formData.paymentMethod,
-        notes: paymentNote || undefined,
-        order_source: getOrderSource(),
-        coupon_code: appliedCoupon?.couponCode || undefined,
-        items: cartItems.map((item) => ({
-          product_id: item.product.id,
-          product_name: item.variation
-            ? `${item.product.name_bn} (${item.variation.variation_name})`
-            : item.product.name_bn,
-          product_price: item.variation?.price ?? item.product.price,
-          quantity: item.quantity,
-          variation_id: item.variation?.id || undefined,
-          variation_name: item.variation?.variation_name || undefined,
-        })),
-      });
+      const orderItems = cartItems.map((item) => ({
+        order_id: generatedOrderId,
+        product_id: item.product.id,
+        product_name: cartItemVariationLabel(item)
+          ? `${item.product.name_bn} (${cartItemVariationLabel(item)})`
+          : item.product.name_bn,
+        product_price: cartItemPrice(item),
+        quantity: item.quantity,
+        variation_id: item.variations?.[0]?.id || item.variation?.id || null,
+        variation_ids: (item.variations || (item.variation ? [item.variation] : [])).map(v => v.id),
+        variation_name: cartItemVariationLabel(item),
+      }));
 
-      const generatedOrderId = createdOrder?.id as string;
-      if (!generatedOrderId) throw new Error("অর্ডার তৈরি হয়নি");
+      const { error: itemsError } = await api.checkout({ order: orderInput, items: orderItems });
+
+      if (itemsError) throw itemsError;
 
       // Mark order as placed for duplicate blocking (localStorage)
       markOrderPlaced();
 
       await deleteAbandonedCart();
 
+      // Mark coupon as used
+      if (appliedCoupon?.couponCode) {
+        await api.rpc("redeem_spin_coupon", {
+          _code: appliedCoupon.couponCode,
+          _order_id: generatedOrderId,
+        });
+      }
 
       const eventId = trackPurchase({
         order_id: generatedOrderId,
@@ -494,11 +514,11 @@ const Checkout = () => {
         items: cartItems.map(item => ({
           product_id: item.product.id,
           product_name: item.product.name_bn,
-          price: item.variation?.price ?? item.product.price,
+          price: cartItemPrice(item),
           original_price: item.product.original_price,
           quantity: item.quantity,
-          variation_name: item.variation?.variation_name,
-          variation_id: item.variation?.id,
+          variation_name: cartItemVariationLabel(item) || undefined,
+          variation_id: item.variations?.[0]?.id || item.variation?.id,
           category: item.product.category_id || undefined,
           stock: item.product.stock,
           stock_status: item.product.stock > 0 ? 'instock' : 'outofstock',
@@ -519,25 +539,27 @@ const Checkout = () => {
         const ttp = (document.cookie.match(/(?:^|; )_ttp=([^;]+)/) || [])[1];
         const ttclid = (document.cookie.match(/(?:^|; )ttclid=([^;]+)/) || [])[1];
         const externalId = localStorage.getItem("__fb_external_id") || undefined;
-        await saveOrderTracking(generatedOrderId, {
-          purchase_event_id: eventId,
-          tracking_data: {
-            fbp: fbp ? decodeURIComponent(fbp) : null,
-            fbc: fbc ? decodeURIComponent(fbc) : null,
-            ttp: ttp ? decodeURIComponent(ttp) : null,
-            ttclid: ttclid ? decodeURIComponent(ttclid) : null,
-            user_agent: navigator.userAgent,
-            external_id: externalId,
-            source_url: window.location.href,
-          },
-        });
-
+        await api
+          .from("orders")
+          .update({
+            purchase_event_id: eventId,
+            tracking_data: {
+              fbp: fbp ? decodeURIComponent(fbp) : null,
+              fbc: fbc ? decodeURIComponent(fbc) : null,
+              ttp: ttp ? decodeURIComponent(ttp) : null,
+              ttclid: ttclid ? decodeURIComponent(ttclid) : null,
+              user_agent: navigator.userAgent,
+              external_id: externalId,
+              source_url: window.location.href,
+            },
+          })
+          .eq("id", generatedOrderId);
       }
 
       // Store order details before clearing cart
       const productSummary = cartItems.map(item => {
-        const name = item.variation 
-          ? `${item.product.name_bn} (${item.variation.variation_name})`
+        const name = cartItemVariationLabel(item)
+          ? `${item.product.name_bn} (${cartItemVariationLabel(item)})`
           : item.product.name_bn;
         return item.quantity > 1 ? `${item.quantity}x ${name}` : name;
       }).join(", ");
@@ -882,12 +904,11 @@ const Checkout = () => {
                 {/* Cart Items - inline */}
                 <div className="space-y-2.5">
                   {cartItems.map((item) => {
-                    const itemKey = item.variation 
-                      ? `${item.product.id}-${item.variation.id}` 
-                      : item.product.id;
-                    const itemPrice = item.variation?.price ?? item.product.price;
-                    const itemName = item.variation 
-                      ? `${language === 'en' ? (item.product.name || item.product.name_bn) : item.product.name_bn} (${item.variation.variation_name})`
+                    const itemKey = cartItemKey(item);
+                    const itemPrice = cartItemPrice(item);
+                    const variationLabel = cartItemVariationLabel(item);
+                    const itemName = variationLabel
+                      ? `${language === 'en' ? (item.product.name || item.product.name_bn) : item.product.name_bn} (${variationLabel})`
                       : (language === 'en' ? (item.product.name || item.product.name_bn) : item.product.name_bn);
                     return (
                       <div 
@@ -897,7 +918,7 @@ const Checkout = () => {
                       >
                         <button
                           type="button"
-                          onClick={() => removeFromCart(item.product.id, item.variation?.id)}
+                          onClick={() => removeFromCart(item.product.id, item.variation?.id, itemKey)}
                           className="w-6 h-6 rounded-full flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all flex-shrink-0"
                         >
                           <X className="h-3.5 w-3.5" />
@@ -918,7 +939,7 @@ const Checkout = () => {
                         <div className="flex items-center border border-slate-200 rounded-lg bg-white flex-shrink-0">
                           <button
                             type="button"
-                            onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.variation?.id)}
+                            onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.variation?.id, itemKey)}
                             className="w-8 h-8 flex items-center justify-center text-slate-600 hover:text-slate-900"
                           >
                             <Minus className="h-3.5 w-3.5" />
@@ -926,7 +947,7 @@ const Checkout = () => {
                           <span className="w-7 text-center text-sm font-semibold text-slate-800">{item.quantity}</span>
                           <button
                             type="button"
-                            onClick={() => updateQuantity(item.product.id, item.quantity + 1, item.variation?.id)}
+                            onClick={() => updateQuantity(item.product.id, item.quantity + 1, item.variation?.id, itemKey)}
                             className="w-8 h-8 flex items-center justify-center text-slate-600 hover:text-slate-900"
                           >
                             <Plus className="h-3.5 w-3.5" />

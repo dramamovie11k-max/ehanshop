@@ -11,7 +11,7 @@ import { useStaffAccess } from "@/hooks/useStaffAccess";
 import { Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
-import { apiFetch } from "@/lib/apiClient";
+import { api } from "@/integrations/cloudflare/client";
 
 
 const statusMap: Record<string, { label: string; classes: string }> = {
@@ -52,11 +52,16 @@ const AdminDashboard = () => {
 
   const fetchLowStockCount = async () => {
     try {
-      const products = await apiFetch<any[]>("/products?limit=200");
-      const lowStock = (Array.isArray(products) ? products : []).filter(
-        (p) => (p.stock || 0) <= (p.low_stock_threshold || 5)
-      ).length;
-      setLowStockCount(lowStock);
+      const { data: products } = await api
+        .from("products")
+        .select("stock, low_stock_threshold");
+
+      if (products) {
+        const lowStock = products.filter(
+          (p) => (p.stock || 0) <= (p.low_stock_threshold || 5)
+        ).length;
+        setLowStockCount(lowStock);
+      }
     } catch (error) {
       console.error("Error fetching low stock count:", error);
     } finally {

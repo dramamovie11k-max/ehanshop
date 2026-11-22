@@ -1,200 +1,77 @@
 import { useState } from "react";
-import { Plus, Trash2, GripVertical, Link, ExternalLink } from "lucide-react";
+import { Plus, Trash2, ArrowUp, ArrowDown, FilePenLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { usePages, useCreatePage, useUpdatePage } from "@/hooks/usePages";
+import { footerPageSlug, type FooterLink } from "@/lib/footerLinks";
+export type { FooterLink } from "@/lib/footerLinks";
 
-export interface FooterLink {
-  id: string;
-  label: string;
-  url: string;
-}
-
-interface FooterManagerProps {
-  quickLinks: FooterLink[];
-  customerServiceLinks: FooterLink[];
+interface Props {
+  quickLinks: FooterLink[]; customerServiceLinks: FooterLink[];
   onQuickLinksChange: (links: FooterLink[]) => void;
   onCustomerServiceChange: (links: FooterLink[]) => void;
 }
-
-const FooterManager = ({
-  quickLinks,
-  customerServiceLinks,
-  onQuickLinksChange,
-  onCustomerServiceChange,
-}: FooterManagerProps) => {
-  const generateId = () => Math.random().toString(36).substr(2, 9);
-
-  const addLink = (type: "quick" | "customer") => {
-    const newLink: FooterLink = {
-      id: generateId(),
-      label: "",
-      url: "",
-    };
-
-    if (type === "quick") {
-      onQuickLinksChange([...quickLinks, newLink]);
-    } else {
-      onCustomerServiceChange([...customerServiceLinks, newLink]);
-    }
+const FooterManager = ({ quickLinks, customerServiceLinks, onQuickLinksChange, onCustomerServiceChange }: Props) => {
+  const { data: pages = [] } = usePages();
+  const createPage = useCreatePage();
+  const updatePage = useUpdatePage();
+  const [editor, setEditor] = useState<{ id?: string; title: string; slug: string; content: string; published: boolean } | null>(null);
+  const openContent = (link: FooterLink) => {
+    const slug = footerPageSlug(link.url);
+    if (!slug) return;
+    const page = pages.find(p => p.slug === slug);
+    setEditor({ id: page?.id, title: page?.title || link.label, slug, content: page?.content || '', published: page?.is_published ?? true });
   };
-
-  const updateLink = (
-    type: "quick" | "customer",
-    id: string,
-    field: "label" | "url",
-    value: string
-  ) => {
-    if (type === "quick") {
-      onQuickLinksChange(
-        quickLinks.map((link) =>
-          link.id === id ? { ...link, [field]: value } : link
-        )
-      );
-    } else {
-      onCustomerServiceChange(
-        customerServiceLinks.map((link) =>
-          link.id === id ? { ...link, [field]: value } : link
-        )
-      );
-    }
+  const save = async () => {
+    if (!editor || !editor.title.trim()) return;
+    const data = { title: editor.title, slug: editor.slug, content: editor.content, is_published: editor.published };
+    try {
+      if (editor.id) await updatePage.mutateAsync({ id: editor.id, ...data });
+      else await createPage.mutateAsync(data);
+      setEditor(null);
+    } catch { /* Mutations show the error and keep the editor open. */ }
   };
-
-  const removeLink = (type: "quick" | "customer", id: string) => {
-    if (type === "quick") {
-      onQuickLinksChange(quickLinks.filter((link) => link.id !== id));
-    } else {
-      onCustomerServiceChange(customerServiceLinks.filter((link) => link.id !== id));
-    }
-  };
-
-  const renderLinkEditor = (
-    type: "quick" | "customer",
-    links: FooterLink[],
-    title: string,
-    description: string
-  ) => (
-    <div className="space-y-4">
-      <div>
-        <h4 className="font-medium text-base">{title}</h4>
-        <p className="text-sm text-muted-foreground">{description}</p>
-      </div>
-
-      <div className="space-y-3">
-        {links.map((link, index) => (
-          <div
-            key={link.id}
-            className="flex items-center gap-2 p-3 border rounded-lg bg-muted/30"
-          >
-            <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
-            <span className="text-sm text-muted-foreground w-6">{index + 1}.</span>
-            <div className="flex-1 grid grid-cols-2 gap-2">
-              <Input
-                placeholder="লেবেল (যেমন: Home)"
-                value={link.label}
-                onChange={(e) => updateLink(type, link.id, "label", e.target.value)}
-                className="h-9"
-              />
-              <Input
-                placeholder="URL (যেমন: /about)"
-                value={link.url}
-                onChange={(e) => updateLink(type, link.id, "url", e.target.value)}
-                className="h-9"
-              />
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 text-destructive hover:text-destructive"
-              onClick={() => removeLink(type, link.id)}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        ))}
-
-        {links.length === 0 && (
-          <div className="text-center py-6 text-muted-foreground border-2 border-dashed rounded-lg">
-            <Link className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">কোনো লিংক নেই। নতুন লিংক যোগ করুন।</p>
-          </div>
-        )}
-      </div>
-
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => addLink(type)}
-        className="w-full"
-      >
-        <Plus className="h-4 w-4 mr-2" />
-        নতুন লিংক যোগ করুন
-      </Button>
+  return <>
+    <div className="grid lg:grid-cols-2 gap-6">
+      {[{ title: 'প্রধান মেনু', links: quickLinks, change: onQuickLinksChange }, { title: 'সেবা ও নীতিমালা', links: customerServiceLinks, change: onCustomerServiceChange }].map(group => (
+        <section key={group.title} className="space-y-3 min-w-0">
+          <h3 className="font-semibold">{group.title}</h3>
+          {group.links.map((link, index) => {
+            const update = (field: 'label' | 'url', value: string) => group.change(group.links.map(l => l.id === link.id ? { ...l, [field]: value } : l));
+            const move = (offset: number) => { const next = [...group.links]; const target = index + offset; if (target < 0 || target >= next.length) return; [next[index], next[target]] = [next[target], next[index]]; group.change(next); };
+            return <div key={link.id} className="border border-border rounded-md p-3 space-y-2">
+              <Label htmlFor={`footer-label-${group.title}-${link.id}`}>মেনুর নাম</Label>
+              <Input id={`footer-label-${group.title}-${link.id}`} value={link.label} onChange={e => update('label', e.target.value)} />
+              <Label htmlFor={`footer-url-${group.title}-${link.id}`}>লিঙ্ক</Label>
+              <Input id={`footer-url-${group.title}-${link.id}`} value={link.url} placeholder="/about অথবা https://…" onChange={e => update('url', e.target.value)} />
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="sm" disabled={!footerPageSlug(link.url) || !link.label.trim()} onClick={() => openContent(link)}><FilePenLine />পেজের কন্টেন্ট</Button>
+                <Button variant="ghost" size="icon" aria-label="উপরে সরান" disabled={index === 0} onClick={() => move(-1)}><ArrowUp /></Button>
+                <Button variant="ghost" size="icon" aria-label="নিচে সরান" disabled={index === group.links.length - 1} onClick={() => move(1)}><ArrowDown /></Button>
+                <Button variant="ghost" size="icon" className="text-destructive ml-auto" aria-label={`মুছুন ${link.label}`} onClick={() => group.change(group.links.filter(l => l.id !== link.id))}><Trash2 /></Button>
+              </div>
+            </div>;
+          })}
+          <Button variant="outline" onClick={() => group.change([...group.links, { id: crypto.randomUUID(), label: '', url: '' }])}><Plus />নতুন মেনু লিঙ্ক</Button>
+        </section>
+      ))}
     </div>
-  );
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <ExternalLink className="h-5 w-5" />
-          ফুটার মেনু ম্যানেজমেন্ট
-        </CardTitle>
-        <CardDescription>
-          ফুটারে প্রদর্শিত Quick Links এবং Customer Service লিংক গুলো এখান থেকে ম্যানেজ করুন
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {renderLinkEditor(
-          "quick",
-          quickLinks,
-          "Quick Links",
-          "ওয়েবসাইটের প্রধান পেজগুলোর লিংক"
-        )}
-
-        <Separator />
-
-        {renderLinkEditor(
-          "customer",
-          customerServiceLinks,
-          "Customer Service",
-          "কাস্টমার সার্ভিস সম্পর্কিত পেজগুলোর লিংক"
-        )}
-
-        {/* Preview */}
-        <Separator />
-        <div className="space-y-3">
-          <h4 className="font-medium">প্রিভিউ</h4>
-          <div className="p-4 bg-[#0a2618] rounded-lg">
-            <div className="grid grid-cols-2 gap-6 text-sm">
-              <div>
-                <h5 className="font-bold text-yellow-400 mb-2">Quick Links</h5>
-                <ul className="space-y-1">
-                  {quickLinks.map((link) => (
-                    <li key={link.id} className="text-emerald-200/80 hover:text-blue-400">
-                      » {link.label || "লেবেল নেই"}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <h5 className="font-bold text-yellow-400 mb-2">Customer Service</h5>
-                <ul className="space-y-1">
-                  {customerServiceLinks.map((link) => (
-                    <li key={link.id} className="text-emerald-200/80 hover:text-blue-400">
-                      » {link.label || "লেবেল নেই"}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
+    <Dialog open={!!editor} onOpenChange={open => { if (!open) setEditor(null); }}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader><DialogTitle>মেনু পেজের কন্টেন্ট</DialogTitle></DialogHeader>
+        {editor && <div className="space-y-4">
+          <div className="space-y-2"><Label htmlFor="footer-page-title">পেজের শিরোনাম</Label><Input id="footer-page-title" value={editor.title} onChange={e => setEditor({ ...editor, title: e.target.value })} /></div>
+          <p className="text-sm text-muted-foreground">/{editor.slug}</p>
+          <div className="space-y-2"><Label htmlFor="footer-page-content">পেজের লেখা / HTML</Label><Textarea id="footer-page-content" rows={12} value={editor.content} onChange={e => setEditor({ ...editor, content: e.target.value })} /></div>
+          <div className="flex items-center gap-2"><Switch id="footer-page-published" checked={editor.published} onCheckedChange={v => setEditor({ ...editor, published: v })} /><Label htmlFor="footer-page-published">প্রকাশিত</Label></div>
+          <Button disabled={!editor.title.trim() || createPage.isPending || updatePage.isPending} onClick={save}>{createPage.isPending || updatePage.isPending ? 'সেভ হচ্ছে…' : 'পেজ সেভ করুন'}</Button>
+        </div>}
+      </DialogContent>
+    </Dialog>
+  </>;
 };
-
 export default FooterManager;

@@ -1,3 +1,5 @@
+import { salesPlainText } from '@/lib/salesRichText';
+import { renderSalesText } from '@/components/salespage/SalesRichText';
 import { motion } from "framer-motion";
 import { SalesPage } from "@/types/salesPage";
 import { Quote } from "lucide-react";
@@ -20,7 +22,7 @@ const ReviewVariant03 = ({ page, colors, isLightTheme }: ReviewVariantProps) => 
       className="py-8 px-3"
       style={{ backgroundColor: colors.background }}
     >
-      <div className="max-w-lg mx-auto">
+      <div className="max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -30,16 +32,16 @@ const ReviewVariant03 = ({ page, colors, isLightTheme }: ReviewVariantProps) => 
           <div className="inline-flex items-center gap-2 mb-2">
             <Quote className="w-5 h-5" style={{ color: colors.accent }} />
             <h2 className="text-xl font-bold" style={{ color: isLightTheme ? colors.text : '#fff' }}>
-              {page.reviews_headline}
+              {renderSalesText(page.reviews_headline)}
             </h2>
           </div>
           <p className="text-sm" style={{ color: isLightTheme ? colors.text : '#fff', opacity: 0.6 }}>
-            {page.reviews_subheadline}
+            {renderSalesText(page.reviews_subheadline)}
           </p>
         </motion.div>
 
         {/* Review Video */}
-        {reviewVideoUrl && (
+        {renderSalesText(reviewVideoUrl && (
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
             whileInView={{ opacity: 1, scale: 1 }}
@@ -47,9 +49,9 @@ const ReviewVariant03 = ({ page, colors, isLightTheme }: ReviewVariantProps) => 
             className="mb-4"
           >
             <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${isLightTheme ? '#eee' : 'rgba(255,255,255,0.1)'}` }}>
-              {reviewVideoUrl.match(/(?:youtu\.be\/|youtube\.com)/) ? (
+              {renderSalesText(reviewVideoUrl.match(/(?:youtu\.be\/|youtube\.com)/) ? (
                 <div className="aspect-video">
-                  <iframe
+                  <iframe loading="lazy"
                     src={`https://www.youtube.com/embed/${reviewVideoUrl.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/watch\?.+&v=))([^"&?\/\s]{11})/)?.[1]}?rel=0`}
                     title="Customer Review Video"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -61,14 +63,14 @@ const ReviewVariant03 = ({ page, colors, isLightTheme }: ReviewVariantProps) => 
                 <div className="aspect-video">
                   <video src={reviewVideoUrl} controls className="w-full h-full object-cover" />
                 </div>
-              )}
+              ))}
             </div>
           </motion.div>
-        )}
+        ))}
 
-        {images.length > 0 && (
+        {renderSalesText(images.length > 0 && (
           <div className="columns-2 gap-2 space-y-2">
-            {images.map((img, i) => (
+            {renderSalesText(images.map((img, i) => (
               <motion.div
                 key={i}
                 initial={{ opacity: 0, scale: 0.95 }}
@@ -79,13 +81,13 @@ const ReviewVariant03 = ({ page, colors, isLightTheme }: ReviewVariantProps) => 
               >
                 <img
                   src={img}
-                  alt={`Customer review ${i + 1}`}
+                  alt={salesPlainText(`Customer review ${i + 1}`)}
                   className="w-full h-auto object-cover"
                 />
               </motion.div>
-            ))}
+            )))}
           </div>
-        )}
+        ))}
       </div>
     </section>
   );

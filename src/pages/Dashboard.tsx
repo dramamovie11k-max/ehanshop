@@ -7,7 +7,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/integrations/cloudflare/client";
 import { Navigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -20,7 +20,7 @@ const Dashboard = () => {
     queryKey: ["userOrdersCount", user?.id],
     queryFn: async () => {
       if (!user) return { total: 0, pending: 0 };
-      const { data, error } = await supabase
+      const { data, error } = await api
         .from("orders")
         .select("id, status")
         .eq("user_id", user.id);
@@ -36,7 +36,7 @@ const Dashboard = () => {
     queryKey: ["userProfile", user?.id],
     queryFn: async () => {
       if (!user) return null;
-      const { data, error } = await supabase
+      const { data, error } = await api
         .from("profiles")
         .select("*")
         .eq("user_id", user.id)
@@ -51,7 +51,7 @@ const Dashboard = () => {
     queryKey: ["wishlistCount", user?.id],
     queryFn: async () => {
       if (!user) return 0;
-      const { count, error } = await supabase
+      const { count, error } = await api
         .from("wishlist")
         .select("*", { count: "exact", head: true })
         .eq("user_id", user.id);

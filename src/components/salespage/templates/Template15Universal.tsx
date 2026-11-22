@@ -1,11 +1,21 @@
+import SectionAppearance from '../SectionAppearance';
+import { salesPlainText } from '@/lib/salesRichText';
+import { customTemplateSectionOrder } from '@/lib/salesSectionDesignAvailability';
+import { renderSalesText } from '@/components/salespage/SalesRichText';
 import { useRef, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Check, Play, ChevronDown, Star } from "lucide-react";
 import { SalesPage } from "@/types/salesPage";
 import { CustomSection } from "@/components/admin/CustomSectionEditor";
 import CheckoutSection from "../CheckoutSection";
+import SharedHeroSection from "../SharedHeroSection";
 import ContactSection from "../ContactSection";
+import SharedReviewsSection from "../SharedReviewsSection";
+import SharedFeaturesSection from "../SharedFeaturesSection";
 import GallerySection from "../GallerySection";
+import { Button } from '@/components/ui/button';
+import { Universal15CustomSection } from '../CustomSectionContent';
+export { Universal15CustomSection } from '../CustomSectionContent';
 
 interface Template15Props {
   page: SalesPage;
@@ -17,7 +27,7 @@ const defaultStyles = {
     backgroundColor: "#f4f4f4",
     maxWidth: "650",
     sectionGap: "5",
-    fontFamily: "'Hind Siliguri', sans-serif",
+    fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
   },
   hero: {
     backgroundColor: "#f0fdf4",
@@ -115,7 +125,26 @@ const getStyles = (page: SalesPage) => {
 
 const Template15Universal = ({ page }: Template15Props) => {
   const checkoutRef = useRef<HTMLDivElement>(null);
+  const pageRef = useRef<HTMLDivElement>(null);
+  const [checkoutBounds, setCheckoutBounds] = useState<{ width: number; left: number }>();
   const s = getStyles(page);
+
+  useEffect(() => {
+    const root = pageRef.current;
+    const card = checkoutRef.current?.querySelector('.checkout-container');
+    if (!root || !card) return;
+    const update = () => {
+      const rect = card.getBoundingClientRect();
+      const next = { width: rect.width, left: rect.left - root.getBoundingClientRect().left };
+      if (next.width > 0) setCheckoutBounds(previous => previous?.width === next.width && previous.left === next.left ? previous : next);
+    };
+    const observer = new ResizeObserver(update);
+    observer.observe(root);
+    observer.observe(card);
+    window.addEventListener('resize', update);
+    update();
+    return () => { observer.disconnect(); window.removeEventListener('resize', update); };
+  }, [page]);
 
   const scrollToCheckout = () => {
     checkoutRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -128,17 +157,12 @@ const Template15Universal = ({ page }: Template15Props) => {
 
   // Build section order including custom sections
   const customSections = ((page.template_styles as any)?.customSections || []) as CustomSection[];
-  const baseSectionOrder = page.section_order || ['hero', 'countdown', 'video', 'gallery', 'features', 'extra1', 'extra2', 'extra3', 'reviews', 'contact', 'checkout'];
-  // Append any custom section IDs not already in the order
-  const customIds = customSections.map(c => c.id);
-  const existingIds = new Set(baseSectionOrder);
-  const missingCustomIds = customIds.filter(id => !existingIds.has(id));
-  const sectionOrder = [...baseSectionOrder, ...missingCustomIds];
+  const sectionOrder = customTemplateSectionOrder(page.section_order, customSections.map(c => c.id));
 
   const wrapSection = (key: string, content: React.ReactNode) => (
     <div key={key} className="px-3 md:px-4">
       <div className="mx-auto" style={{ maxWidth: `${s.global.maxWidth}px` }}>
-        {content}
+        {renderSalesText(content)}
       </div>
     </div>
   );
@@ -147,7 +171,7 @@ const Template15Universal = ({ page }: Template15Props) => {
     switch (sectionKey) {
       case 'hero':
         return page.show_hero_section !== false && (
-          <Universal15Hero key="hero" page={page} s={s} onOrderClick={scrollToCheckout} getYoutubeEmbedUrl={getYoutubeEmbedUrl} />
+          page.template_styles?.hero?.design ? <SharedHeroSection key="hero" page={page} onOrderClick={scrollToCheckout} /> : <Universal15Hero key="hero" page={page} s={s} onOrderClick={scrollToCheckout} getYoutubeEmbedUrl={getYoutubeEmbedUrl} />
         );
       case 'countdown':
         return page.show_countdown && wrapSection('countdown',
@@ -165,7 +189,7 @@ const Template15Universal = ({ page }: Template15Props) => {
         );
       case 'features':
         return page.show_features_section && wrapSection('features',
-          <Universal15Features page={page} s={s} onOrderClick={scrollToCheckout} />
+           page.template_styles?.features?.design ? <SharedFeaturesSection page={page} /> : <Universal15Features page={page} s={s} onOrderClick={scrollToCheckout} />
         );
       case 'reviews':
         return page.show_reviews_section && wrapSection('reviews',
@@ -191,9 +215,9 @@ const Template15Universal = ({ page }: Template15Props) => {
         );
       case 'checkout':
         return page.show_checkout_section !== false && (
-          <div key="checkout" ref={checkoutRef} id="checkout" className="px-3 md:px-4">
+          <div key="checkout" ref={checkoutRef} id="checkout">
             <div className="mx-auto" style={{ maxWidth: `${s.global.maxWidth}px` }}>
-              <div style={{ borderRadius: `${s.checkout.borderRadius}px ${s.checkout.borderRadius}px 0 0`, overflow: 'hidden' }}>
+              <div style={{ borderRadius: `${s.checkout.borderRadius}px`, overflow: 'hidden' }}>
                 <CheckoutSection page={page} />
               </div>
             </div>
@@ -205,8 +229,11 @@ const Template15Universal = ({ page }: Template15Props) => {
           const customSections = ((page.template_styles as any)?.customSections || []) as CustomSection[];
           const cs = customSections.find(c => c.id === sectionKey);
           if (cs) {
-            return wrapSection(sectionKey,
-              <Universal15CustomSection section={cs} s={s} onOrderClick={scrollToCheckout} />
+            // Align desktop sections to the actual checkout card, including side gaps.
+            return (
+              <div key={sectionKey} className={cs.type === 'html' ? 'w-full' : 'w-full custom-checkout-aligned-section'}>
+                <Universal15CustomSection section={cs} s={s} onOrderClick={scrollToCheckout} />
+              </div>
             );
           }
         }
@@ -215,18 +242,20 @@ const Template15Universal = ({ page }: Template15Props) => {
   };
 
   return (
-    <div className="min-h-screen" style={{
+    <div ref={pageRef} className="min-h-screen" style={{
+      '--custom-checkout-width': checkoutBounds ? `${checkoutBounds.width}px` : `${s.global.maxWidth}px`,
+      '--custom-checkout-left': checkoutBounds ? `${checkoutBounds.left}px` : 'auto',
       backgroundColor: s.global.backgroundColor,
       fontFamily: s.global.fontFamily,
       display: 'flex',
       flexDirection: 'column',
       gap: `${s.global.sectionGap}px`,
-    }}>
-      {sectionOrder.map(renderSection)}
+    } as React.CSSProperties}>
+      {renderSalesText(sectionOrder.map(key => <SectionAppearance key={key} page={page} section={key}>{renderSection(key)}</SectionAppearance>))}
 
       {/* Footer */}
-      <div className="py-6 text-center text-sm" style={{ backgroundColor: s.footer.backgroundColor, color: s.footer.textColor }}>
-        <p className="opacity-70">{page.footer_text || `© ${new Date().getFullYear()} - সকল অধিকার সংরক্ষিত`}</p>
+      <div className="py-2.5 text-center text-xs leading-tight" style={{ backgroundColor: s.footer.backgroundColor, color: s.footer.textColor }}>
+        <p className="opacity-70">{renderSalesText(page.footer_text || `© ${new Date().getFullYear()} - সকল অধিকার সংরক্ষিত`)}</p>
       </div>
     </div>
   );
@@ -268,11 +297,11 @@ const Universal15Hero = ({ page, s, onOrderClick, getYoutubeEmbedUrl }: {
             borderRadius: '10px',
           }}
         >
-          <p className="md:text-[20px]">{page.hero_headline}</p>
+          <p className="md:text-[20px]">{renderSalesText(page.hero_headline)}</p>
         </motion.div>
 
         {/* Sub Header */}
-        {page.hero_subheadline && (
+        {renderSalesText(page.hero_subheadline && (
           <motion.h2
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -280,12 +309,12 @@ const Universal15Hero = ({ page, s, onOrderClick, getYoutubeEmbedUrl }: {
             className="text-[18px] md:text-[22px] font-bold mb-4 md:mb-5 px-2"
             style={{ color: h.subheadlineColor }}
           >
-            {page.hero_subheadline}
+            {renderSalesText(page.hero_subheadline)}
           </motion.h2>
-        )}
+        ))}
 
         {/* Video */}
-        {page.hero_video_url && (
+        {renderSalesText(page.hero_video_url && (
           <motion.div
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -299,7 +328,7 @@ const Universal15Hero = ({ page, s, onOrderClick, getYoutubeEmbedUrl }: {
               background: '#000',
             }}
           >
-            <iframe
+            <iframe loading="lazy"
               src={getYoutubeEmbedUrl(page.hero_video_url)}
               title="Product Video"
               className="absolute top-0 left-0 w-full h-full"
@@ -307,10 +336,10 @@ const Universal15Hero = ({ page, s, onOrderClick, getYoutubeEmbedUrl }: {
               allowFullScreen
             />
           </motion.div>
-        )}
+        ))}
 
         {/* Product Image (fallback) */}
-        {!page.hero_video_url && page.hero_images?.[0] && (
+        {renderSalesText(!page.hero_video_url && page.hero_images?.[0] && (
           <motion.div
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -319,7 +348,7 @@ const Universal15Hero = ({ page, s, onOrderClick, getYoutubeEmbedUrl }: {
           >
             <img
               src={page.hero_images[0]}
-              alt={page.hero_headline}
+              alt={salesPlainText(page.hero_headline)}
               className="w-full object-contain mx-auto"
               style={{
                 maxHeight: '400px',
@@ -328,10 +357,10 @@ const Universal15Hero = ({ page, s, onOrderClick, getYoutubeEmbedUrl }: {
               }}
             />
           </motion.div>
-        )}
+        ))}
 
         {/* Offer Details */}
-        {page.offer_details && (
+        {renderSalesText(page.offer_details && (
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -339,9 +368,9 @@ const Universal15Hero = ({ page, s, onOrderClick, getYoutubeEmbedUrl }: {
             className="text-[18px] md:text-[22px] font-bold mb-5 md:mb-6 leading-snug"
             style={{ color: h.offerTextColor }}
           >
-            {page.offer_details}
+            {renderSalesText(page.offer_details)}
           </motion.p>
-        )}
+        ))}
 
         {/* CTA Button */}
         <motion.div
@@ -362,7 +391,7 @@ const Universal15Hero = ({ page, s, onOrderClick, getYoutubeEmbedUrl }: {
               fontSize: `${h.ctaFontSize}px`,
             }}
           >
-            {page.cta_button_text || 'অর্ডার করুন'}
+            {renderSalesText(page.cta_button_text || 'অর্ডার করুন')}
           </button>
         </motion.div>
       </motion.div>
@@ -391,7 +420,7 @@ const Universal15Features = ({ page, s, onOrderClick }: {
       className="py-6 px-4 overflow-hidden"
       style={{ backgroundColor: f.backgroundColor, borderRadius: `${f.borderRadius}px` }}
     >
-      {(page.feature_section_image || page.feature_section_images?.[0]) && (
+      {renderSalesText((page.feature_section_image || page.feature_section_images?.[0]) && (
         <motion.div
           initial={{ opacity: 0, scale: 0.98 }}
           whileInView={{ opacity: 1, scale: 1 }}
@@ -400,12 +429,12 @@ const Universal15Features = ({ page, s, onOrderClick }: {
         >
           <img
             src={page.feature_section_image || page.feature_section_images[0]}
-            alt={page.features_headline}
+            alt={salesPlainText(page.features_headline)}
             className="w-full object-cover"
             style={{ maxHeight: '350px' }}
           />
         </motion.div>
-      )}
+      ))}
 
       <motion.div
         initial={{ opacity: 0, y: 15 }}
@@ -414,17 +443,17 @@ const Universal15Features = ({ page, s, onOrderClick }: {
         className="text-center mb-5"
       >
         <h2 className="text-2xl md:text-3xl font-bold mb-1" style={{ color: f.headingColor }}>
-          {page.features_headline}
+          {renderSalesText(page.features_headline)}
         </h2>
-        {page.features_subheadline && (
+        {renderSalesText(page.features_subheadline && (
           <p className="text-base md:text-lg" style={{ color: f.subheadingColor }}>
-            {page.features_subheadline}
+            {renderSalesText(page.features_subheadline)}
           </p>
-        )}
+        ))}
       </motion.div>
 
       <div className="space-y-2">
-        {features.map((feature, index) => (
+        {renderSalesText(features.map((feature, index) => (
           <motion.div
             key={index}
             initial={{ opacity: 0, x: -10 }}
@@ -438,24 +467,24 @@ const Universal15Features = ({ page, s, onOrderClick }: {
               className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
               style={{ backgroundColor: f.checkBgColor }}
             >
-              {feature.icon ? (
-                <span className="text-sm">{feature.icon}</span>
+              {renderSalesText(feature.icon ? (
+                <span className="text-sm">{renderSalesText(feature.icon)}</span>
               ) : (
                 <Check className="w-4 h-4" style={{ color: f.checkIconColor }} />
-              )}
+              ))}
             </div>
             <div>
               <h3 className="font-semibold text-sm" style={{ color: f.itemTextColor }}>
-                {feature.text}
+                {renderSalesText(feature.text)}
               </h3>
-              {feature.desc && (
+              {renderSalesText(feature.desc && (
                 <p className="text-xs mt-0.5" style={{ color: f.itemDescColor }}>
-                  {feature.desc}
+                  {renderSalesText(feature.desc)}
                 </p>
-              )}
+              ))}
             </div>
           </motion.div>
-        ))}
+        )))}
       </div>
 
       {/* CTA */}
@@ -477,7 +506,7 @@ const Universal15Features = ({ page, s, onOrderClick }: {
             border: `2px solid ${f.ctaBorderColor}`,
           }}
         >
-          {page.cta_button_text || 'অর্ডার করুন'}
+          {renderSalesText(page.cta_button_text || 'অর্ডার করুন')}
         </button>
       </motion.div>
     </section>
@@ -502,7 +531,7 @@ const Universal15Reviews = ({ page, s }: { page: SalesPage; s: Record<string, Re
       className="py-6 px-4 overflow-hidden"
       style={{ backgroundColor: r.backgroundColor, borderRadius: `${r.borderRadius}px` }}
     >
-      {page.reviews_headline && (
+      {renderSalesText(page.reviews_headline && (
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -510,17 +539,17 @@ const Universal15Reviews = ({ page, s }: { page: SalesPage; s: Record<string, Re
           className="text-center mb-5"
         >
           <h2 className="text-2xl md:text-3xl font-bold" style={{ color: r.headingColor }}>
-            {page.reviews_headline}
+            {renderSalesText(page.reviews_headline)}
           </h2>
-          {page.reviews_subheadline && (
+          {renderSalesText(page.reviews_subheadline && (
             <p className="text-base md:text-lg mt-1" style={{ color: r.subheadingColor }}>
-              {page.reviews_subheadline}
+              {renderSalesText(page.reviews_subheadline)}
             </p>
-          )}
+          ))}
         </motion.div>
-      )}
+      ))}
 
-      {hasVideo && page.review_video_url && (
+      {renderSalesText(hasVideo && page.review_video_url && (
         <motion.div
           initial={{ opacity: 0, scale: 0.98 }}
           whileInView={{ opacity: 1, scale: 1 }}
@@ -532,7 +561,7 @@ const Universal15Reviews = ({ page, s }: { page: SalesPage; s: Record<string, Re
             borderRadius: '12px',
           }}
         >
-          <iframe
+          <iframe loading="lazy"
             src={getYoutubeEmbedUrl(page.review_video_url)}
             title="Review Video"
             className="absolute top-0 left-0 w-full h-full"
@@ -540,11 +569,11 @@ const Universal15Reviews = ({ page, s }: { page: SalesPage; s: Record<string, Re
             allowFullScreen
           />
         </motion.div>
-      )}
+      ))}
 
-      {hasImages && (
+      {renderSalesText(hasImages && (
         <div className="grid grid-cols-2 gap-3">
-          {page.review_images.map((img, index) => (
+          {renderSalesText(page.review_images.map((img, index) => (
             <motion.div
               key={index}
               initial={{ opacity: 0, y: 10 }}
@@ -554,7 +583,7 @@ const Universal15Reviews = ({ page, s }: { page: SalesPage; s: Record<string, Re
             >
               <img
                 src={img}
-                alt={`Review ${index + 1}`}
+                alt={salesPlainText(`Review ${index + 1}`)}
                 className="w-full object-cover"
                 style={{
                   border: `${r.imageBorderWidth}px solid ${r.imageBorderColor}`,
@@ -562,9 +591,9 @@ const Universal15Reviews = ({ page, s }: { page: SalesPage; s: Record<string, Re
                 }}
               />
             </motion.div>
-          ))}
+          )))}
         </div>
-      )}
+      ))}
     </section>
   );
 };
@@ -595,12 +624,12 @@ const Universal15Extra = ({ page, s, sectionNumber, onOrderClick }: {
         className="text-center mb-5"
       >
         <h2 className="text-2xl md:text-3xl font-bold" style={{ color: e.headingColor }}>
-          {heading || 'বিশেষ সুবিধা'}
+          {renderSalesText(heading || 'বিশেষ সুবিধা')}
         </h2>
       </motion.div>
 
       <div className="space-y-2">
-        {points.map((point, index) => (
+        {renderSalesText(points.map((point, index) => (
           <motion.div
             key={index}
             initial={{ opacity: 0, x: -10 }}
@@ -616,9 +645,9 @@ const Universal15Extra = ({ page, s, sectionNumber, onOrderClick }: {
             >
               <Check className="w-4 h-4" style={{ color: e.checkIconColor }} />
             </div>
-            <p className="font-semibold text-sm" style={{ color: e.itemTextColor }}>{point}</p>
+            <p className="font-semibold text-sm" style={{ color: e.itemTextColor }}>{renderSalesText(point)}</p>
           </motion.div>
-        ))}
+        )))}
       </div>
 
       <motion.div
@@ -639,7 +668,7 @@ const Universal15Extra = ({ page, s, sectionNumber, onOrderClick }: {
             border: `2px solid ${e.ctaBorderColor}`,
           }}
         >
-          {page.cta_button_text || 'অর্ডার করুন'}
+          {renderSalesText(page.cta_button_text || 'অর্ডার করুন')}
         </button>
       </motion.div>
     </section>
@@ -691,19 +720,19 @@ const Universal15Countdown = ({ page, s }: { page: SalesPage; s: Record<string, 
         viewport={{ once: true }}
         className="flex justify-center gap-3"
       >
-        {items.map((item, i) => (
+        {renderSalesText(items.map((item, i) => (
           <div key={i} className="text-center">
             <div
               className="text-2xl md:text-3xl font-bold px-4 py-3 rounded-xl min-w-[60px]"
               style={{ backgroundColor: c.numberBgColor, color: c.numberColor }}
             >
-              {String(item.value).padStart(2, '0')}
+              {renderSalesText(String(item.value).padStart(2, '0'))}
             </div>
             <p className="text-xs mt-1 font-medium" style={{ color: c.labelColor }}>
-              {item.label}
+              {renderSalesText(item.label)}
             </p>
           </div>
-        ))}
+        )))}
       </motion.div>
     </section>
   );
@@ -721,7 +750,7 @@ const Universal15Video = ({ page, s, getYoutubeEmbedUrl }: {
       className="py-6 px-4 overflow-hidden"
       style={{ backgroundColor: v.backgroundColor, borderRadius: `${v.borderRadius}px` }}
     >
-      {(page.video_title || page.video_subtitle) && (
+      {renderSalesText((page.video_title || page.video_subtitle) && (
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -733,18 +762,18 @@ const Universal15Video = ({ page, s, getYoutubeEmbedUrl }: {
             <Play className="w-4 h-4" style={{ color: v.headingColor }} />
             <span className="text-sm font-medium" style={{ color: v.headingColor, opacity: 0.8 }}>ভিডিও দেখুন</span>
           </div>
-          {page.video_title && (
+          {renderSalesText(page.video_title && (
             <h2 className="text-xl md:text-2xl font-bold mb-1" style={{ color: v.headingColor }}>
-              {page.video_title}
+              {renderSalesText(page.video_title)}
             </h2>
-          )}
-          {page.video_subtitle && (
+          ))}
+          {renderSalesText(page.video_subtitle && (
             <p className="text-base" style={{ color: v.subheadingColor }}>
-              {page.video_subtitle}
+              {renderSalesText(page.video_subtitle)}
             </p>
-          )}
+          ))}
         </motion.div>
-      )}
+      ))}
 
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
@@ -757,9 +786,9 @@ const Universal15Video = ({ page, s, getYoutubeEmbedUrl }: {
           borderRadius: '12px',
         }}
       >
-        <iframe
+        <iframe loading="lazy"
           src={getYoutubeEmbedUrl(page.video_url)}
-          title={page.video_title || 'Video'}
+          title={salesPlainText(page.video_title || 'Video')}
           className="absolute top-0 left-0 w-full h-full"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
@@ -769,468 +798,5 @@ const Universal15Video = ({ page, s, getYoutubeEmbedUrl }: {
   );
 };
 
-// ─── Custom Section Renderer ────────────────────────────────────
-const Universal15CustomSection = ({ section, s, onOrderClick }: {
-  section: CustomSection; s: Record<string, Record<string, string>>; onOrderClick: () => void;
-}) => {
-  const cs = section.styles;
-  const [sliderIndex, setSliderIndex] = useState(0);
-
-  // Auto-advance slider
-  useEffect(() => {
-    if (section.type !== 'slider' || section.images.length <= 1) return;
-    const interval = setInterval(() => {
-      setSliderIndex(prev => (prev + 1) % section.images.length);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [section.type, section.images.length]);
-
-  const headingStyle: React.CSSProperties = {
-    color: cs.headingColor,
-    fontSize: `${cs.headingFontSize || '22'}px`,
-    textAlign: (cs.headingAlignment as any) || 'center',
-    fontWeight: cs.headingBold !== false ? 'bold' : 'normal',
-  };
-
-  const renderHeading = () => {
-    if (!section.title) return null;
-    return <h2 className="mb-4" style={headingStyle}>{section.title}</h2>;
-  };
-
-  const renderCta = () => {
-    if (!cs.showCta) return null;
-    return (
-      <motion.button whileTap={{ scale: 0.97 }} onClick={onOrderClick}
-        className="w-full py-3 mt-4 font-bold text-base"
-        style={{ backgroundColor: cs.ctaBgColor, color: cs.ctaTextColor, borderRadius: `${cs.ctaBorderRadius || '50'}px` }}>
-        {cs.ctaText || 'এখনই অর্ডার করুন'}
-      </motion.button>
-    );
-  };
-
-  const contentFontSize = `${cs.contentFontSize || '15'}px`;
-  const contentAlign = (cs.contentAlignment as any) || 'left';
-  const imgBorderRadius = `${cs.imageBorderRadius || '8'}px`;
-
-  const renderContent = () => {
-    if (!section.content) return null;
-    return <p className="leading-relaxed mt-2" style={{ color: cs.textColor, fontSize: contentFontSize, textAlign: contentAlign }}>{section.content}</p>;
-  };
-
-  const renderPoints = () => {
-    if (!section.points.length) return null;
-    return (
-      <div className="space-y-2 mt-3">
-        {section.points.filter(p => p.trim()).map((point, i) => (
-          <div key={i} className="flex items-start gap-2">
-            <div className="mt-1 w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: s.extra?.checkBgColor || '#4ade80' }}>
-              <Check className="w-3 h-3" style={{ color: s.extra?.checkIconColor || '#065f46' }} />
-            </div>
-            <p style={{ color: cs.textColor, fontSize: contentFontSize }}>{point}</p>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
-  const shadowMap: Record<string, string> = {
-    none: 'none',
-    sm: '0 1px 3px rgba(0,0,0,0.12)',
-    md: '0 4px 12px rgba(0,0,0,0.15)',
-    lg: '0 10px 30px rgba(0,0,0,0.2)',
-  };
-
-  const wrapSection = (children: React.ReactNode) => (
-    <motion.section initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-      className="overflow-hidden"
-      style={{
-        backgroundColor: cs.backgroundColor,
-        borderRadius: `${cs.borderRadius}px`,
-        fontFamily: "'Hind Siliguri', sans-serif",
-        padding: `${cs.padding || '24'}px`,
-        border: cs.borderWidth && cs.borderWidth !== '0' ? `${cs.borderWidth}px solid ${cs.borderColor || 'transparent'}` : undefined,
-        boxShadow: shadowMap[cs.shadow || 'none'] || 'none',
-      }}>
-      {children}
-    </motion.section>
-  );
-
-  // ── Divider ──
-  if (section.type === 'divider') {
-    return (
-      <div className="py-2 px-4">
-        <hr style={{ borderColor: cs.headingColor || '#ccc' }} />
-      </div>
-    );
-  }
-
-  // ── Video ──
-  if (section.type === 'video') {
-    const videoUrl = section.videoUrl || '';
-    const getEmbedUrl = (url: string) => {
-      const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
-      if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`;
-      return url;
-    };
-    return wrapSection(
-      <>
-        {renderHeading()}
-        {videoUrl && (
-          <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
-            <iframe src={getEmbedUrl(videoUrl)} className="absolute inset-0 w-full h-full rounded-lg"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen />
-          </div>
-        )}
-        {renderContent()}
-        {renderCta()}
-      </>
-    );
-  }
-
-  // ── Gallery (grid with lightbox feel) ──
-  if (section.type === 'gallery') {
-    return wrapSection(
-      <>
-        {renderHeading()}
-        {section.images.length > 0 && (
-          <div className="grid grid-cols-2 gap-2">
-            {section.images.map((img, i) => (
-              <motion.img key={i} src={img} alt=""
-                className="w-full object-cover aspect-square"
-                style={{ borderRadius: imgBorderRadius }}
-                initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }} transition={{ delay: i * 0.1 }} />
-            ))}
-          </div>
-        )}
-        {renderContent()}
-        {renderCta()}
-      </>
-    );
-  }
-
-  // ── Slider ──
-  if (section.type === 'slider') {
-    return wrapSection(
-      <>
-        {renderHeading()}
-        {section.images.length > 0 && (
-          <div className="relative overflow-hidden" style={{ borderRadius: imgBorderRadius }}>
-            <div className="flex transition-transform duration-500"
-              style={{ transform: `translateX(-${sliderIndex * 100}%)` }}>
-              {section.images.map((img, i) => (
-                <img key={i} src={img} alt="" className="w-full flex-shrink-0 object-cover" />
-              ))}
-            </div>
-            {section.images.length > 1 && (
-              <div className="flex justify-center gap-1.5 mt-2">
-                {section.images.map((_, i) => (
-                  <button key={i} type="button" onClick={() => setSliderIndex(i)}
-                    className={`w-2 h-2 rounded-full transition-all ${i === sliderIndex ? 'bg-white scale-125' : 'bg-white/40'}`} />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-        {renderContent()}
-        {renderCta()}
-      </>
-    );
-  }
-
-  // ── Single Image ──
-  if (section.type === 'image') {
-    return wrapSection(
-      <>
-        {renderHeading()}
-        {section.images[0] && (
-          <img src={section.images[0]} alt="" className="w-full object-cover" style={{ borderRadius: imgBorderRadius }} />
-        )}
-        {renderContent()}
-        {renderCta()}
-      </>
-    );
-  }
-
-  // ── HTML ──
-  if (section.type === 'html') {
-    return wrapSection(
-      <>
-        {renderHeading()}
-        {section.content && (
-          <div dangerouslySetInnerHTML={{ __html: section.content }} />
-        )}
-        {renderCta()}
-      </>
-    );
-  }
-
-  // ── Testimonial ──
-  if (section.type === 'testimonial') {
-    return wrapSection(
-      <>
-        {renderHeading()}
-        <div className="space-y-3 mt-3">
-          {(section.testimonials || []).filter(t => t.name.trim()).map((t, i) => (
-            <motion.div key={i} initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-              className="p-4 rounded-xl" style={{ backgroundColor: `${cs.textColor}10` }}>
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold"
-                  style={{ backgroundColor: cs.ctaBgColor, color: cs.ctaTextColor }}>
-                  {t.name.charAt(0)}
-                </div>
-                <div>
-                  <p className="font-semibold text-sm" style={{ color: cs.headingColor }}>{t.name}</p>
-                  <div className="flex gap-0.5">
-                    {Array.from({ length: t.rating || 5 }).map((_, si) => (
-                      <Star key={si} className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <p style={{ color: cs.textColor, fontSize: contentFontSize }} className="leading-relaxed">"{t.text}"</p>
-            </motion.div>
-          ))}
-        </div>
-        {renderCta()}
-      </>
-    );
-  }
-
-  // ── Pricing ──
-  if (section.type === 'pricing') {
-    const pd = section.pricingData || { originalPrice: "", offerPrice: "", badgeText: "অফার", unit: "৳", features: [] };
-    return wrapSection(
-      <>
-        {renderHeading()}
-        <div className="text-center mt-3">
-          {pd.badgeText && (
-            <span className="inline-block px-4 py-1 rounded-full text-xs font-bold mb-3"
-              style={{ backgroundColor: cs.ctaBgColor, color: cs.ctaTextColor }}>
-              {pd.badgeText}
-            </span>
-          )}
-          <div className="flex items-center justify-center gap-3 mb-4">
-            {pd.originalPrice && (
-              <span className="text-xl line-through opacity-50" style={{ color: cs.textColor }}>
-                {pd.unit}{pd.originalPrice}
-              </span>
-            )}
-            <span className="text-4xl font-bold" style={{ color: cs.headingColor }}>
-              {pd.unit}{pd.offerPrice}
-            </span>
-          </div>
-          {pd.features.length > 0 && (
-            <div className="space-y-2 text-left">
-              {pd.features.filter(f => f.trim()).map((f, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: s.extra?.checkBgColor || '#4ade80' }}>
-                    <Check className="w-3 h-3" style={{ color: s.extra?.checkIconColor || '#065f46' }} />
-                  </div>
-                  <p style={{ color: cs.textColor, fontSize: contentFontSize }}>{f}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-        {renderCta()}
-      </>
-    );
-  }
-
-  // ── Countdown Timer ──
-  if (section.type === 'countdown-timer') {
-    return wrapSection(
-      <>
-        {renderHeading()}
-        <CustomCountdown endDate={section.countdownEndDate || ""} cs={cs} />
-        {renderContent()}
-        {renderCta()}
-      </>
-    );
-  }
-
-  // ── Feature Icons Grid ──
-  if (section.type === 'feature-icons') {
-    return wrapSection(
-      <>
-        {renderHeading()}
-        <div className="grid grid-cols-2 gap-3 mt-3">
-          {(section.featureItems || []).filter(f => f.title.trim()).map((item, i) => (
-            <motion.div key={i} initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }} transition={{ delay: i * 0.08 }}
-              className="text-center p-4 rounded-xl" style={{ backgroundColor: `${cs.textColor}10` }}>
-              <div className="text-3xl mb-2">{item.icon || '✅'}</div>
-              <h4 className="font-bold text-sm mb-1" style={{ color: cs.headingColor }}>{item.title}</h4>
-              {item.description && (
-                <p className="text-xs opacity-80" style={{ color: cs.textColor }}>{item.description}</p>
-              )}
-            </motion.div>
-          ))}
-        </div>
-        {renderCta()}
-      </>
-    );
-  }
-
-  // ── CTA Banner ──
-  if (section.type === 'cta-banner') {
-    return wrapSection(
-      <div className="text-center">
-        {renderHeading()}
-        {section.content && (
-          <p className="leading-relaxed mb-4" style={{ color: cs.textColor, fontSize: contentFontSize, textAlign: 'center' }}>{section.content}</p>
-        )}
-        {cs.showCta && (
-          <motion.button whileTap={{ scale: 0.97 }} onClick={onOrderClick}
-            className="w-full py-4 font-bold text-lg animate-pulse"
-            style={{ backgroundColor: cs.ctaBgColor, color: cs.ctaTextColor, borderRadius: `${cs.ctaBorderRadius || '50'}px`, boxShadow: '0 5px 20px rgba(0,0,0,0.25)' }}>
-            {cs.ctaText || 'এখনই অর্ডার করুন'}
-          </motion.button>
-        )}
-      </div>
-    );
-  }
-
-  // ── Comparison ──
-  if (section.type === 'comparison') {
-    return wrapSection(
-      <>
-        {renderHeading()}
-        <div className="mt-3 overflow-hidden rounded-xl" style={{ border: `1px solid ${cs.textColor}20` }}>
-          <div className="grid grid-cols-3 text-center font-bold text-xs p-2" style={{ backgroundColor: `${cs.textColor}15`, color: cs.headingColor }}>
-            <span></span>
-            <span>❌ ছাড়া</span>
-            <span>✅ সাথে</span>
-          </div>
-          {(section.comparisonItems || []).filter(c => c.label.trim()).map((item, i) => (
-            <motion.div key={i} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }}
-              viewport={{ once: true }} transition={{ delay: i * 0.05 }}
-              className="grid grid-cols-3 text-center p-2 text-xs" style={{ borderTop: `1px solid ${cs.textColor}10`, color: cs.textColor, fontSize: contentFontSize }}>
-              <span className="font-medium text-left" style={{ color: cs.headingColor }}>{item.label}</span>
-              <span className="opacity-60">{item.before}</span>
-              <span className="font-semibold">{item.after}</span>
-            </motion.div>
-          ))}
-        </div>
-        {renderCta()}
-      </>
-    );
-  }
-
-  // ── FAQ ──
-  if (section.type === 'faq') {
-    return wrapSection(
-      <>
-        {renderHeading()}
-        <div className="space-y-2">
-          {(section.faqItems || []).filter(f => f.question.trim()).map((faq, i) => (
-            <details key={i} className="rounded-lg overflow-hidden group" style={{ backgroundColor: `${cs.textColor}15` }}>
-              <summary className="px-3 py-2 cursor-pointer font-medium flex items-center justify-between" style={{ color: cs.headingColor, fontSize: contentFontSize }}>
-                <span>{faq.question}</span>
-                <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 group-open:rotate-180" style={{ color: cs.headingColor }} />
-              </summary>
-              <div className="px-3 pb-2" style={{ color: cs.textColor, fontSize: contentFontSize }}>
-                {faq.answer}
-              </div>
-            </details>
-          ))}
-        </div>
-        {renderCta()}
-      </>
-    );
-  }
-
-  // ── Image-Text with position ──
-  if (section.type === 'image-text') {
-    const isHorizontal = cs.imagePosition === 'left' || cs.imagePosition === 'right';
-    const imageFirst = cs.imagePosition === 'top' || cs.imagePosition === 'left';
-    const imageBlock = section.images[0] ? <img src={section.images[0]} alt="" className="w-full object-cover" style={{ borderRadius: imgBorderRadius }} /> : null;
-    const textBlock = <div>{renderContent()}{renderPoints()}</div>;
-
-    return wrapSection(
-      <>
-        {renderHeading()}
-        <div className={isHorizontal ? "flex gap-4 items-start" : "space-y-3"}
-          style={isHorizontal ? { flexDirection: imageFirst ? 'row' : 'row-reverse' } : undefined}>
-          {imageFirst ? <>{imageBlock}{textBlock}</> : <>{textBlock}{imageBlock}</>}
-        </div>
-        {renderCta()}
-      </>
-    );
-  }
-
-  // ── Default: text, bullet-points, image-grid, banner ──
-  return wrapSection(
-    <>
-      {renderHeading()}
-      {section.type === 'banner' && section.images[0] && (
-        <img src={section.images[0]} alt="" className="w-full object-cover" style={{ borderRadius: imgBorderRadius }} />
-      )}
-      {renderContent()}
-      {section.type === 'image-grid' && section.images.length > 0 && (
-        <div className="grid grid-cols-2 gap-2">
-          {section.images.map((img, i) => (
-            <motion.img key={i} src={img} alt="" className="w-full object-cover"
-              style={{ borderRadius: imgBorderRadius }}
-              initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }} transition={{ delay: i * 0.1 }} />
-          ))}
-        </div>
-      )}
-      {renderPoints()}
-      {renderCta()}
-    </>
-  );
-};
-
-// ─── Custom Countdown ───────────────────────────────────────────
-const CustomCountdown = ({ endDate, cs }: { endDate: string; cs: CustomSection["styles"] }) => {
-  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-
-  useEffect(() => {
-    if (!endDate) return;
-    const target = new Date(endDate).getTime();
-    const update = () => {
-      const diff = Math.max(0, target - Date.now());
-      setTimeLeft({
-        days: Math.floor(diff / (1000 * 60 * 60 * 24)),
-        hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
-        minutes: Math.floor((diff / (1000 * 60)) % 60),
-        seconds: Math.floor((diff / 1000) % 60),
-      });
-    };
-    update();
-    const interval = setInterval(update, 1000);
-    return () => clearInterval(interval);
-  }, [endDate]);
-
-  if (!endDate) return null;
-
-  const items = [
-    { value: timeLeft.days, label: 'দিন' },
-    { value: timeLeft.hours, label: 'ঘণ্টা' },
-    { value: timeLeft.minutes, label: 'মিনিট' },
-    { value: timeLeft.seconds, label: 'সেকেন্ড' },
-  ];
-
-  return (
-    <div className="flex justify-center gap-3 mt-3">
-      {items.map((item, i) => (
-        <div key={i} className="text-center">
-          <div className="text-2xl font-bold px-3 py-2 rounded-xl min-w-[50px]"
-            style={{ backgroundColor: `${cs.textColor}15`, color: cs.headingColor }}>
-            {String(item.value).padStart(2, '0')}
-          </div>
-          <p className="text-[10px] mt-1 font-medium" style={{ color: cs.textColor, opacity: 0.7 }}>{item.label}</p>
-        </div>
-      ))}
-    </div>
-  );
-};
 
 export default Template15Universal;

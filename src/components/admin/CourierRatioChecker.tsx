@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/integrations/cloudflare/client";
 import {
   Dialog,
   DialogContent,
@@ -62,30 +62,7 @@ const CourierRatioChecker = ({ phone, orderId, cachedData, saveToDb = true }: Co
     }
   }, [cachedData]);
 
-  // Load saved result for this phone from the shared cache (no API call)
-  useEffect(() => {
-    let cancelled = false;
-    if (data || !phone) return;
-
-    (async () => {
-      const { data: row } = await supabase
-        .from("courier_ratio_cache")
-        .select("data, checked_at")
-        .eq("phone", phone)
-        .maybeSingle();
-
-      if (cancelled || !row?.data) return;
-      const cached = row.data as any;
-      if (cached?.summary) {
-        setData({ ...cached, checked_at: cached.checked_at || row.checked_at });
-        hasFetched.current = true;
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [phone, data]);
+  // No auto-fetch - manual button only
 
   const fetchRatio = async (forceRefresh = false) => {
     if (loading) return;
@@ -95,7 +72,7 @@ const CourierRatioChecker = ({ phone, orderId, cachedData, saveToDb = true }: Co
     hasFetched.current = true;
     
     try {
-      const { data: result, error: fnError } = await supabase.functions.invoke('check-courier-ratio', {
+      const { data: result, error: fnError } = await api.functions.invoke('check-courier-ratio', {
         body: { phone },
       });
 
@@ -142,19 +119,9 @@ const CourierRatioChecker = ({ phone, orderId, cachedData, saveToDb = true }: Co
 
       setData(ratioData);
 
-      // Save to shared phone-level cache so it never needs re-checking
-      if (phone) {
-        await supabase
-          .from("courier_ratio_cache")
-          .upsert(
-            { phone, data: ratioData as any, checked_at: ratioData.checked_at },
-            { onConflict: "phone" }
-          );
-      }
-
-      // Also store on the order row for quick listing
-      if (saveToDb && orderId) {
-        await supabase
+      // Save to database for caching (only for orders, and only if we got real data)
+      if (saveToDb && orderId && ratioData.summary.total_parcel > 0) {
+        await api
           .from("orders")
           .update({ courier_ratio_data: ratioData as any })
           .eq("id", orderId);
@@ -213,11 +180,8 @@ const CourierRatioChecker = ({ phone, orderId, cachedData, saveToDb = true }: Co
     );
   }
 
-  // পুরনো/অসম্পূর্ণ ক্যাশে summary বা couriers নাও থাকতে পারে — নিরাপদ ডিফল্ট
-  const summary = data.summary ?? { success_ratio: 0, total_parcel: 0, success_parcel: 0, cancelled_parcel: 0 };
-  const couriers = Array.isArray(data.couriers) ? data.couriers : [];
-  const successRatio = summary.success_ratio;
-  const total = summary.total_parcel;
+  const successRatio = data.summary.success_ratio;
+  const total = data.summary.total_parcel;
 
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -258,7 +222,7 @@ const CourierRatioChecker = ({ phone, orderId, cachedData, saveToDb = true }: Co
               </TableRow>
             </TableHeader>
             <TableBody>
-              {couriers.map((courier, index) => (
+              {data.couriers.map((courier, index) => (
                 <TableRow key={index}>
                   <TableCell className="py-2">
                     <div className="flex items-center gap-2">
@@ -282,9 +246,9 @@ const CourierRatioChecker = ({ phone, orderId, cachedData, saveToDb = true }: Co
                 <TableCell className="py-2">
                   <span className="font-semibold">Total</span>
                 </TableCell>
-                <TableCell className="text-center font-bold">{summary.total_parcel}</TableCell>
-                <TableCell className="text-center font-bold text-green-600">{summary.success_parcel}</TableCell>
-                <TableCell className="text-center font-bold text-red-600">{summary.cancelled_parcel}</TableCell>
+                <TableCell className="text-center font-bold">{data.summary.total_parcel}</TableCell>
+                <TableCell className="text-center font-bold text-green-600">{data.summary.success_parcel}</TableCell>
+                <TableCell className="text-center font-bold text-red-600">{data.summary.cancelled_parcel}</TableCell>
               </TableRow>
             </TableBody>
           </Table>

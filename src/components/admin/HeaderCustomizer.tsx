@@ -1,7 +1,9 @@
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import LogoUploader from "@/components/admin/LogoUploader";
 import { Search, ShoppingCart, Menu, User, ChevronDown } from "lucide-react";
 
 type MenuItem = { label_bn?: string; label_en?: string; url?: string; type?: string };
@@ -22,10 +24,12 @@ interface HeaderCustomizerProps {
   badgeTextColor: string;
   hoverBgColor: string;
   hotdealColor: string;
+  topbarEnabled: boolean;
   topbarMessages?: string;
   siteName?: string;
   siteLogoUrl?: string;
   siteLogoText?: string;
+  logoSize?: string;
   menuItems?: MenuItem[];
   onHeaderBgChange: (color: string) => void;
   onHeaderTextChange: (color: string) => void;
@@ -42,6 +46,10 @@ interface HeaderCustomizerProps {
   onBadgeTextChange: (color: string) => void;
   onHoverBgChange: (color: string) => void;
   onHotdealColorChange: (color: string) => void;
+  onTopbarEnabledChange: (enabled: boolean) => void;
+  onLogoUrlChange: (url: string) => void;
+  onLogoTextChange: (text: string) => void;
+  onLogoSizeChange: (size: string) => void;
 }
 
 const ColorInput = ({
@@ -90,10 +98,12 @@ const HeaderCustomizer = ({
   badgeTextColor,
   hoverBgColor,
   hotdealColor,
+  topbarEnabled,
   topbarMessages,
   siteName,
   siteLogoUrl,
   siteLogoText,
+  logoSize,
   menuItems,
   onHeaderBgChange,
   onHeaderTextChange,
@@ -110,6 +120,10 @@ const HeaderCustomizer = ({
   onBadgeTextChange,
   onHoverBgChange,
   onHotdealColorChange,
+  onTopbarEnabledChange,
+  onLogoUrlChange,
+  onLogoTextChange,
+  onLogoSizeChange,
 }: HeaderCustomizerProps) => {
   const presetColors = [
     { name: "স্লেট ডার্ক", bg: "#0f172a", text: "#ffffff" },
@@ -123,9 +137,9 @@ const HeaderCustomizer = ({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">🎨 হেডার কাস্টমাইজেশন</CardTitle>
+        <CardTitle className="text-lg">লোগো, মেনু ও সাধারণ সেটিংস</CardTitle>
         <CardDescription>
-          হেডারের সকল রঙ পরিবর্তন করুন
+          লোগো ও মেনু পরিবর্তন করুন। সাধারণ রং মোবাইলের মূল থিমে প্রযোজ্য; উপরের কম্পোনেন্ট সেটিংস অগ্রাধিকার পাবে।
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -155,9 +169,51 @@ const HeaderCustomizer = ({
 
         <Separator />
 
+        {/* Logo */}
+        <div className="space-y-3">
+          <h4 className="text-sm font-semibold">লোগো</h4>
+          <LogoUploader currentLogoUrl={siteLogoUrl || ""} onLogoChange={onLogoUrlChange} />
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label className="text-sm">লোগো টেক্সট (ইমেজ না থাকলে)</Label>
+              <Input
+                value={siteLogoText || ""}
+                onChange={(e) => onLogoTextChange(e.target.value)}
+                placeholder="SE"
+                maxLength={4}
+                className="h-9 text-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm">লোগো সাইজ (px)</Label>
+              <Input
+                type="number"
+                value={logoSize || "44"}
+                onChange={(e) => onLogoSizeChange(e.target.value)}
+                min="24"
+                max="120"
+                className="h-9 text-sm"
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            লোগো আপলোড করলে হেডারে সেটাই দেখাবো; ইমেজ না থাকলে লোগো টেক্সট দেখাবে।
+          </p>
+        </div>
+
+        <Separator />
+
         {/* Top Bar */}
         <div className="space-y-3">
-          <h4 className="text-sm font-semibold">টপ বার</h4>
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-semibold">টপ বার</h4>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">{topbarEnabled ? "অন" : "অফ"}</span>
+              <Switch checked={topbarEnabled} onCheckedChange={onTopbarEnabledChange} />
+            </div>
+          </div>
+          {topbarEnabled && (
+          <>
           <div className="grid sm:grid-cols-2 gap-4">
             <ColorInput label="ব্যাকগ্রাউন্ড" value={topbarBgColor} onChange={onTopbarBgChange} placeholder="খালি = প্রাইমারি" />
             <ColorInput label="টেক্সট" value={topbarTextColor} onChange={onTopbarTextChange} placeholder="#ffffff" />
@@ -184,6 +240,8 @@ const HeaderCustomizer = ({
               </select>
             </div>
           </div>
+          </>
+          )}
         </div>
 
         <Separator />
@@ -236,9 +294,8 @@ const HeaderCustomizer = ({
 
         {/* Real-time Preview */}
         {(() => {
-          const messages = (topbarMessages || "👉 অফার চলছে|🚚 ফ্রি ডেলিভারি|🏆 ১০০% অরিজিনাল")
-            .split(/\n|\|/).map(s => s.trim()).filter(Boolean);
-          const loop = [...messages, ...messages];
+          const message = (topbarMessages || "👉 অফার চলছে|🚚 ফ্রি ডেলিভারি|🏆 ১০০% অরিজিনাল")
+            .split(/\n|\|/).map(s => s.trim()).filter(Boolean)[0] || "";
           const topbarStyle = {
             backgroundColor: (topbarGradientFrom && topbarGradientTo) ? undefined : (topbarBgColor || "hsl(var(--primary))"),
             backgroundImage: (topbarGradientFrom && topbarGradientTo)
@@ -247,17 +304,13 @@ const HeaderCustomizer = ({
             color: topbarTextColor || "#ffffff",
           };
           const renderTopBar = (height: string, fontSize: string) => (
-            <div className={`${height} overflow-hidden flex items-center`} style={topbarStyle}>
-              <div className="animate-marquee flex whitespace-nowrap items-center font-medium" style={{ fontSize }}>
-                {loop.map((msg, i) => (
-                  <span key={i} className="flex items-center">
-                    <span className="px-4" dangerouslySetInnerHTML={{ __html: msg }} />
-                    <span className="opacity-50">|</span>
-                  </span>
-                ))}
+            topbarEnabled && message ? (
+              <div className={`${height} overflow-hidden flex items-center justify-center`} style={topbarStyle}>
+                <span className="font-medium text-center px-2 truncate" style={{ fontSize }}>{message}</span>
               </div>
-            </div>
+            ) : null
           );
+          const logoSizePx = Math.min(120, Math.max(24, Number(logoSize) || 44));
           const renderLogo = (size: number) => (
             siteLogoUrl ? (
               <img src={siteLogoUrl} alt={siteName || "logo"} style={{ height: `${size}px` }} className="w-auto object-contain" />
@@ -268,11 +321,11 @@ const HeaderCustomizer = ({
           return (
             <div className="space-y-4">
               <div>
-                <Label className="mb-2 block">🖥️ ডেস্কটপ প্রিভিউ (লাইভ)</Label>
+                <Label className="mb-2 block">লোগো ও সাধারণ রঙের নমুনা</Label>
                 <div className="rounded-lg overflow-hidden border">
                   {renderTopBar("h-9", "13px")}
                    <div className="h-16 flex items-center justify-between px-6 gap-4" style={{ backgroundColor: headerBgColor, color: headerTextColor }}>
-                     {renderLogo(36)}
+                     {renderLogo(logoSizePx)}
                      <div className="flex items-center gap-5 text-sm">
                        {(menuItems && menuItems.length > 0
                          ? menuItems
@@ -309,11 +362,11 @@ const HeaderCustomizer = ({
               </div>
 
               <div>
-                <Label className="mb-2 block">📱 মোবাইল প্রিভিউ (লাইভ)</Label>
+                <Label className="mb-2 block">মোবাইলের সাধারণ রঙের নমুনা</Label>
                 <div className="rounded-lg overflow-hidden border mx-auto" style={{ maxWidth: 380 }}>
                   {renderTopBar("h-8", "11px")}
                   <div className="h-14 flex items-center px-3 gap-2" style={{ backgroundColor: headerBgColor, color: headerTextColor }}>
-                    <div className="shrink-0">{renderLogo(26)}</div>
+                    <div className="shrink-0">{renderLogo(Math.round(logoSizePx * 0.72))}</div>
                     <div className="flex-1" />
                     <div className="flex items-center gap-1.5 shrink-0">
                       <button className="p-1.5 rounded-lg border border-white/30" style={{ color: headerTextColor }}>

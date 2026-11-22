@@ -1,3 +1,8 @@
+import SectionAppearance from '../SectionAppearance';
+import ExtraSection from '../ExtraSection';
+import { isExtraDesign } from '@/lib/extraSectionDesigns';
+import { salesPlainText } from '@/lib/salesRichText';
+import { renderSalesText } from '@/components/salespage/SalesRichText';
 import { motion } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
 import { getWhatsAppUrl } from "@/lib/utils";
@@ -22,6 +27,11 @@ import {
   Clock
 } from "lucide-react";
 import CheckoutSection from "../CheckoutSection";
+import SharedHeroSection from "../SharedHeroSection";
+import SharedContactSection from "../ContactSection";
+import SharedReviewsSection from "../SharedReviewsSection";
+import SharedFeaturesSection from "../SharedFeaturesSection";
+import SharedGallerySection from "../SharedGallerySection";
 import { usePixelTracking } from "@/hooks/usePixelTracking";
 
 // ===== Review Carousel - Dynamic Colors =====
@@ -51,10 +61,10 @@ const ReviewCarousel = ({ images, accentColor }: { images: string[]; accentColor
           animate={{ x: `-${currentIndex * 100}%` }}
           transition={{ duration: 0.5, ease: "easeInOut" }}
         >
-          {slides.map((slideImages, slideIndex) => (
+          {renderSalesText(slides.map((slideImages, slideIndex) => (
             <div key={slideIndex} className="w-full flex-shrink-0">
               <div className="grid grid-cols-2 gap-2 md:gap-3">
-                {slideImages.map((img, imgIndex) => (
+                {renderSalesText(slideImages.map((img, imgIndex) => (
                   <div
                     key={imgIndex}
                     className="rounded-xl overflow-hidden"
@@ -62,19 +72,19 @@ const ReviewCarousel = ({ images, accentColor }: { images: string[]; accentColor
                   >
                     <img
                       src={img}
-                      alt={`Review ${slideIndex * imagesPerSlide + imgIndex + 1}`}
+                      alt={salesPlainText(`Review ${slideIndex * imagesPerSlide + imgIndex + 1}`)}
                       className="w-full h-auto object-cover"
                     />
                   </div>
-                ))}
+                )))}
               </div>
             </div>
-          ))}
+          )))}
         </motion.div>
       </div>
-      {totalSlides > 1 && (
+      {renderSalesText(totalSlides > 1 && (
         <div className="flex justify-center gap-2 mt-4">
-          {slides.map((_, i) => (
+          {renderSalesText(slides.map((_, i) => (
             <button
               key={i}
               onClick={() => setCurrentIndex(i)}
@@ -84,9 +94,9 @@ const ReviewCarousel = ({ images, accentColor }: { images: string[]; accentColor
                 backgroundColor: i === currentIndex ? accentColor : `${accentColor}40`,
               }}
             />
-          ))}
+          )))}
         </div>
-      )}
+      ))}
     </div>
   );
 };
@@ -104,17 +114,17 @@ const GalleryCarousel = ({ images, productName, accentColor, textColor }: { imag
         <motion.img
           key={currentIndex}
           src={images[currentIndex]}
-          alt={`Product ${currentIndex + 1}`}
+          alt={salesPlainText(`Product ${currentIndex + 1}`)}
           className="w-full aspect-square object-cover"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3 }}
         />
-        {productName && (
+        {renderSalesText(productName && (
           <div className="absolute bottom-4 left-4 px-4 py-2 rounded-lg" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', border: `1px solid ${accentColor}30` }}>
-            <p className="font-semibold text-sm" style={{ color: accentColor }}>{productName}</p>
+            <p className="font-semibold text-sm" style={{ color: accentColor }}>{renderSalesText(productName)}</p>
           </div>
-        )}
+        ))}
         <button
           onClick={goToPrev}
           className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center transition-colors"
@@ -130,11 +140,11 @@ const GalleryCarousel = ({ images, productName, accentColor, textColor }: { imag
           <ChevronRight className="w-6 h-6" style={{ color: accentColor }} />
         </button>
         <div className="absolute bottom-4 right-4 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(0,0,0,0.7)', border: `1px solid ${accentColor}30` }}>
-          <p className="text-sm font-medium" style={{ color: accentColor }}>{currentIndex + 1}/{images.length}</p>
+          <p className="text-sm font-medium" style={{ color: accentColor }}>{renderSalesText(currentIndex + 1)}/{renderSalesText(images.length)}</p>
         </div>
       </div>
       <div className="flex gap-2 overflow-x-auto pb-2">
-        {images.map((img, i) => (
+        {renderSalesText(images.map((img, i) => (
           <button
             key={i}
             onClick={() => setCurrentIndex(i)}
@@ -144,9 +154,9 @@ const GalleryCarousel = ({ images, productName, accentColor, textColor }: { imag
               boxShadow: i === currentIndex ? `0 0 8px ${accentColor}40` : 'none',
             }}
           >
-            <img src={img} alt={`Thumb ${i + 1}`} className="w-full h-full object-cover" />
+            <img src={img} alt={salesPlainText(`Thumb ${i + 1}`)} className="w-full h-full object-cover" />
           </button>
-        ))}
+        )))}
       </div>
     </div>
   );
@@ -197,9 +207,9 @@ const CountdownTimer = ({
         }}
       >
         <span style={{ fontSize: '1.6rem', fontWeight: 700, color: colors.headline || '#fbbf24', lineHeight: 1 }}>
-          {value.toString().padStart(2, '0')}
+          {renderSalesText(value.toString().padStart(2, '0'))}
         </span>
-        <span style={{ fontSize: '0.8rem', color: '#d1d5db', marginTop: '4px', fontWeight: 400 }}>{label}</span>
+        <span style={{ fontSize: '0.8rem', color: '#d1d5db', marginTop: '4px', fontWeight: 400 }}>{renderSalesText(label)}</span>
       </div>
     </div>
   );
@@ -329,18 +339,19 @@ const Template04Gadget = ({ page }: TemplateProps) => {
         animation: 'pulseGlow04 2s infinite',
       }}
     >
-      {page.cta_button_text || "অর্ডার করতে এখানে ক্লিক করুন 🛒"}
+      {renderSalesText(page.cta_button_text || "অর্ডার করতে এখানে ক্লিক করুন 🛒")}
     </button>
   );
 
   // ===== HERO SECTION =====
   const renderHero = () => {
     if (!page.show_hero_section) return null;
+    if (page.template_styles?.hero?.design) return <SharedHeroSection page={page} onOrderClick={scrollToCheckout} />;
     return (
       <section
         key="hero"
         style={{
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
           background: c.bg,
           padding: '20px 15px 40px 15px',
           boxSizing: 'border-box' as const,
@@ -385,7 +396,7 @@ const Template04Gadget = ({ page }: TemplateProps) => {
               textShadow: `0 0 20px ${c.accent}30`,
             }}
           >
-            {page.hero_badge_text || "✨ ধামাকা ক্লিয়ারেন্স অফার ✨"}
+            {renderSalesText(page.hero_badge_text || "✨ ধামাকা ক্লিয়ারেন্স অফার ✨")}
           </motion.h2>
 
           {/* অফার হাইলাইট বক্স */}
@@ -412,7 +423,7 @@ const Template04Gadget = ({ page }: TemplateProps) => {
                 lineHeight: 1.2,
               }}
             >
-              {page.discount_text || `মাত্র ${page.price_unit}${productPrice} টাকায়`}
+              {renderSalesText(page.discount_text || `মাত্র ${page.price_unit}${productPrice} টাকায়`)}
             </span>
             <span
               style={{
@@ -423,12 +434,12 @@ const Template04Gadget = ({ page }: TemplateProps) => {
                 lineHeight: 1.4,
               }}
             >
-              {page.offer_details || page.hero_headline}
+              {renderSalesText(page.offer_details || page.hero_headline)}
             </span>
           </motion.div>
 
           {/* কাউন্টডাউন টাইমার */}
-          {page.show_countdown && (
+          {renderSalesText(page.show_countdown && (
             <motion.div
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
@@ -445,7 +456,7 @@ const Template04Gadget = ({ page }: TemplateProps) => {
                 }}
               />
             </motion.div>
-          )}
+          ))}
 
           {/* CTA বাটন */}
           <motion.div
@@ -478,7 +489,7 @@ const Template04Gadget = ({ page }: TemplateProps) => {
               onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
               onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
             >
-              {page.cta_button_text || "অর্ডার করতে এখানে ক্লিক করুন 🛒"}
+              {renderSalesText(page.cta_button_text || "অর্ডার করতে এখানে ক্লিক করুন 🛒")}
             </button>
 
             <p
@@ -491,19 +502,19 @@ const Template04Gadget = ({ page }: TemplateProps) => {
                 letterSpacing: '0.3px',
               }}
             >
-              {page.cta_urgency_text || "⚠️ অফারটি শেষ হওয়ার আগেই লুফে নিন!"}
+              {renderSalesText(page.cta_urgency_text || "⚠️ অফারটি শেষ হওয়ার আগেই লুফে নিন!")}
             </p>
           </motion.div>
         </motion.div>
 
         {/* Pulse Animation - softer */}
-        <style>{`
+        <style>{renderSalesText(`
           @keyframes pulseGlow04 {
             0% { box-shadow: 0 4px 15px ${c.button}40; }
             50% { box-shadow: 0 4px 15px ${c.button}40, 0 0 0 6px ${c.button}15; }
             100% { box-shadow: 0 4px 15px ${c.button}40; }
           }
-        `}</style>
+        `)}</style>
       </section>
     );
   };
@@ -511,13 +522,14 @@ const Template04Gadget = ({ page }: TemplateProps) => {
   // ===== GALLERY SECTION - Emerald & Gold Theme =====
   const renderGallery = () => {
     if (!page.show_gallery_section || !page.gallery_images?.length) return null;
+    if (page.template_styles?.gallery?.design) return <SharedGallerySection key="gallery" page={page} onOrderClick={scrollToCheckout} />;
     const images = page.gallery_images;
 
     return (
       <section
         key="gallery"
         style={{
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
           background: c.bg,
           padding: '30px 15px',
           boxSizing: 'border-box' as const,
@@ -542,16 +554,16 @@ const Template04Gadget = ({ page }: TemplateProps) => {
                 lineHeight: 1.3,
               }}
             >
-              {page.gallery_title || "আমাদের কালেকশন"}
+              {renderSalesText(page.gallery_title || "আমাদের কালেকশন")}
             </h2>
             <p style={{ fontSize: '0.95rem', color: `${c.text}aa`, margin: 0, fontWeight: 400 }}>
-              {page.gallery_subtitle || "যেমন দেখছেন, তেমনই পাবেন"}
+              {renderSalesText(page.gallery_subtitle || "যেমন দেখছেন, তেমনই পাবেন")}
             </p>
           </motion.div>
 
           {/* 2-কলাম গ্রিড - কন্টেইনার ছাড়া, সরাসরি গ্রিড */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            {images.map((img, idx) => (
+            {renderSalesText(images.map((img, idx) => (
               <motion.div
                 key={idx}
                 initial={{ opacity: 0, scale: 0.9 }}
@@ -569,7 +581,7 @@ const Template04Gadget = ({ page }: TemplateProps) => {
               >
                 <img
                   src={img}
-                  alt={`Product ${idx + 1}`}
+                  alt={salesPlainText(`Product ${idx + 1}`)}
                   style={{
                     width: '100%',
                     height: 'auto',
@@ -601,14 +613,14 @@ const Template04Gadget = ({ page }: TemplateProps) => {
                       fontWeight: 700,
                       fontSize: '0.85rem',
                       cursor: 'pointer',
-                      fontFamily: "'Hind Siliguri', sans-serif",
+                      fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
                     }}
                   >
                     🛒 অর্ডার করুন
                   </button>
                 </div>
               </motion.div>
-            ))}
+            )))}
           </div>
 
         </div>
@@ -629,15 +641,15 @@ const Template04Gadget = ({ page }: TemplateProps) => {
             className="text-center mb-6 md:mb-8"
           >
             <span className="text-sm md:text-base font-medium" style={{ color: c.headline }}>
-              {page.features_subheadline || "স্পেসিফিকেশন"}
+              {renderSalesText(page.features_subheadline || "স্পেসিফিকেশন")}
             </span>
             <h2 className="text-xl md:text-2xl lg:text-3xl font-bold mt-1" style={{ color: c.text }}>
-              {page.features_headline || "কেন এই প্রোডাক্ট বেছে নেবেন?"}
+              {renderSalesText(page.features_headline || "কেন এই প্রোডাক্ট বেছে নেবেন?")}
             </h2>
           </motion.div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
-            {features.map((feature, index) => (
+            {renderSalesText(features.map((feature, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, y: 20 }}
@@ -654,14 +666,14 @@ const Template04Gadget = ({ page }: TemplateProps) => {
                   className="w-10 h-10 md:w-12 md:h-12 rounded-lg flex items-center justify-center mb-3"
                   style={{ background: `${c.accent}20`, border: `1px solid ${c.accent}40` }}
                 >
-                  <span style={{ color: c.accent }}>{getFeatureIcon(feature.icon || '', index)}</span>
+                  <span style={{ color: c.accent }}>{renderSalesText(getFeatureIcon(feature.icon || '', index))}</span>
                 </div>
-                <h3 className="font-bold text-sm md:text-base mb-1" style={{ color: c.text }}>{feature.text}</h3>
-                {feature.description && (
-                  <p className="text-xs md:text-sm" style={{ color: `${c.text}99` }}>{feature.description}</p>
-                )}
+                <h3 className="font-bold text-sm md:text-base mb-1" style={{ color: c.text }}>{renderSalesText(feature.text)}</h3>
+                {renderSalesText(feature.description && (
+                  <p className="text-xs md:text-sm" style={{ color: `${c.text}99` }}>{renderSalesText(feature.description)}</p>
+                ))}
               </motion.div>
-            ))}
+            )))}
           </div>
 
           <div className="text-center mt-6 md:mt-8">
@@ -672,82 +684,7 @@ const Template04Gadget = ({ page }: TemplateProps) => {
     );
   };
 
-  // ===== CONTACT SECTION (Template 05 Style) =====
-  const renderContact = () => {
-    if (!page.show_contact_section) return null;
-    return (
-      <section
-        key="contact"
-        className="py-10 px-4"
-        style={{
-          background: c.bg,
-          fontFamily: "'Hind Siliguri', sans-serif",
-        }}
-      >
-        <div className="max-w-lg mx-auto text-center">
-          <motion.h2
-            initial={{ opacity: 0, y: -10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-xl md:text-2xl font-bold mb-2"
-            style={{ color: c.headline }}
-          >
-            {page.contact_headline || "যোগাযোগ করুন"}
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="mb-6 text-sm md:text-base"
-            style={{ color: c.text, opacity: 0.7 }}
-          >
-            {page.contact_subheadline || "অর্ডার বা জিজ্ঞাসার জন্য কল করুন"}
-          </motion.p>
-
-          <div className="flex flex-col gap-3">
-            {page.contact_phone && (
-              <motion.a
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                href={page.contact_phone_link || `tel:${page.contact_phone}`}
-                className="flex items-center justify-center gap-3 py-4 px-6 rounded-xl text-white font-medium text-base md:text-lg transition-transform active:scale-95"
-                style={{
-                  backgroundColor: c.accent,
-                  boxShadow: `0 4px 15px ${c.accent}50`,
-                }}
-              >
-                <Phone className="w-5 h-5" />
-                {page.contact_phone}
-              </motion.a>
-            )}
-            {page.contact_whatsapp && (
-              <motion.a
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.1 }}
-                href={getWhatsAppUrl(page.contact_whatsapp || "", page.contact_whatsapp_text || '')}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-3 py-4 px-6 rounded-xl text-white font-medium text-base md:text-lg bg-green-500 transition-transform active:scale-95"
-                style={{ boxShadow: '0 4px 15px rgba(34, 197, 94, 0.4)' }}
-              >
-                <MessageCircle className="w-5 h-5" />
-                {page.contact_whatsapp_text || "WhatsApp করুন"}
-              </motion.a>
-            )}
-          </div>
-
-          {page.contact_availability && (
-            <p className="text-sm mt-4" style={{ color: c.text, opacity: 0.6 }}>
-              {page.contact_availability}
-            </p>
-          )}
-        </div>
-      </section>
-    );
-  };
+  const renderContact = () => page.show_contact_section ? <SharedContactSection key="contact" page={page} /> : null;
 
   // ===== REVIEWS SECTION =====
   const renderReviews = () => {
@@ -758,10 +695,10 @@ const Template04Gadget = ({ page }: TemplateProps) => {
         className="py-8 md:py-14 px-4"
         style={{
           background: c.bg,
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
         }}
       >
-        <div className="max-w-md md:max-w-2xl lg:max-w-3xl mx-auto">
+        <div className="max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -769,10 +706,10 @@ const Template04Gadget = ({ page }: TemplateProps) => {
             className="text-center mb-5 md:mb-8"
           >
             <span className="text-sm md:text-base font-medium" style={{ color: c.headline }}>
-              {page.reviews_subheadline || "কাস্টমার ফিডব্যাক"}
+              {renderSalesText(page.reviews_subheadline || "কাস্টমার ফিডব্যাক")}
             </span>
             <h2 className="text-xl md:text-2xl lg:text-3xl font-bold mt-1" style={{ color: c.text }}>
-              {page.reviews_headline || "গ্রাহকদের মতামত"}
+              {renderSalesText(page.reviews_headline || "গ্রাহকদের মতামত")}
             </h2>
           </motion.div>
 
@@ -810,10 +747,10 @@ const Template04Gadget = ({ page }: TemplateProps) => {
         className="py-8 md:py-14 px-4"
         style={{
           background: c.bg,
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
         }}
       >
-        <div className="max-w-md md:max-w-2xl lg:max-w-3xl mx-auto">
+        <div className="max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -823,10 +760,10 @@ const Template04Gadget = ({ page }: TemplateProps) => {
           >
             <h3 className="text-lg md:text-xl lg:text-2xl font-bold mb-4 md:mb-6 flex items-center gap-2" style={{ color: c.text }}>
               <Zap className="w-5 h-5 md:w-6 md:h-6" style={{ color: c.accent }} />
-              {heading}
+              {renderSalesText(heading)}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
-              {allPoints.map((point, index) => (
+              {renderSalesText(allPoints.map((point, index) => (
                 <div
                   key={index}
                   className="flex items-start gap-3 p-3 md:p-4 rounded-lg"
@@ -838,9 +775,9 @@ const Template04Gadget = ({ page }: TemplateProps) => {
                   >
                     <Check className="w-3 h-3" style={{ color: c.accent }} />
                   </div>
-                  <span className="text-sm md:text-base" style={{ color: `${c.text}cc` }}>{point}</span>
+                  <span className="text-sm md:text-base" style={{ color: `${c.text}cc` }}>{renderSalesText(point)}</span>
                 </div>
-              ))}
+              )))}
             </div>
           </motion.div>
         </div>
@@ -856,7 +793,7 @@ const Template04Gadget = ({ page }: TemplateProps) => {
         key="checkout"
         style={{
           background: c.bg,
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
         }}
       >
         <CheckoutSection page={page} />
@@ -869,12 +806,12 @@ const Template04Gadget = ({ page }: TemplateProps) => {
     switch (sectionId) {
       case 'hero': return renderHero();
       case 'gallery': return renderGallery();
-      case 'features': return renderFeatures();
+      case 'features': return page.template_styles?.features?.design ? (page.show_features_section ? <SharedFeaturesSection key="features" page={page} /> : null) : renderFeatures();
       case 'contact': return renderContact();
-      case 'reviews': return renderReviews();
-      case 'extra1': return renderExtraSection(1);
-      case 'extra2': return renderExtraSection(2);
-      case 'extra3': return renderExtraSection(3);
+      case 'reviews': return page.show_reviews_section ? <SharedReviewsSection key="reviews" page={page} /> : null;
+      case 'extra1': return isExtraDesign(page.template_styles?.extra1?.design) ? <ExtraSection key="extra1" page={page} number={1} /> : renderExtraSection(1);
+      case 'extra2': return isExtraDesign(page.template_styles?.extra2?.design) ? <ExtraSection key="extra2" page={page} number={2} /> : renderExtraSection(2);
+      case 'extra3': return isExtraDesign(page.template_styles?.extra3?.design) ? <ExtraSection key="extra3" page={page} number={3} /> : renderExtraSection(3);
       case 'checkout': return renderCheckout();
       default: return null;
     }
@@ -885,10 +822,10 @@ const Template04Gadget = ({ page }: TemplateProps) => {
       className="min-h-screen"
       style={{
         background: c.bg,
-        fontFamily: "'Hind Siliguri', sans-serif",
+        fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
       }}
     >
-      {sectionOrder.map(sectionId => renderSection(sectionId))}
+      {renderSalesText(sectionOrder.map(sectionId => <SectionAppearance key={sectionId} page={page} section={sectionId}>{renderSection(sectionId)}</SectionAppearance>))}
 
       {/* Footer */}
       <div
@@ -899,7 +836,7 @@ const Template04Gadget = ({ page }: TemplateProps) => {
         }}
       >
         <p style={{ color: `${c.text}60` }}>
-          {page.footer_text || `© ${new Date().getFullYear()} - সকল অধিকার সংরক্ষিত`}
+          {renderSalesText(page.footer_text || `© ${new Date().getFullYear()} - সকল অধিকার সংরক্ষিত`)}
         </p>
       </div>
     </div>

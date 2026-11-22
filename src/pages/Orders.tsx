@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/integrations/cloudflare/client";
 import { Order } from "@/types";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -32,7 +32,7 @@ const Orders = () => {
   }, [user]);
 
   const fetchOrders = async () => {
-    const { data, error } = await supabase
+    const { data, error } = await api
       .from("orders")
       .select("*")
       .eq("user_id", user!.id)

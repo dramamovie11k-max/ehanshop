@@ -1,10 +1,13 @@
+import { socialMetadata } from "@/lib/socialMetadata";
+import { updateFavicon } from "@/lib/favicon";
 import { useEffect } from "react";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 const updateMetaTag = (property: string, content: string, isName = false) => {
-  if (!content) return;
+
   const attr = isName ? "name" : "property";
   let tag = document.querySelector(`meta[${attr}="${property}"]`);
+  if (!content) { tag?.remove(); return; }
   if (tag) {
     tag.setAttribute("content", content);
   } else {
@@ -16,13 +19,18 @@ const updateMetaTag = (property: string, content: string, isName = false) => {
 };
 
 const DynamicTitle = () => {
-  const { getSetting } = useSiteSettings();
-  const tabTitle = getSetting("browser_tab_title", "");
+  const { getSetting, settings, isLoading } = useSiteSettings();
+  const favicon = getSetting("site_favicon_url", "");
+  const faviconVersion = settings.find(setting => setting.setting_key === "site_favicon_url")?.updated_at || "";
+  useEffect(() => { updateFavicon(favicon, faviconVersion); }, [favicon, faviconVersion]);
+  const tabTitle = getSetting("site_name", "Baridhara").trim() || "Baridhara";
   const ogTitle = getSetting("og_title", "");
   const ogDescription = getSetting("og_description", "");
-  const ogImage = getSetting("og_image", "");
+  const meta = socialMetadata(Object.fromEntries(settings.map(s => [s.setting_key, s.setting_value || ""])), window.location.href);
+  const ogImage = meta.image;
 
   useEffect(() => {
+    if (isLoading) return;
     if (tabTitle) {
       document.title = tabTitle;
     }
@@ -40,11 +48,11 @@ const DynamicTitle = () => {
       updateMetaTag("twitter:description", ogDescription, true);
     }
 
-    if (ogImage) {
+    {
       updateMetaTag("og:image", ogImage);
       updateMetaTag("twitter:image", ogImage, true);
     }
-  }, [tabTitle, ogTitle, ogDescription, ogImage]);
+  }, [tabTitle, ogTitle, ogDescription, ogImage, isLoading]);
 
   return null;
 };

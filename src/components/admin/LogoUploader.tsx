@@ -3,7 +3,7 @@ import { Upload, Loader2, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/integrations/cloudflare/client";
 import { toast } from "sonner";
 
 interface LogoUploaderProps {
@@ -38,13 +38,13 @@ const LogoUploader = ({ currentLogoUrl, onLogoChange }: LogoUploaderProps) => {
       const fileName = `logo-${Date.now()}.${fileExt}`;
       const filePath = `site/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError } = await api.storage
         .from("products")
         .upload(filePath, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
+      const { data: urlData } = api.storage
         .from("products")
         .getPublicUrl(filePath);
 

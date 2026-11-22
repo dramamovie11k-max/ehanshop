@@ -163,11 +163,6 @@ export interface SalesPage {
   // Template-specific styles (JSONB)
   template_styles?: Record<string, Record<string, string>>;
 
-  // Multiple products (customer chooses one at checkout)
-  show_multi_products?: boolean;
-  multi_products?: MultiProductItem[];
-  allow_multi_select?: boolean;
-
   // Metadata
   created_at: string;
   updated_at: string;
@@ -197,13 +192,4 @@ export interface FeaturePoint {
 export interface SpecItem {
   label: string;
   value: string;
-}
-
-export interface MultiProductItem {
-  product_id: string;
-  name: string;
-  price: number;
-  image_url?: string | null;
-  is_active?: boolean;
-  is_default?: boolean;
 }

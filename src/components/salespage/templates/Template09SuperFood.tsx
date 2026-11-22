@@ -1,7 +1,13 @@
+import SectionAppearance from '../SectionAppearance';
+import ExtraSection from '../ExtraSection';
+import { isExtraDesign } from '@/lib/extraSectionDesigns';
+import { salesPlainText } from '@/lib/salesRichText';
+import { renderSalesText } from '@/components/salespage/SalesRichText';
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { SalesPage, SpecItem } from "@/types/salesPage";
 import CheckoutSection from "../CheckoutSection";
+import SharedHeroSection from "../SharedHeroSection";
 import GallerySection from "../GallerySection";
 import { usePixelTracking } from "@/hooks/usePixelTracking";
 
@@ -36,10 +42,10 @@ const ReviewCarousel = ({ images, accentColor }: { images: string[]; accentColor
           animate={{ x: `-${currentIndex * 100}%` }}
           transition={{ duration: 0.5, ease: "easeInOut" }}
         >
-          {slides.map((slideImages, slideIndex) => (
+          {renderSalesText(slides.map((slideImages, slideIndex) => (
             <div key={slideIndex} className="w-full flex-shrink-0">
               <div className="grid grid-cols-2 gap-2">
-                {slideImages.map((img, imgIndex) => (
+                {renderSalesText(slideImages.map((img, imgIndex) => (
                   <div
                     key={imgIndex}
                     className="rounded-xl overflow-hidden"
@@ -47,19 +53,19 @@ const ReviewCarousel = ({ images, accentColor }: { images: string[]; accentColor
                   >
                     <img
                       src={img}
-                      alt={`Review ${slideIndex * imagesPerSlide + imgIndex + 1}`}
+                      alt={salesPlainText(`Review ${slideIndex * imagesPerSlide + imgIndex + 1}`)}
                       className="w-full h-auto object-cover"
                     />
                   </div>
-                ))}
+                )))}
               </div>
             </div>
-          ))}
+          )))}
         </motion.div>
       </div>
-      {totalSlides > 1 && (
+      {renderSalesText(totalSlides > 1 && (
         <div className="flex justify-center gap-2 mt-4">
-          {slides.map((_, i) => (
+          {renderSalesText(slides.map((_, i) => (
             <button
               key={i}
               onClick={() => setCurrentIndex(i)}
@@ -69,9 +75,9 @@ const ReviewCarousel = ({ images, accentColor }: { images: string[]; accentColor
                 backgroundColor: i === currentIndex ? accentColor : `${accentColor}30`,
               }}
             />
-          ))}
+          )))}
         </div>
-      )}
+      ))}
     </div>
   );
 };
@@ -95,11 +101,11 @@ const FeatureImageCarousel = ({ images, accentColor }: { images: string[]; accen
         animate={{ x: `-${currentIndex * 100}%` }}
         transition={{ duration: 0.5, ease: "easeInOut" }}
       >
-        {images.map((img, i) => (
+        {renderSalesText(images.map((img, i) => (
           <div key={i} style={{ width: '100%', flexShrink: 0 }}>
             <img
               src={img}
-              alt={`Feature ${i + 1}`}
+              alt={salesPlainText(`Feature ${i + 1}`)}
               style={{
                 width: '100%',
                 maxHeight: '350px',
@@ -109,11 +115,11 @@ const FeatureImageCarousel = ({ images, accentColor }: { images: string[]; accen
               }}
             />
           </div>
-        ))}
+        )))}
       </motion.div>
-      {images.length > 1 && (
+      {renderSalesText(images.length > 1 && (
         <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginTop: '8px' }}>
-          {images.map((_, i) => (
+          {renderSalesText(images.map((_, i) => (
             <button
               key={i}
               onClick={() => setCurrentIndex(i)}
@@ -127,9 +133,9 @@ const FeatureImageCarousel = ({ images, accentColor }: { images: string[]; accen
                 transition: 'all 0.3s',
               }}
             />
-          ))}
+          )))}
         </div>
-      )}
+      ))}
     </div>
   );
 };
@@ -202,6 +208,7 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
   // ===== HERO SECTION (Super Food Card) =====
   const renderHero = () => {
     if (!page.show_hero_section) return null;
+    if (page.template_styles?.hero?.design) return <SharedHeroSection page={page} onOrderClick={scrollToCheckout} />;
 
     const heroVideoUrl = page.hero_video_url;
     const youtubeId = heroVideoUrl ? getYoutubeId(heroVideoUrl) : null;
@@ -210,7 +217,7 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
       <section
         key="hero"
         style={{
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
           background: '#f0f2f5',
           padding: '10px 10px 0px',
         }}
@@ -244,15 +251,15 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
                 margin: 0,
                 fontWeight: 700,
                 textShadow: '2px 2px 4px rgba(0,0,0,0.3)',
-                fontFamily: "'Hind Siliguri', sans-serif",
+                fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
               }}
             >
-              {page.hero_headline || 'গ্যারান্টি সহকারে উচ্চরক্তচাপ ও ফ্যাটি লিভার কমাবে'}
+              {renderSalesText(page.hero_headline || 'গ্যারান্টি সহকারে উচ্চরক্তচাপ ও ফ্যাটি লিভার কমাবে')}
             </h1>
           </motion.div>
 
           {/* ফ্রি ডেলিভারি ব্যাজ */}
-          {page.hero_badge_text && (
+          {renderSalesText(page.hero_badge_text && (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -268,17 +275,17 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
                   borderRadius: '50px',
                   fontSize: '20px',
                   fontWeight: 700,
-                  fontFamily: "'Hind Siliguri', sans-serif",
+                  fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
                   animation: 'pulse09 2s infinite',
                 }}
               >
-                {page.hero_badge_text}
+                {renderSalesText(page.hero_badge_text)}
               </span>
             </motion.div>
-          )}
+          ))}
 
           {/* ভিডিও সেকশন */}
-          {heroVideoUrl && (
+          {renderSalesText(heroVideoUrl && (
             <motion.div
               initial={{ opacity: 0, scale: 0.97 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -299,8 +306,8 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
                   border: '3px solid rgba(255,255,255,0.2)',
                 }}
               >
-                {youtubeId ? (
-                  <iframe
+                {renderSalesText(youtubeId ? (
+                  <iframe loading="lazy"
                     src={`https://www.youtube.com/embed/${youtubeId}?rel=0`}
                     title="Product Video"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -327,13 +334,13 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
                       objectFit: 'cover',
                     }}
                   />
-                )}
+                ))}
               </div>
             </motion.div>
-          )}
+          ))}
 
           {/* প্রোডাক্ট ইমেজ (ভিডিও না থাকলে) */}
-          {!heroVideoUrl && page.hero_images?.[0] && (
+          {renderSalesText(!heroVideoUrl && page.hero_images?.[0] && (
             <motion.div
               initial={{ opacity: 0, scale: 0.97 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -350,12 +357,12 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
               >
                 <img
                   src={page.hero_images[0]}
-                  alt={page.hero_headline}
+                  alt={salesPlainText(page.hero_headline)}
                   style={{ width: '100%', display: 'block' }}
                 />
               </div>
             </motion.div>
-          )}
+          ))}
 
           {/* ফুটার কন্টেন্ট: সাবহেডলাইন + CTA বাটন */}
           <motion.div
@@ -368,19 +375,19 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
             }}
           >
             {/* শর্ট টাইটেল */}
-            {page.hero_subheadline && (
+            {renderSalesText(page.hero_subheadline && (
               <p
                 style={{
                   fontSize: '20px',
                   color: 'rgba(255,255,255,0.9)',
                   marginBottom: '30px',
                   fontWeight: 500,
-                  fontFamily: "'Hind Siliguri', sans-serif",
+                  fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
                 }}
               >
-                {page.hero_subheadline}
+                {renderSalesText(page.hero_subheadline)}
               </p>
-            )}
+            ))}
 
             {/* CTA বাটন */}
             <button
@@ -400,7 +407,7 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
                 boxShadow: '0 8px 15px rgba(0,0,0,0.2)',
                 border: 'none',
                 cursor: 'pointer',
-                fontFamily: "'Hind Siliguri', sans-serif",
+                fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-5px) scale(1.03)';
@@ -411,7 +418,7 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
                 e.currentTarget.style.boxShadow = '0 8px 15px rgba(0,0,0,0.2)';
               }}
             >
-              {page.cta_button_text || 'অর্ডার করতে চাই'}
+              {renderSalesText(page.cta_button_text || 'অর্ডার করতে চাই')}
               <span
                 style={{
                   marginLeft: '12px',
@@ -433,13 +440,13 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
         </div>
 
         {/* Pulse Animation */}
-        <style>{`
+        <style>{renderSalesText(`
           @keyframes pulse09 {
             0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7); }
             70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(46, 204, 113, 0); }
             100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(46, 204, 113, 0); }
           }
-        `}</style>
+        `)}</style>
       </section>
     );
   };
@@ -470,7 +477,7 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
       <section
         key="features"
         style={{
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
           background: '#f0f2f5',
           padding: '0px 10px',
         }}
@@ -489,11 +496,11 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
           }}
         >
           {/* ফিচার সেকশন ক্যারোসেল - হেডিং এর উপরে */}
-          {page.feature_section_images && page.feature_section_images.length > 0 && (
+          {renderSalesText(page.feature_section_images && page.feature_section_images.length > 0 && (
             <FeatureImageCarousel images={page.feature_section_images} accentColor={c.accent} />
-          )}
+          ))}
           {/* Fallback: single image */}
-          {(!page.feature_section_images || page.feature_section_images.length === 0) && page.feature_section_image && (
+          {renderSalesText((!page.feature_section_images || page.feature_section_images.length === 0) && page.feature_section_image && (
             <div style={{ marginBottom: '15px' }}>
               <img
                 src={page.feature_section_image}
@@ -507,7 +514,7 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
                 }}
               />
             </div>
-          )}
+          ))}
 
           {/* হেডার টাইটেল - গ্রিন কালার */}
           <h2
@@ -517,10 +524,10 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
               fontWeight: 700,
               lineHeight: 1.4,
               marginBottom: '10px',
-              fontFamily: "'Hind Siliguri', sans-serif",
+              fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
             }}
           >
-            {page.features_headline || 'কেন বেছে নেবেন?'}
+            {renderSalesText(page.features_headline || 'কেন বেছে নেবেন?')}
           </h2>
 
           {/* জিগজ্যাগ ডিভাইডার */}
@@ -538,7 +545,7 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
 
           {/* ফিচার লিস্ট */}
           <div style={{ textAlign: 'left', margin: '20px 0' }}>
-            {featureItems.map((item, i) => (
+            {renderSalesText(featureItems.map((item, i) => (
               <motion.div
                 key={i}
                 initial={{ opacity: 0, x: -20 }}
@@ -561,7 +568,7 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
                     fontSize: '18px',
                   }}
                 >
-                  {item.icon}
+                  {renderSalesText(item.icon)}
                 </span>
                 <p
                   style={{
@@ -570,13 +577,13 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
                     lineHeight: 1.5,
                     margin: 0,
                     color: '#ffffff',
-                    fontFamily: "'Hind Siliguri', sans-serif",
+                    fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
                   }}
                 >
-                  {item.text}
+                  {renderSalesText(item.text)}
                 </p>
               </motion.div>
-            ))}
+            )))}
           </div>
 
           {/* অর্ডার বাটন */}
@@ -595,7 +602,7 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
               marginTop: '20px',
               transition: 'all 0.3s ease',
               cursor: 'pointer',
-              fontFamily: "'Hind Siliguri', sans-serif",
+              fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.backgroundColor = '#ffffff';
@@ -606,7 +613,7 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
               e.currentTarget.style.color = 'white';
             }}
           >
-            {page.cta_button_text || 'অর্ডার করতে চাই'}{' '}
+            {renderSalesText(page.cta_button_text || 'অর্ডার করতে চাই')}{renderSalesText(' ')}
             <span style={{ marginLeft: '10px', fontSize: '18px' }}>🛒</span>
           </button>
         </div>
@@ -622,7 +629,7 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
       <section
         key="spec"
         style={{
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
           background: '#f0f2f5',
           padding: '0px 10px',
         }}
@@ -646,14 +653,14 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
               color: c.headline,
               textAlign: 'center',
               marginBottom: '20px',
-              fontFamily: "'Hind Siliguri', sans-serif",
+              fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
             }}
           >
-            {page.spec_section_heading || 'টেকনিক্যাল স্পেসিফিকেশন'}
+            {renderSalesText(page.spec_section_heading || 'টেকনিক্যাল স্পেসিফিকেশন')}
           </h2>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-            {page.spec_items.map((item: SpecItem, i: number) => (
+            {renderSalesText(page.spec_items.map((item: SpecItem, i: number) => (
               <div
                 key={i}
                 style={{
@@ -670,10 +677,10 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
                     margin: '0 0 4px',
                     textTransform: 'uppercase',
                     fontWeight: 600,
-                    fontFamily: "'Hind Siliguri', sans-serif",
+                    fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
                   }}
                 >
-                  {item.label}
+                  {renderSalesText(item.label)}
                 </p>
                 <p
                   style={{
@@ -681,13 +688,13 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
                     fontWeight: 600,
                     color: c.headline,
                     margin: 0,
-                    fontFamily: "'Hind Siliguri', sans-serif",
+                    fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
                   }}
                 >
-                  {item.value}
+                  {renderSalesText(item.value)}
                 </p>
               </div>
-            ))}
+            )))}
           </div>
         </div>
       </section>
@@ -710,7 +717,7 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
       <section
         key="reviews"
         style={{
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
           background: '#f0f2f5',
           padding: '0px 10px',
         }}
@@ -734,15 +741,15 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
               color: c.headline,
               textAlign: 'center',
               marginBottom: '20px',
-              fontFamily: "'Hind Siliguri', sans-serif",
+              fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
             }}
           >
-            {page.reviews_headline || 'কাস্টমার রিভিউ'}
+            {renderSalesText(page.reviews_headline || 'কাস্টমার রিভিউ')}
           </h2>
 
-          {hasVideo && (
+          {renderSalesText(hasVideo && (
             <div style={{ marginBottom: '20px' }}>
-              {(() => {
+              {renderSalesText((() => {
                 const vid = getYoutubeIdLocal(page.review_video_url!);
                 return vid ? (
                   <div
@@ -755,7 +762,7 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
                       border: '2px solid rgba(255,255,255,0.15)',
                     }}
                   >
-                    <iframe
+                    <iframe loading="lazy"
                       src={`https://www.youtube.com/embed/${vid}?rel=0`}
                       title="Review Video"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -768,13 +775,13 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
                     />
                   </div>
                 ) : null;
-              })()}
+              })())}
             </div>
-          )}
+          ))}
 
-          {hasImages && (
+          {renderSalesText(hasImages && (
             <ReviewCarousel images={page.review_images!} accentColor={c.accent} />
-          )}
+          ))}
         </div>
       </section>
     );
@@ -801,7 +808,7 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
       <section
         key={`extra${num}`}
         style={{
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
           background: '#f0f2f5',
           padding: '0px 10px',
         }}
@@ -818,7 +825,7 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
             padding: '30px 25px',
           }}
         >
-          {heading && (
+          {renderSalesText(heading && (
             <h2
               style={{
                 fontSize: '22px',
@@ -826,15 +833,15 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
                 color: c.headline,
                 textAlign: 'center',
                 marginBottom: '20px',
-                fontFamily: "'Hind Siliguri', sans-serif",
+                fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
               }}
             >
-              {heading}
+              {renderSalesText(heading)}
             </h2>
-          )}
+          ))}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {points.map((point: string, i: number) => (
+            {renderSalesText(points.map((point: string, i: number) => (
               <motion.div
                 key={i}
                 initial={{ opacity: 0, x: -15 }}
@@ -856,13 +863,13 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
                     fontSize: '15px',
                     fontWeight: 500,
                     color: c.headline,
-                    fontFamily: "'Hind Siliguri', sans-serif",
+                    fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
                   }}
                 >
-                  {point}
+                  {renderSalesText(point)}
                 </span>
               </motion.div>
-            ))}
+            )))}
           </div>
         </div>
       </section>
@@ -879,7 +886,7 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
       <section
         key="video"
         style={{
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
           background: '#f0f2f5',
           padding: '0px 10px',
         }}
@@ -896,7 +903,7 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
             padding: '25px',
           }}
         >
-          {page.video_title && (
+          {renderSalesText(page.video_title && (
             <h2
               style={{
                 fontSize: '22px',
@@ -904,12 +911,12 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
                 color: c.headline,
                 textAlign: 'center',
                 marginBottom: '15px',
-                fontFamily: "'Hind Siliguri', sans-serif",
+                fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
               }}
             >
-              {page.video_title}
+              {renderSalesText(page.video_title)}
             </h2>
-          )}
+          ))}
 
           <div
             style={{
@@ -921,8 +928,8 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
               border: '3px solid rgba(255,255,255,0.2)',
             }}
           >
-            {youtubeIdVideo ? (
-              <iframe
+            {renderSalesText(youtubeIdVideo ? (
+              <iframe loading="lazy"
                 src={`https://www.youtube.com/embed/${youtubeIdVideo}?rel=0`}
                 title="Video"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -935,7 +942,7 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
                 controls
                 style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }}
               />
-            )}
+            ))}
           </div>
         </div>
       </section>
@@ -946,7 +953,7 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
   const renderGallery = () => {
     if (!page.show_gallery_section) return null;
     return (
-      <div key="gallery" style={{ fontFamily: "'Hind Siliguri', sans-serif" }}>
+      <div key="gallery" style={{ fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif" }}>
         <GallerySection page={page} onOrderClick={scrollToCheckout} />
       </div>
     );
@@ -959,7 +966,7 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
       <section
         key="contact"
         style={{
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
           background: '#f0f2f5',
           padding: '0px 10px',
         }}
@@ -983,25 +990,25 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
               color: c.headline,
               textAlign: 'center',
               marginBottom: '20px',
-              fontFamily: "'Hind Siliguri', sans-serif",
+              fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
             }}
           >
-            {page.contact_headline || 'যোগাযোগ করুন'}
+            {renderSalesText(page.contact_headline || 'যোগাযোগ করুন')}
           </h2>
 
-          {page.contact_subheadline && (
+          {renderSalesText(page.contact_subheadline && (
             <p
               style={{
                 fontSize: '15px',
                 color: c.accent,
                 textAlign: 'center',
                 marginBottom: '20px',
-                fontFamily: "'Hind Siliguri', sans-serif",
+                fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
               }}
             >
-              {page.contact_subheadline}
+              {renderSalesText(page.contact_subheadline)}
             </p>
-          )}
+          ))}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {/* Phone Button */}
@@ -1033,8 +1040,8 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
                 <span style={{ fontSize: '18px' }}>📞</span>
               </div>
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.8)', margin: 0, fontFamily: "'Hind Siliguri', sans-serif" }}>ফোন অর্ডার</p>
-                <p style={{ fontSize: '16px', fontWeight: 700, color: '#fff', margin: 0, fontFamily: "'Hind Siliguri', sans-serif" }}>{page.contact_phone}</p>
+                <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.8)', margin: 0, fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif" }}>ফোন অর্ডার</p>
+                <p style={{ fontSize: '16px', fontWeight: 700, color: '#fff', margin: 0, fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif" }}>{renderSalesText(page.contact_phone)}</p>
               </div>
               <span
                 style={{
@@ -1044,7 +1051,7 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
                   fontWeight: 600,
                   background: 'rgba(255,255,255,0.2)',
                   color: '#fff',
-                  fontFamily: "'Hind Siliguri', sans-serif",
+                  fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
                 }}
               >
                 কল করুন
@@ -1082,8 +1089,8 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
                 <span style={{ fontSize: '18px' }}>💬</span>
               </div>
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.8)', margin: 0, fontFamily: "'Hind Siliguri', sans-serif" }}>হোয়াটসঅ্যাপ</p>
-                <p style={{ fontSize: '16px', fontWeight: 700, color: '#fff', margin: 0, fontFamily: "'Hind Siliguri', sans-serif" }}>{page.contact_whatsapp_text}</p>
+                <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.8)', margin: 0, fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif" }}>হোয়াটসঅ্যাপ</p>
+                <p style={{ fontSize: '16px', fontWeight: 700, color: '#fff', margin: 0, fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif" }}>{renderSalesText(page.contact_whatsapp_text)}</p>
               </div>
               <span
                 style={{
@@ -1093,7 +1100,7 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
                   fontWeight: 600,
                   background: 'rgba(255,255,255,0.2)',
                   color: '#fff',
-                  fontFamily: "'Hind Siliguri', sans-serif",
+                  fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
                 }}
               >
                 মেসেজ করুন
@@ -1102,7 +1109,7 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
           </div>
 
           {/* Availability */}
-          {page.contact_availability && (
+          {renderSalesText(page.contact_availability && (
             <div style={{ textAlign: 'center', marginTop: '18px' }}>
               <div
                 style={{
@@ -1120,14 +1127,14 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
                   style={{
                     fontSize: '13px',
                     color: 'rgba(255,255,255,0.7)',
-                    fontFamily: "'Hind Siliguri', sans-serif",
+                    fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
                   }}
                 >
-                  {page.contact_availability}
+                  {renderSalesText(page.contact_availability)}
                 </span>
               </div>
             </div>
-          )}
+          ))}
         </div>
       </section>
     );
@@ -1140,7 +1147,7 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
       <section
         key="checkout"
         style={{
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
           background: '#f0f2f5',
           padding: '0px 10px',
         }}
@@ -1173,20 +1180,21 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
     spec: renderSpec,
     reviews: renderReviews,
     contact: renderContact,
-    extra1: () => renderExtraSection(1),
-    extra2: () => renderExtraSection(2),
-    extra3: () => renderExtraSection(3),
+    extra1: () => isExtraDesign(page.template_styles?.extra1?.design) ? <ExtraSection key="extra1" page={page} number={1} /> : renderExtraSection(1),
+    extra2: () => isExtraDesign(page.template_styles?.extra2?.design) ? <ExtraSection key="extra2" page={page} number={2} /> : renderExtraSection(2),
+    extra3: () => isExtraDesign(page.template_styles?.extra3?.design) ? <ExtraSection key="extra3" page={page} number={3} /> : renderExtraSection(3),
     checkout: renderCheckout,
   };
 
   return (
-    <div style={{ fontFamily: "'Hind Siliguri', sans-serif", background: '#f0f2f5', minHeight: '100vh' }}>
+    <div style={{ fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif", background: '#f0f2f5', minHeight: '100vh' }}>
       <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;500;700&display=swap" rel="stylesheet" />
 
-      {sectionOrder.map((sectionId) => {
+      {renderSalesText(sectionOrder.map((sectionId) => {
+        if (sectionId.startsWith('cs-')) return <SectionAppearance key={sectionId} page={page} section={sectionId}>{null}</SectionAppearance>;
         const renderer = sectionMap[sectionId];
-        return renderer ? <div key={sectionId} style={{ marginTop: '4px' }}>{renderer()}</div> : null;
-      })}
+        return renderer ? <SectionAppearance key={sectionId} page={page} section={sectionId}><div style={{ marginTop: '4px' }}>{renderSalesText(renderer())}</div></SectionAppearance> : null;
+      }))}
 
       {/* Footer */}
       <div
@@ -1194,11 +1202,11 @@ const Template09SuperFood = ({ page }: TemplateProps) => {
           padding: '30px 15px',
           textAlign: 'center',
           background: '#f0f2f5',
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
         }}
       >
         <p style={{ fontSize: '13px', color: '#999', margin: 0 }}>
-          {page.footer_text || `© ${new Date().getFullYear()} - সকল অধিকার সংরক্ষিত`}
+          {renderSalesText(page.footer_text || `© ${new Date().getFullYear()} - সকল অধিকার সংরক্ষিত`)}
         </p>
       </div>
     </div>

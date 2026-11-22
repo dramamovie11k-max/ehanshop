@@ -1,3 +1,5 @@
+import { salesPlainText } from '@/lib/salesRichText';
+import { renderSalesText } from '@/components/salespage/SalesRichText';
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { SalesPage } from "@/types/salesPage";
@@ -25,7 +27,7 @@ const ReviewVariant02 = ({ page, colors, isLightTheme }: ReviewVariantProps) => 
       className="py-8 px-3 relative overflow-hidden"
       style={{ backgroundColor: colors.background }}
     >
-      <div className="max-w-lg mx-auto">
+      <div className="max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -33,12 +35,12 @@ const ReviewVariant02 = ({ page, colors, isLightTheme }: ReviewVariantProps) => 
           className="text-center mb-5"
         >
           <h2 className="text-xl font-bold mb-1" style={{ color: isLightTheme ? colors.text : '#fff' }}>
-            {page.reviews_headline}
+            {renderSalesText(page.reviews_headline)}
           </h2>
           <div className="flex items-center justify-center gap-0.5">
-            {[...Array(5)].map((_, i) => (
+            {renderSalesText([...Array(5)].map((_, i) => (
               <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-            ))}
+            )))}
             <span className="ml-1.5 text-xs" style={{ color: isLightTheme ? colors.text : '#fff', opacity: 0.6 }}>
               ৫.০ (১০০+ রিভিউ)
             </span>
@@ -46,7 +48,7 @@ const ReviewVariant02 = ({ page, colors, isLightTheme }: ReviewVariantProps) => 
         </motion.div>
 
         {/* Review Video */}
-        {reviewVideoUrl && (
+        {renderSalesText(reviewVideoUrl && (
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
             whileInView={{ opacity: 1, scale: 1 }}
@@ -54,9 +56,9 @@ const ReviewVariant02 = ({ page, colors, isLightTheme }: ReviewVariantProps) => 
             className="mb-4"
           >
             <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${isLightTheme ? '#eee' : 'rgba(255,255,255,0.1)'}` }}>
-              {reviewVideoUrl.match(/(?:youtu\.be\/|youtube\.com)/) ? (
+              {renderSalesText(reviewVideoUrl.match(/(?:youtu\.be\/|youtube\.com)/) ? (
                 <div className="aspect-video">
-                  <iframe
+                  <iframe loading="lazy"
                     src={`https://www.youtube.com/embed/${reviewVideoUrl.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/watch\?.+&v=))([^"&?\/\s]{11})/)?.[1]}?rel=0`}
                     title="Customer Review Video"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -68,13 +70,13 @@ const ReviewVariant02 = ({ page, colors, isLightTheme }: ReviewVariantProps) => 
                 <div className="aspect-video">
                   <video src={reviewVideoUrl} controls className="w-full h-full object-cover" />
                 </div>
-              )}
+              ))}
             </div>
           </motion.div>
-        )}
+        ))}
 
         {/* Carousel */}
-        {images.length > 0 && (
+        {renderSalesText(images.length > 0 && (
           <>
             <div className="relative">
               <motion.div
@@ -86,12 +88,12 @@ const ReviewVariant02 = ({ page, colors, isLightTheme }: ReviewVariantProps) => 
               >
                 <img
                   src={images[currentIndex]}
-                  alt={`Customer review ${currentIndex + 1}`}
+                  alt={salesPlainText(`Customer review ${currentIndex + 1}`)}
                   className="w-full h-auto object-cover"
                 />
               </motion.div>
 
-              {images.length > 1 && (
+              {renderSalesText(images.length > 1 && (
                 <>
                   <button
                     onClick={prevSlide}
@@ -108,12 +110,12 @@ const ReviewVariant02 = ({ page, colors, isLightTheme }: ReviewVariantProps) => 
                     <ChevronRight className="w-5 h-5 text-white" />
                   </button>
                 </>
-              )}
+              ))}
             </div>
 
             {/* Dots */}
             <div className="flex justify-center gap-2 mt-4">
-              {images.map((_, idx) => (
+              {renderSalesText(images.map((_, idx) => (
                 <button
                   key={idx}
                   onClick={() => setCurrentIndex(idx)}
@@ -122,10 +124,10 @@ const ReviewVariant02 = ({ page, colors, isLightTheme }: ReviewVariantProps) => 
                     backgroundColor: currentIndex === idx ? colors.accent : isLightTheme ? '#ddd' : 'rgba(255,255,255,0.2)'
                   }}
                 />
-              ))}
+              )))}
             </div>
           </>
-        )}
+        ))}
       </div>
     </section>
   );

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ChevronDown, ChevronUp, Tag, Check, X, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { apiFetch } from "@/lib/apiClient";
+import { api } from "@/integrations/cloudflare/client";
 
 interface CouponResult {
   couponCode: string;
@@ -17,9 +17,10 @@ interface CouponFieldProps {
   onApply: (result: CouponResult | null) => void;
   appliedCoupon: CouponResult | null;
   accentColor: string;
+  labels?: { title: string; placeholder: string; apply: string; freeShipping: string; discount: string; invalid: string; error: string };
 }
 
-const CouponField = ({ cartTotal, onApply, appliedCoupon, accentColor }: CouponFieldProps) => {
+const CouponField = ({ cartTotal, onApply, appliedCoupon, accentColor, labels }: CouponFieldProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -31,33 +32,36 @@ const CouponField = ({ cartTotal, onApply, appliedCoupon, accentColor }: CouponF
     setError("");
 
     try {
-      const data = await apiFetch<any>(`/spin/entries?coupon=${encodeURIComponent(code.trim().toUpperCase())}`);
-      if (!data || data.is_used) {
-        setError("কুপন কোডটি অবৈধ বা ইতিমধ্যে ব্যবহৃত");
+      const { data: rows, error: dbError } = await api.rpc("get_spin_coupon", {
+        _code: code.trim().toUpperCase(),
+      });
+      const data = rows?.[0];
+
+      if (dbError || !data) {
+         setError(labels?.invalid ?? "কুপন কোডটি অবৈধ বা ইতিমধ্যে ব্যবহৃত");
         onApply(null);
         return;
       }
 
       let discountAmount = 0;
       if (data.discount_type === "free_shipping") {
-        discountAmount = 0;
+        discountAmount = 0; // handled by checkout via discountType
       } else if (data.discount_type === "percentage") {
-        discountAmount = Math.round(cartTotal * (Number(data.discount_value) / 100));
+        discountAmount = Math.round(cartTotal * (data.discount_value / 100));
       } else {
-        discountAmount = Number(data.discount_value) || 0;
+        discountAmount = data.discount_value;
       }
 
       onApply({
         couponCode: data.coupon_code,
         discountType: data.discount_type,
-        discountValue: Number(data.discount_value) || 0,
+        discountValue: data.discount_value,
         discountAmount: Math.min(discountAmount, cartTotal),
         offerText: data.offer_text || "",
       });
       setError("");
     } catch {
-      setError("কুপন কোডটি অবৈধ বা ইতিমধ্যে ব্যবহৃত");
-      onApply(null);
+       setError(labels?.error ?? "কুপন চেক করতে সমস্যা হয়েছে");
     } finally {
       setLoading(false);
     }
@@ -70,7 +74,7 @@ const CouponField = ({ cartTotal, onApply, appliedCoupon, accentColor }: CouponF
   };
 
   return (
-    <div className="rounded-xl overflow-hidden bg-slate-50 border-2 border-slate-200">
+    <div className="checkout-coupon rounded-xl overflow-hidden bg-slate-50 border-2 border-slate-200">
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
@@ -78,7 +82,7 @@ const CouponField = ({ cartTotal, onApply, appliedCoupon, accentColor }: CouponF
       >
         <span className="flex items-center gap-2">
           <Tag className="h-4 w-4" style={{ color: accentColor }} />
-          কুপন কোড আছে?
+           {labels?.title ?? "কুপন কোড আছে?"}
         </span>
         {isOpen ? <ChevronUp className="h-4 w-4 text-slate-500" /> : <ChevronDown className="h-4 w-4 text-slate-500" />}
       </button>
@@ -93,8 +97,8 @@ const CouponField = ({ cartTotal, onApply, appliedCoupon, accentColor }: CouponF
                   <span className="text-sm font-semibold text-emerald-700">{appliedCoupon.couponCode}</span>
                   <p className="text-xs text-emerald-600">
                     {appliedCoupon.discountType === "free_shipping" 
-                      ? "ফ্রি শিপিং! 🚚" 
-                      : `ছাড়: ৳${appliedCoupon.discountAmount}`}
+                       ? labels?.freeShipping ?? "ফ্রি শিপিং! 🚚"
+                       : `${labels?.discount ?? "ছাড়:"} ৳${appliedCoupon.discountAmount}`}
                   </p>
                 </div>
               </div>
@@ -114,7 +118,7 @@ const CouponField = ({ cartTotal, onApply, appliedCoupon, accentColor }: CouponF
                   setCode(e.target.value.toUpperCase());
                   setError("");
                 }}
-                placeholder="কুপন কোড লিখুন"
+                 placeholder={labels?.placeholder ?? "কুপন কোড লিখুন"}
                 className="h-11 bg-white border-2 border-slate-200 text-slate-800 placeholder:text-slate-400 text-base flex-1 rounded-lg px-3 focus:border-emerald-500"
               />
               <Button
@@ -124,7 +128,7 @@ const CouponField = ({ cartTotal, onApply, appliedCoupon, accentColor }: CouponF
                 className="h-11 px-5 text-sm font-semibold text-white rounded-lg"
                 style={{ background: accentColor }}
               >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "প্রয়োগ"}
+                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : labels?.apply ?? "প্রয়োগ"}
               </Button>
             </div>
           )}

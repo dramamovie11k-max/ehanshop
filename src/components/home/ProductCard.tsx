@@ -1,3 +1,4 @@
+import { imageVariant, imageSrcSet } from "@/lib/responsiveImage";
 import { useState, memo, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Heart, ShoppingCart, X, Star } from "lucide-react";
@@ -8,6 +9,7 @@ import { useCart } from "@/contexts/CartContext";
 import { useProductVariations } from "@/hooks/useProductVariations";
 import { useWishlist } from "@/hooks/useWishlist";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { groupVariations, isSelectionComplete, selectionPrice } from "@/lib/variationGroups";
 import { cn } from "@/lib/utils";
 
 interface ProductCardProps {
@@ -21,7 +23,7 @@ const ProductCard = memo(({ product }: ProductCardProps) => {
   const { isInWishlist, toggleWishlist } = useWishlist();
   const { t, language } = useLanguage();
   const [showVariations, setShowVariations] = useState(false);
-  const [selectedVariation, setSelectedVariation] = useState<ProductVariation | null>(null);
+  const [selectedVariations, setSelectedVariations] = useState<ProductVariation[]>([]);
   const [pendingAction, setPendingAction] = useState<'cart' | 'order'>('cart');
 
   const discount = product.original_price
@@ -41,11 +43,15 @@ const ProductCard = memo(({ product }: ProductCardProps) => {
     custom: t('card.select_option'),
   };
 
+  const groups = groupVariations(variations);
+  const selectionComplete = isSelectionComplete(groups, selectedVariations);
+  const selectedIds = new Set(selectedVariations.map((v) => v.id));
+
   const handleAddToCart = useCallback(() => {
     if (product.has_variations && variations.length > 0) {
       setPendingAction('cart');
       setShowVariations(true);
-      setSelectedVariation(null);
+      setSelectedVariations([]);
     } else {
       addToCart(product);
     }
@@ -55,31 +61,36 @@ const ProductCard = memo(({ product }: ProductCardProps) => {
     if (product.has_variations && variations.length > 0) {
       setPendingAction('order');
       setShowVariations(true);
-      setSelectedVariation(null);
+      setSelectedVariations([]);
     } else {
       addToCart(product, 1, undefined, true);
       navigate('/checkout');
     }
   }, [product, variations, addToCart, navigate]);
 
-  const handleVariationSelect = useCallback((variation: ProductVariation) => {
-    setSelectedVariation(variation);
-  }, []);
+  const handleVariationSelect = useCallback((groupKey: string, variation: ProductVariation) => {
+    setSelectedVariations((prev) => {
+      const group = groups.find((g) => g.key === groupKey);
+      if (!group) return prev;
+      const groupOptionIds = new Set(group.options.map((o) => o.id));
+      return [...prev.filter((v) => !groupOptionIds.has(v.id)), variation];
+    });
+  }, [groups]);
 
   const handleConfirmAddToCart = useCallback(() => {
-    if (selectedVariation) {
-      addToCart(product, 1, selectedVariation, pendingAction === 'order');
+    if (selectionComplete && selectedVariations.length > 0) {
+      addToCart(product, 1, undefined, pendingAction === 'order', selectedVariations);
       setShowVariations(false);
-      setSelectedVariation(null);
+      setSelectedVariations([]);
       if (pendingAction === 'order') {
         navigate('/checkout');
       }
     }
-  }, [selectedVariation, addToCart, product, pendingAction, navigate]);
+  }, [selectionComplete, selectedVariations, addToCart, product, pendingAction, navigate]);
 
   const handleCloseVariations = useCallback(() => {
     setShowVariations(false);
-    setSelectedVariation(null);
+    setSelectedVariations([]);
   }, []);
 
   const handleWishlistClick = useCallback((e: React.MouseEvent) => {
@@ -117,13 +128,15 @@ const ProductCard = memo(({ product }: ProductCardProps) => {
 
       {/* Image */}
       <Link to={`/product/${product.slug}`} className="block">
-        <div className="relative aspect-square overflow-hidden bg-secondary/50">
+        <div className="relative aspect-[3/4] overflow-hidden bg-secondary/50">
           {product.image_url?.startsWith('http') ? (
             <img 
-              src={product.image_url} 
+              src={imageVariant(product.image_url,384)}
+              srcSet={imageSrcSet(product.image_url)}
+              sizes="(max-width: 767px) 50vw, (max-width: 1023px) 33vw, 25vw"
+              decoding="async"
               alt={displayName}
               loading="lazy"
-              decoding="async"
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
           ) : (
@@ -165,7 +178,7 @@ const ProductCard = memo(({ product }: ProductCardProps) => {
           <div className="space-y-2 pt-1 mt-1.5 border-t border-border">
             <div className="flex items-center justify-between">
               <span className="text-[10px] sm:text-xs text-muted-foreground font-medium">
-                {VARIATION_TYPE_LABELS[product.variation_type || 'custom']}
+                {groups.length > 1 ? t('card.select_option') : (VARIATION_TYPE_LABELS[product.variation_type || 'custom'])}
               </span>
               <button
                 onClick={handleCloseVariations}
@@ -174,32 +187,41 @@ const ProductCard = memo(({ product }: ProductCardProps) => {
                 <X className="h-3 w-3 text-muted-foreground" />
               </button>
             </div>
-            <div className="flex flex-wrap gap-1">
-              {variations.map((variation) => (
-                <button
-                  key={variation.id}
-                  onClick={() => handleVariationSelect(variation)}
-                  className={cn(
-                    "px-2 py-1 rounded text-[10px] sm:text-xs font-medium transition-all border",
-                    selectedVariation?.id === variation.id
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-secondary/50 border-border hover:border-primary/50"
-                  )}
-                >
-                  {variation.variation_name}
-                </button>
-              ))}
-            </div>
-            {selectedVariation && (
+            {groups.map((group) => (
+              <div key={group.key || "legacy"} className="space-y-1">
+                {groups.length > 1 && (
+                  <span className="text-[10px] sm:text-xs text-muted-foreground font-medium">
+                    {group.key || VARIATION_TYPE_LABELS[group.type] || VARIATION_TYPE_LABELS.custom}
+                  </span>
+                )}
+                <div className="flex flex-wrap gap-1">
+                  {group.options.map((variation) => (
+                    <button
+                      key={variation.id}
+                      onClick={() => handleVariationSelect(group.key, variation)}
+                      className={cn(
+                        "px-2 py-1 rounded text-[10px] sm:text-xs font-medium transition-all border",
+                        selectedIds.has(variation.id)
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-secondary/50 border-border hover:border-primary/50"
+                      )}
+                    >
+                      {variation.variation_name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {selectionComplete && selectedVariations.length > 0 && (
               <div className="flex items-center justify-between text-[10px] sm:text-xs text-muted-foreground bg-secondary/30 p-1.5 rounded">
-                <span>৳{selectedVariation.price}</span>
-                <span>{t('product.stock')}: {selectedVariation.stock ?? 0}</span>
+                <span>৳{selectionPrice(selectedVariations, product.price)}</span>
+                <span>{t('product.stock')}: {Math.min(...selectedVariations.map((v) => v.stock ?? 0))}</span>
               </div>
             )}
             <Button
               className="w-full h-7 sm:h-8 text-[10px] sm:text-xs font-medium bg-gradient-brand hover:opacity-90"
               onClick={handleConfirmAddToCart}
-              disabled={!selectedVariation}
+              disabled={!selectionComplete}
             >
               <ShoppingCart className="h-3 w-3 mr-1" />
               <span className="truncate">{t('card.confirm')}</span>

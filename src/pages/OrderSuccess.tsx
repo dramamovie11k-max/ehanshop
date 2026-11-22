@@ -1,7 +1,6 @@
 import { useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { apiFetch } from "@/lib/apiClient";
-
+import { api } from "@/integrations/cloudflare/client";
 
 interface OrderDetails {
   id: string;
@@ -25,23 +24,34 @@ const OrderSuccess = () => {
     const fetchData = async () => {
       if (!orderId) { setLoading(false); return; }
       try {
-        // এক কলেই অর্ডার + আইটেম (গেস্ট চেকআউটেও কাজ করে)
-        const order = await apiFetch<any>(`/orders/${encodeURIComponent(orderId)}`);
+        const { data: order } = await api
+          .from("orders")
+          .select("id, total_amount, payment_method, notes, customer_address, customer_city")
+          .eq("id", orderId)
+          .single();
+
+        const { data: items } = await api
+          .from("order_items")
+          .select("product_name, quantity")
+          .eq("order_id", orderId)
+          .limit(1)
+          .single();
+
         if (order) {
-          const firstItem = (order.items || order.order_items || [])[0];
           setOrderDetails({
             ...order,
-            product_name: firstItem?.product_name,
-            quantity: firstItem?.quantity,
+            product_name: items?.product_name,
+            quantity: items?.quantity,
           });
         }
 
-        const settings = await apiFetch<any>("/settings").catch(() => null);
-        const list = Array.isArray(settings) ? settings : settings?.data;
-        const phone = Array.isArray(list)
-          ? list.find((s: any) => s.setting_key === "support_phone")?.setting_value
-          : settings?.support_phone;
-        if (phone) setSupportPhone(phone);
+        const { data: settings } = await api
+          .from("site_settings")
+          .select("setting_value")
+          .eq("setting_key", "support_phone")
+          .single();
+
+        if (settings?.setting_value) setSupportPhone(settings.setting_value);
       } catch (e) {
         console.error("Error fetching order:", e);
       } finally {
@@ -50,7 +60,6 @@ const OrderSuccess = () => {
     };
     fetchData();
   }, [orderId]);
-
 
   const formatOrderId = (id: string) => {
     const hash = id.replace(/-/g, "").slice(-6);

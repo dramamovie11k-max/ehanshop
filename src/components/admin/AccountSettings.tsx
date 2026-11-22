@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Loader2, Lock, Mail, Eye, EyeOff } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/integrations/cloudflare/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -26,8 +26,8 @@ const AccountSettings = () => {
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (newPassword.length < 6) {
-      toast.error("নতুন পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে");
+    if (newPassword.length < 10) {
+      toast.error("নতুন পাসওয়ার্ড কমপক্ষে ১০ অক্ষরের হতে হবে");
       return;
     }
 
@@ -40,7 +40,7 @@ const AccountSettings = () => {
 
     try {
       // Verify current password by re-signing in
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { error: signInError } = await api.auth.signInWithPassword({
         email: user?.email || "",
         password: currentPassword,
       });
@@ -52,7 +52,7 @@ const AccountSettings = () => {
       }
 
       // Update password
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      const { error } = await api.auth.updateUser({ password: newPassword });
 
       if (error) {
         toast.error(error.message || "পাসওয়ার্ড পরিবর্তন করতে সমস্যা হয়েছে");
@@ -84,14 +84,14 @@ const AccountSettings = () => {
 
     setEmailLoading(true);
 
-    const { error } = await supabase.auth.updateUser({
+    const { error } = await api.auth.updateUser({
       email: newEmail,
     });
 
     if (error) {
       toast.error(error.message || "ইমেইল পরিবর্তন করতে সমস্যা হয়েছে");
     } else {
-      toast.success("নতুন ইমেইলে কনফার্মেশন লিঙ্ক পাঠানো হয়েছে। অনুগ্রহ করে চেক করুন।");
+      toast.success("ইমেইল আপডেট হয়েছে।");
       setNewEmail("");
     }
 
@@ -158,9 +158,9 @@ const AccountSettings = () => {
                 type={showPasswords ? "text" : "password"}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="নতুন পাসওয়ার্ড (কমপক্ষে ৬ অক্ষর)"
+                placeholder="নতুন পাসওয়ার্ড (কমপক্ষে ১০ অক্ষর)"
                 required
-                minLength={6}
+                minLength={10}
               />
             </div>
 
@@ -173,7 +173,7 @@ const AccountSettings = () => {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="নতুন পাসওয়ার্ড আবার দিন"
                 required
-                minLength={6}
+                minLength={10}
               />
             </div>
 
@@ -195,7 +195,7 @@ const AccountSettings = () => {
             Change Email
           </CardTitle>
           <CardDescription>
-            নতুন ইমেইলে একটি কনফার্মেশন লিঙ্ক পাঠানো হবে
+            ইমেইল বদলানোর আগে আবার লগইন করুন। পরিবর্তন সঙ্গে সঙ্গে কার্যকর হবে।
           </CardDescription>
         </CardHeader>
         <CardContent>

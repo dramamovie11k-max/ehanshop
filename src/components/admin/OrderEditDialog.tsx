@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/integrations/cloudflare/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
@@ -73,7 +73,7 @@ const OrderEditDialog = ({ order, open, onOpenChange, onUpdate }: OrderEditDialo
     if (!order?.id) return;
     setLoadingItems(true);
     
-    const { data, error } = await supabase
+    const { data, error } = await api
       .from("order_items")
       .select("*")
       .eq("order_id", order.id);
@@ -133,7 +133,7 @@ const OrderEditDialog = ({ order, open, onOpenChange, onUpdate }: OrderEditDialo
       const newTotal = calculateTotal();
 
       // Update order
-      const { error: orderError } = await supabase
+      const { error: orderError } = await api
         .from("orders")
         .update({
           customer_name: customerName,
@@ -149,7 +149,7 @@ const OrderEditDialog = ({ order, open, onOpenChange, onUpdate }: OrderEditDialo
       if (orderError) throw orderError;
 
       // Delete existing items
-      await supabase.from("order_items").delete().eq("order_id", order.id);
+      await api.from("order_items").delete().eq("order_id", order.id);
 
       // Insert updated items
       const itemsToInsert = orderItems.map(item => ({
@@ -160,14 +160,14 @@ const OrderEditDialog = ({ order, open, onOpenChange, onUpdate }: OrderEditDialo
         variation_name: item.variation_name || null,
       }));
 
-      const { error: itemsError } = await supabase
+      const { error: itemsError } = await api
         .from("order_items")
         .insert(itemsToInsert);
 
       if (itemsError) throw itemsError;
 
       // Log the edit
-      await supabase.from("order_logs").insert({
+      await api.from("order_logs").insert({
         order_id: order.id,
         action: "order_edited",
         notes: "অর্ডার এডিট করা হয়েছে",

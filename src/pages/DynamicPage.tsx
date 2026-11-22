@@ -4,6 +4,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Loader2 } from "lucide-react";
 import NotFound from "./NotFound";
+import DOMPurify from "dompurify";
 
 const DynamicPage = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -29,9 +30,10 @@ const DynamicPage = () => {
               )}
               {/* Page Content */}
               <article className="bg-card rounded-lg shadow-sm border p-6 md:p-8">
+                <h1 className="text-2xl font-bold text-foreground mb-5">{page.title}</h1>
                 <div
-                  dangerouslySetInnerHTML={{ __html: page.content }}
-                  className="page-content leading-relaxed text-card-foreground
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(page.content, { USE_PROFILES: { html: true } }) }}
+                  className="page-content whitespace-pre-line leading-relaxed text-card-foreground
                     [&>h2]:text-2xl [&>h2]:font-bold [&>h2]:mb-3 [&>h2]:mt-8 [&>h2]:text-foreground [&>h2]:border-b [&>h2]:border-border [&>h2]:pb-2
                     [&>h3]:text-xl [&>h3]:font-semibold [&>h3]:mb-2 [&>h3]:mt-6 [&>h3]:text-foreground
                     [&>p]:text-muted-foreground [&>p]:mb-4 [&>p]:leading-relaxed [&>p]:text-[15px]

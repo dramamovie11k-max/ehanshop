@@ -11,9 +11,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Upload, X, Plus } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/integrations/cloudflare/client";
 import { toast } from "sonner";
 import { CustomSection } from "./CustomSectionEditor";
+import CustomSectionElementsEditor from './CustomSectionElementsEditor';
+import CustomHtmlCodeEditor from './CustomHtmlCodeEditor';
 
 interface CustomSectionInlineEditorProps {
   section: CustomSection;
@@ -23,7 +25,30 @@ interface CustomSectionInlineEditorProps {
 
 const CustomSectionInlineEditor = ({ section, onUpdate, onUpdateStyle }: CustomSectionInlineEditorProps) => {
   const [uploading, setUploading] = useState(false);
+  const [bgUploading, setBgUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bgFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleBgImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBgUploading(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `sales-pages/custom-sections/${fileName}`;
+      const { error: uploadError } = await api.storage.from("products").upload(filePath, file);
+      if (uploadError) throw uploadError;
+      const { data: urlData } = api.storage.from("products").getPublicUrl(filePath);
+      onUpdateStyle("backgroundImage", urlData.publicUrl);
+      toast.success("ব্যাকগ্রাউন্ড ইমেজ আপলোড হয়েছে!");
+    } catch {
+      toast.error("ইমেজ আপলোড করতে সমস্যা হয়েছে");
+    } finally {
+      setBgUploading(false);
+      if (bgFileInputRef.current) bgFileInputRef.current.value = "";
+    }
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -35,9 +60,9 @@ const CustomSectionInlineEditor = ({ section, onUpdate, onUpdateStyle }: CustomS
         const fileExt = file.name.split(".").pop();
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
         const filePath = `sales-pages/custom-sections/${fileName}`;
-        const { error: uploadError } = await supabase.storage.from("products").upload(filePath, file);
+        const { error: uploadError } = await api.storage.from("products").upload(filePath, file);
         if (uploadError) throw uploadError;
-        const { data: urlData } = supabase.storage.from("products").getPublicUrl(filePath);
+        const { data: urlData } = api.storage.from("products").getPublicUrl(filePath);
         uploadedUrls.push(urlData.publicUrl);
       }
       onUpdate({ images: [...section.images, ...uploadedUrls] });
@@ -50,14 +75,15 @@ const CustomSectionInlineEditor = ({ section, onUpdate, onUpdateStyle }: CustomS
     }
   };
 
-  const needsTitle = section.type !== 'divider';
-  const needsContent = ["text", "image-text", "banner", "cta-banner"].includes(section.type);
+  if (section.type === 'html') return <div className="p-3 bg-muted/30"><CustomHtmlCodeEditor section={section} onUpdate={onUpdate} /></div>;
+
+  const needsTitle = true;
+  const needsContent = true;
   const needsPoints = ["bullet-points", "image-text"].includes(section.type);
-  const needsImages = ["image-text", "image-grid", "banner", "gallery", "slider", "image"].includes(section.type);
-  const needsVideo = section.type === "video";
+  const needsImages = true;
+  const needsVideo = true; // যেকোনো সেকশনে ভিডিও যোগ করা যাবে
   const needsFaq = section.type === "faq";
   const needsImagePosition = section.type === "image-text";
-  const needsHtml = section.type === "html";
   const needsTestimonials = section.type === "testimonial";
   const needsPricing = section.type === "pricing";
   const needsCountdown = section.type === "countdown-timer";
@@ -74,6 +100,24 @@ const CustomSectionInlineEditor = ({ section, onUpdate, onUpdateStyle }: CustomS
         className="hidden"
         onChange={handleImageUpload}
       />
+      <input
+        ref={bgFileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleBgImageUpload}
+      />
+
+      <div>
+        <Label htmlFor={`${section.id}-name`} className="text-[10px]">সেকশনের নাম</Label>
+        <Input
+          id={`${section.id}-name`}
+          value={section.name ?? ""}
+          onChange={(e) => onUpdate({ name: e.target.value })}
+          placeholder="যেমন: হিরো সেকশন, গ্যালারি সেকশন"
+          className="h-7 text-xs"
+        />
+      </div>
 
       {/* Title / Heading */}
       {needsTitle && (
@@ -130,7 +174,7 @@ const CustomSectionInlineEditor = ({ section, onUpdate, onUpdateStyle }: CustomS
       )}
 
       {/* Content Font Size & Alignment */}
-      {section.type !== 'divider' && (
+      {needsTitle && (
         <div className="flex gap-2">
           <div className="flex-1">
             <Label className="text-[9px] text-muted-foreground">কন্টেন্ট ফন্ট সাইজ: {section.styles.contentFontSize || '15'}px</Label>
@@ -172,24 +216,17 @@ const CustomSectionInlineEditor = ({ section, onUpdate, onUpdateStyle }: CustomS
         </div>
       )}
 
-      {/* HTML Content */}
-      {needsHtml && (
-        <div>
-          <Label className="text-[10px]">HTML কোড</Label>
-          <Textarea
-            value={section.content}
-            onChange={(e) => onUpdate({ content: e.target.value })}
-            placeholder="<div>আপনার HTML কোড লিখুন...</div>"
-            className="min-h-[120px] text-xs font-mono"
-          />
-          <p className="text-[9px] text-muted-foreground mt-1">⚠️ কাস্টম HTML কোড সরাসরি রেন্ডার হবে</p>
-        </div>
-      )}
+      <div>
+        <Label htmlFor={`${section.id}-description`} className="text-[10px]">বর্ণনা / ডিসক্রিপশন</Label>
+        <Textarea id={`${section.id}-description`} value={section.description ?? ""}
+          onChange={(e) => onUpdate({ description: e.target.value })}
+          placeholder="সেকশনের বিস্তারিত বর্ণনা..." className="min-h-[60px] text-xs" />
+      </div>
 
-      {/* Video URL */}
+      {/* Video URL (any section) */}
       {needsVideo && (
         <div>
-          <Label className="text-[10px]">ভিডিও URL (YouTube/Vimeo)</Label>
+          <Label className="text-[10px]">ভিডিও URL (ঐচ্ছিক — YouTube/Vimeo)</Label>
           <Input
             value={section.videoUrl || ""}
             onChange={(e) => onUpdate({ videoUrl: e.target.value })}
@@ -273,7 +310,7 @@ const CustomSectionInlineEditor = ({ section, onUpdate, onUpdateStyle }: CustomS
       {needsImages && (
         <div className="space-y-1">
           <div className="flex justify-between items-center">
-            <Label className="text-[10px]">ইমেজ ({section.images.length}টি)</Label>
+            <Label className="text-[10px]">সেকশনের ইমেজ ({section.images.length}টি)</Label>
             <Button type="button" variant="outline" size="sm" className="h-6 text-[10px]"
               onClick={() => fileInputRef.current?.click()} disabled={uploading}>
               <Upload className="h-3 w-3 mr-1" />
@@ -482,8 +519,9 @@ const CustomSectionInlineEditor = ({ section, onUpdate, onUpdateStyle }: CustomS
         </div>
       )}
 
-      {/* CTA toggle + text */}
-      {section.type !== 'divider' && (
+      <CustomSectionElementsEditor section={section} onUpdate={onUpdate} />
+      {/* Legacy CTA controls remain available until buttons are customized. */}
+      {needsTitle && section.buttons === undefined && (
         <>
           <div className="flex items-center gap-2">
             <input type="checkbox" checked={section.styles.showCta}
@@ -491,9 +529,14 @@ const CustomSectionInlineEditor = ({ section, onUpdate, onUpdateStyle }: CustomS
             <Label className="text-[10px]">CTA বাটন দেখান</Label>
           </div>
           {section.styles.showCta && (
-            <Input value={section.styles.ctaText}
-              onChange={(e) => onUpdateStyle("ctaText", e.target.value)}
-              placeholder="বাটন টেক্সট" className="h-7 text-xs" />
+            <>
+              <Input value={section.styles.ctaText}
+                onChange={(e) => onUpdateStyle("ctaText", e.target.value)}
+                placeholder="বাটন টেক্সট" className="h-7 text-xs" />
+              <Input value={section.styles.ctaLink || ""}
+                onChange={(e) => onUpdateStyle("ctaLink", e.target.value)}
+                placeholder="বাটন লিংক (ঐচ্ছিক — খালি রাখলে অর্ডার ফর্মে যাবে)" className="h-7 text-xs" />
+            </>
           )}
         </>
       )}
@@ -573,7 +616,7 @@ const CustomSectionInlineEditor = ({ section, onUpdate, onUpdateStyle }: CustomS
           </div>
           <div>
             <Label className="text-[9px] text-muted-foreground">বর্ডার রেডিয়াস: {section.styles.borderRadius}px</Label>
-            <input type="range" min="0" max="30"
+            <input type="range" min="0" max="60"
               value={section.styles.borderRadius}
               onChange={(e) => onUpdateStyle("borderRadius", e.target.value)}
               className="w-full h-1.5 accent-primary" />
@@ -620,6 +663,92 @@ const CustomSectionInlineEditor = ({ section, onUpdate, onUpdateStyle }: CustomS
                 {sh === 'none' ? 'নেই' : sh.toUpperCase()}
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* Layout: width, side margin, transparency */}
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-2 border-t pt-2">
+          <div>
+            <Label className="text-[9px] text-muted-foreground">সেকশন উইথ: {section.styles.sectionWidth || '100'}%</Label>
+            <input type="range" min="50" max="100"
+              value={section.styles.sectionWidth || '100'}
+              onChange={(e) => onUpdateStyle("sectionWidth", e.target.value)}
+              className="w-full h-1.5 accent-primary" />
+          </div>
+          <div>
+            <Label className="text-[9px] text-muted-foreground">সাইড মার্জিন: {section.styles.marginX || '0'}px</Label>
+            <input type="range" min="0" max="40"
+              value={section.styles.marginX || '0'}
+              onChange={(e) => onUpdateStyle("marginX", e.target.value)}
+              className="w-full h-1.5 accent-primary" />
+          </div>
+          <div>
+            <Label className="text-[9px] text-muted-foreground">ব্যাকগ্রাউন্ড স্বচ্ছতা: {section.styles.backgroundOpacity || '100'}%</Label>
+            <input type="range" min="0" max="100"
+              value={section.styles.backgroundOpacity || '100'}
+              onChange={(e) => onUpdateStyle("backgroundOpacity", e.target.value)}
+              className="w-full h-1.5 accent-primary" />
+          </div>
+          <div>
+            <Label className="text-[9px] text-muted-foreground">উপরের মার্জিন: {section.styles.marginTop || '0'}px</Label>
+            <input type="range" min="-20" max="80"
+              value={section.styles.marginTop || '0'}
+              onChange={(e) => onUpdateStyle("marginTop", e.target.value)}
+              className="w-full h-1.5 accent-primary" />
+          </div>
+          <div>
+            <Label className="text-[9px] text-muted-foreground">নিচের মার্জিন (গ্যাপ): {section.styles.marginBottom || '0'}px</Label>
+            <input type="range" min="-20" max="80"
+              value={section.styles.marginBottom || '0'}
+              onChange={(e) => onUpdateStyle("marginBottom", e.target.value)}
+              className="w-full h-1.5 accent-primary" />
+          </div>
+        </div>
+
+        {/* Per-corner radius (empty = uses main border radius) */}
+        <div className="mt-2 border-t pt-2">
+          <Label className="text-[9px] text-muted-foreground">কোনা আলাদা রেডিয়াস (খালি রাখলে মূল বর্ডার রেডিয়াস)</Label>
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-1">
+            {([
+              ["radiusTL", "উপরে বাম"], ["radiusTR", "উপরে ডান"],
+              ["radiusBL", "নিচে বাম"], ["radiusBR", "নিচে ডান"],
+            ] as const).map(([k, label]) => {
+              const v = (section.styles as any)[k] ?? '';
+              return (
+                <div key={k}>
+                  <Label className="text-[9px] text-muted-foreground">{label}: {v === '' ? `${section.styles.borderRadius}px (মূল)` : `${v}px`}</Label>
+                  <div className="flex items-center gap-1">
+                    <input type="range" min="0" max="60"
+                      value={v === '' ? section.styles.borderRadius : v}
+                      onChange={(e) => onUpdateStyle(k, e.target.value)}
+                      className="w-full h-1.5 accent-primary" />
+                    {v !== '' && (
+                      <button type="button" onClick={() => onUpdateStyle(k, '')} className="text-[9px] text-muted-foreground underline">রিসেট</button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Background image */}
+        <div className="mt-2">
+          <Label className="text-[9px] text-muted-foreground">ব্যাকগ্রাউন্ড ইমেজ (ঐচ্ছিক)</Label>
+          <div className="flex gap-1 mt-0.5">
+            <Input value={section.styles.backgroundImage || ""}
+              onChange={(e) => onUpdateStyle("backgroundImage", e.target.value)}
+              placeholder="ইমেজ URL..." className="h-6 text-[9px] flex-1" />
+            <Button type="button" variant="outline" size="sm" className="h-6 text-[10px] px-2"
+              onClick={() => bgFileInputRef.current?.click()} disabled={bgUploading}>
+              <Upload className="h-3 w-3" />
+            </Button>
+            {section.styles.backgroundImage && (
+              <Button type="button" variant="ghost" size="sm" className="h-6 w-6 p-0"
+                onClick={() => onUpdateStyle("backgroundImage", "")}>
+                <X className="h-3 w-3" />
+              </Button>
+            )}
           </div>
         </div>
       </div>

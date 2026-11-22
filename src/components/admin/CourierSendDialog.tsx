@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/integrations/cloudflare/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -37,7 +37,7 @@ const CourierSendDialog = ({ open, onOpenChange, order }: CourierSendDialogProps
 
     setSending(courier);
     try {
-      const { data, error } = await supabase.functions.invoke("send-to-courier", {
+      const { data, error } = await api.functions.invoke("send-to-courier", {
         body: {
           orderId: order.id,
           courier,

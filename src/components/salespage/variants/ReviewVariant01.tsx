@@ -1,3 +1,5 @@
+import { salesPlainText } from '@/lib/salesRichText';
+import { renderSalesText } from '@/components/salespage/SalesRichText';
 import { motion } from "framer-motion";
 import { SalesPage } from "@/types/salesPage";
 import { Star } from "lucide-react";
@@ -25,7 +27,7 @@ const ReviewVariant01 = ({ page, colors, isLightTheme }: ReviewVariantProps) => 
         style={{ backgroundColor: colors.primary }}
       />
 
-      <div className="relative max-w-lg mx-auto">
+      <div className="relative max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -33,16 +35,16 @@ const ReviewVariant01 = ({ page, colors, isLightTheme }: ReviewVariantProps) => 
           className="text-center mb-5"
         >
           <h2 className="text-xl font-bold mb-1" style={{ color: isLightTheme ? colors.text : '#fff' }}>
-            {page.reviews_headline}
+            {renderSalesText(page.reviews_headline)}
           </h2>
           <p className="text-sm mb-2" style={{ color: isLightTheme ? colors.text : '#fff', opacity: 0.6 }}>
-            {page.reviews_subheadline}
+            {renderSalesText(page.reviews_subheadline)}
           </p>
 
           <div className="flex items-center justify-center gap-0.5">
-            {[...Array(5)].map((_, i) => (
+            {renderSalesText([...Array(5)].map((_, i) => (
               <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-            ))}
+            )))}
             <span className="ml-1.5 text-xs" style={{ color: isLightTheme ? colors.text : '#fff', opacity: 0.6 }}>
               ৫.০ (১০০+ রিভিউ)
             </span>
@@ -50,7 +52,7 @@ const ReviewVariant01 = ({ page, colors, isLightTheme }: ReviewVariantProps) => 
         </motion.div>
 
         {/* Review Video */}
-        {reviewVideoUrl && (
+        {renderSalesText(reviewVideoUrl && (
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
             whileInView={{ opacity: 1, scale: 1 }}
@@ -58,9 +60,9 @@ const ReviewVariant01 = ({ page, colors, isLightTheme }: ReviewVariantProps) => 
             className="mb-4"
           >
             <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${isLightTheme ? '#eee' : 'rgba(255,255,255,0.1)'}` }}>
-              {reviewVideoUrl.match(/(?:youtu\.be\/|youtube\.com)/) ? (
+              {renderSalesText(reviewVideoUrl.match(/(?:youtu\.be\/|youtube\.com)/) ? (
                 <div className="aspect-video">
-                  <iframe
+                  <iframe loading="lazy"
                     src={`https://www.youtube.com/embed/${reviewVideoUrl.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/watch\?.+&v=))([^"&?\/\s]{11})/)?.[1]}?rel=0`}
                     title="Customer Review Video"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -72,14 +74,14 @@ const ReviewVariant01 = ({ page, colors, isLightTheme }: ReviewVariantProps) => 
                 <div className="aspect-video">
                   <video src={reviewVideoUrl} controls className="w-full h-full object-cover" />
                 </div>
-              )}
+              ))}
             </div>
           </motion.div>
-        )}
+        ))}
 
-        {images.length > 0 && (
+        {renderSalesText(images.length > 0 && (
           <div className="grid grid-cols-2 gap-2">
-            {images.map((img, i) => (
+            {renderSalesText(images.map((img, i) => (
               <motion.div
                 key={i}
                 initial={{ opacity: 0, scale: 0.95 }}
@@ -90,13 +92,13 @@ const ReviewVariant01 = ({ page, colors, isLightTheme }: ReviewVariantProps) => 
               >
                 <img
                   src={img}
-                  alt={`Customer review ${i + 1}`}
+                  alt={salesPlainText(`Customer review ${i + 1}`)}
                   className="w-full h-auto object-cover"
                 />
               </motion.div>
-            ))}
+            )))}
           </div>
-        )}
+        ))}
       </div>
     </section>
   );

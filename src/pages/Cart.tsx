@@ -5,16 +5,14 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Separator } from "@/components/ui/separator";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import { useCart } from "@/contexts/CartContext";
+import { useCart, cartItemPrice, cartItemVariationLabel, cartItemKey } from "@/contexts/CartContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 const Cart = () => {
   const { cartItems, cartTotal, updateQuantity, removeFromCart, clearCart } = useCart();
   const { t, language } = useLanguage();
 
-  const hasAllFreeShipping = cartItems.every(item =>
-    item.variation ? item.variation.free_shipping === true : item.product.free_shipping === true
-  );
+  const hasAllFreeShipping = cartItems.every(item => item.product.free_shipping === true);
 
   if (cartItems.length === 0) {
     return (
@@ -45,10 +43,9 @@ const Cart = () => {
           <div className="grid lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-4">
               {cartItems.map((item) => {
-                const itemKey = item.variation 
-                  ? `${item.product.id}-${item.variation.id}` 
-                  : item.product.id;
-                const itemPrice = item.variation?.price ?? item.product.price;
+                const itemKey = cartItemKey(item);
+                const itemPrice = cartItemPrice(item);
+                const variationLabel = cartItemVariationLabel(item);
                 const displayName = language === 'en' ? (item.product.name || item.product.name_bn) : item.product.name_bn;
                 
                 return (
@@ -74,8 +71,8 @@ const Cart = () => {
                           >
                             {displayName}
                           </Link>
-                          {item.variation && (
-                            <p className="text-xs text-muted-foreground">{item.variation.variation_name}</p>
+                          {variationLabel && (
+                            <p className="text-xs text-muted-foreground">{variationLabel}</p>
                           )}
                           <p className="text-lg font-bold text-primary mt-1">
                             ৳{itemPrice.toLocaleString()}
@@ -87,7 +84,7 @@ const Cart = () => {
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8"
-                                onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.variation?.id)}
+                                onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.variation?.id, itemKey)}
                               >
                                 <Minus className="h-3 w-3" />
                               </Button>
@@ -96,7 +93,7 @@ const Cart = () => {
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8"
-                                onClick={() => updateQuantity(item.product.id, item.quantity + 1, item.variation?.id)}
+                                onClick={() => updateQuantity(item.product.id, item.quantity + 1, item.variation?.id, itemKey)}
                               >
                                 <Plus className="h-3 w-3" />
                               </Button>
@@ -105,7 +102,7 @@ const Cart = () => {
                               variant="ghost"
                               size="icon"
                               className="text-destructive hover:text-destructive"
-                              onClick={() => removeFromCart(item.product.id, item.variation?.id)}
+                              onClick={() => removeFromCart(item.product.id, item.variation?.id, itemKey)}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>

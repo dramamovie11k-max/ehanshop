@@ -17,7 +17,7 @@ const defaultStyles: Record<string, Record<string, string>> = {
     backgroundColor: "#f4f4f4",
     maxWidth: "650",
     sectionGap: "5",
-    fontFamily: "'Hind Siliguri', sans-serif",
+    fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
   },
   hero: {
     backgroundColor: "#f0fdf4",
@@ -190,12 +190,12 @@ const Template15StyleEditor = ({ templateStyles, onChange }: Template15StyleEdit
   return (
     <div className="space-y-2 pt-2 border-t mt-2">
       <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-        🎨 Template 15 স্টাইল কাস্টমাইজ
+        🎨 কাস্টম টেমপ্লেট স্টাইল
       </Label>
 
       {/* Global */}
-      <SectionGroup id="global" label="🌐 গ্লোবাল সেটিংস">
-        <ColorField section="global" field="backgroundColor" label="পেজ ব্যাকগ্রাউন্ড" />
+      {SectionGroup({ id: "global", label: "🌐 গ্লোবাল সেটিংস", children: (<>
+        {ColorField({ section: "global", field: "backgroundColor", label: "পেজ ব্যাকগ্রাউন্ড", })}
         <div>
           <Label className="text-[10px] text-muted-foreground">ম্যাক্স-উইথ</Label>
           <Select value={getVal("global", "maxWidth")} onValueChange={(v) => setVal("global", "maxWidth", v)}>
@@ -233,7 +233,7 @@ const Template15StyleEditor = ({ templateStyles, onChange }: Template15StyleEdit
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="'Hind Siliguri', sans-serif">Hind Siliguri</SelectItem>
+              <SelectItem value="'Baloo Da Digits', 'Hind Siliguri', sans-serif">Hind Siliguri</SelectItem>
               <SelectItem value="'Noto Sans Bengali', sans-serif">Noto Sans Bengali</SelectItem>
               <SelectItem value="'Tiro Bangla', serif">Tiro Bangla (সেরিফ)</SelectItem>
               <SelectItem value="'Inter', sans-serif">Inter</SelectItem>
@@ -241,122 +241,20 @@ const Template15StyleEditor = ({ templateStyles, onChange }: Template15StyleEdit
             </SelectContent>
           </Select>
         </div>
-      </SectionGroup>
-
-      {/* Hero */}
-      <SectionGroup id="hero" label="🖼️ হিরো সেকশন">
-        <div className="grid grid-cols-2 gap-2">
-          <ColorField section="hero" field="backgroundColor" label="ব্যাকগ্রাউন্ড" />
-          <ColorField section="hero" field="headerBgColor" label="হেডার ব্যাকগ্রাউন্ড" />
-          <ColorField section="hero" field="headerTextColor" label="হেডার টেক্সট" />
-          <ColorField section="hero" field="subheadlineColor" label="সাব-হেডলাইন" />
-          <ColorField section="hero" field="offerTextColor" label="অফার টেক্সট" />
-          <ColorField section="hero" field="videoBorderColor" label="ভিডিও বর্ডার" />
-        </div>
-        <RadiusSlider section="hero" field="borderRadius" label="বর্ডার রেডিয়াস" />
-        <div className="grid grid-cols-2 gap-2">
-          <ColorField section="hero" field="ctaBgColor" label="CTA ব্যাকগ্রাউন্ড" />
-          <ColorField section="hero" field="ctaTextColor" label="CTA টেক্সট" />
-        </div>
-        <RadiusSlider section="hero" field="ctaBorderRadius" label="CTA বর্ডার রেডিয়াস" />
-        <FontSizeSlider section="hero" field="ctaFontSize" label="CTA ফন্ট সাইজ" />
-      </SectionGroup>
-
-      {/* Features */}
-      <SectionGroup id="features" label="✅ ফিচার সেকশন">
-        <div className="grid grid-cols-2 gap-2">
-          <ColorField section="features" field="backgroundColor" label="ব্যাকগ্রাউন্ড" />
-          <ColorField section="features" field="headingColor" label="হেডিং" />
-          <ColorField section="features" field="itemBgColor" label="আইটেম ব্যাকগ্রাউন্ড" />
-          <ColorField section="features" field="itemTextColor" label="আইটেম টেক্সট" />
-          <ColorField section="features" field="checkBgColor" label="চেক আইকন BG" />
-          <ColorField section="features" field="checkIconColor" label="চেক আইকন" />
-        </div>
-        <RadiusSlider section="features" field="borderRadius" label="বর্ডার রেডিয়াস" />
-        <div className="grid grid-cols-2 gap-2">
-          <ColorField section="features" field="ctaBgColor" label="CTA ব্যাকগ্রাউন্ড" />
-          <ColorField section="features" field="ctaTextColor" label="CTA টেক্সট" />
-        </div>
-        <RadiusSlider section="features" field="ctaBorderRadius" label="CTA বর্ডার রেডিয়াস" />
-      </SectionGroup>
-
-      {/* Reviews */}
-      <SectionGroup id="reviews" label="⭐ রিভিউ সেকশন">
-        <div className="grid grid-cols-2 gap-2">
-          <ColorField section="reviews" field="backgroundColor" label="ব্যাকগ্রাউন্ড" />
-          <ColorField section="reviews" field="headingColor" label="হেডিং" />
-          <ColorField section="reviews" field="imageBorderColor" label="ইমেজ বর্ডার" />
-        </div>
-        <RadiusSlider section="reviews" field="borderRadius" label="বর্ডার রেডিয়াস" />
-        <div>
-          <div className="flex justify-between items-center">
-            <Label className="text-[10px] text-muted-foreground">ইমেজ বর্ডার উইথ</Label>
-            <span className="text-[10px] text-muted-foreground">{getVal("reviews", "imageBorderWidth")}px</span>
-          </div>
-          <Slider
-            value={[parseInt(getVal("reviews", "imageBorderWidth")) || 3]}
-            onValueChange={([v]) => setVal("reviews", "imageBorderWidth", String(v))}
-            max={8}
-            min={0}
-            step={1}
-            className="mt-1"
-          />
-        </div>
-      </SectionGroup>
-
-      {/* Gallery */}
-      <SectionGroup id="gallery" label="🖼 গ্যালারি সেকশন">
-        <RadiusSlider section="gallery" field="borderRadius" label="বর্ডার রেডিয়াস" />
-      </SectionGroup>
-
-      {/* Video */}
-      <SectionGroup id="video" label="▶️ ভিডিও সেকশন">
-        <div className="grid grid-cols-2 gap-2">
-          <ColorField section="video" field="backgroundColor" label="ব্যাকগ্রাউন্ড" />
-          <ColorField section="video" field="headingColor" label="হেডিং" />
-          <ColorField section="video" field="videoBorderColor" label="ভিডিও বর্ডার" />
-        </div>
-        <RadiusSlider section="video" field="borderRadius" label="বর্ডার রেডিয়াস" />
-      </SectionGroup>
-
-      {/* Countdown */}
-      <SectionGroup id="countdown" label="⏱️ কাউন্টডাউন সেকশন">
-        <div className="grid grid-cols-2 gap-2">
-          <ColorField section="countdown" field="backgroundColor" label="ব্যাকগ্রাউন্ড" />
-          <ColorField section="countdown" field="numberBgColor" label="নাম্বার BG" />
-          <ColorField section="countdown" field="numberColor" label="নাম্বার কালার" />
-          <ColorField section="countdown" field="labelColor" label="লেবেল কালার" />
-        </div>
-        <RadiusSlider section="countdown" field="borderRadius" label="বর্ডার রেডিয়াস" />
-      </SectionGroup>
-
-      {/* Extra Sections */}
-      <SectionGroup id="extra" label="📦 এক্সট্রা সেকশন (১-৩)">
-        <div className="grid grid-cols-2 gap-2">
-          <ColorField section="extra" field="backgroundColor" label="ব্যাকগ্রাউন্ড" />
-          <ColorField section="extra" field="headingColor" label="হেডিং" />
-          <ColorField section="extra" field="itemBgColor" label="আইটেম BG" />
-          <ColorField section="extra" field="itemTextColor" label="আইটেম টেক্সট" />
-          <ColorField section="extra" field="checkBgColor" label="চেক আইকন BG" />
-          <ColorField section="extra" field="ctaBgColor" label="CTA ব্যাকগ্রাউন্ড" />
-        </div>
-        <RadiusSlider section="extra" field="borderRadius" label="বর্ডার রেডিয়াস" />
-        <RadiusSlider section="extra" field="ctaBorderRadius" label="CTA বর্ডার রেডিয়াস" />
-      </SectionGroup>
+      </>) })}
 
       {/* Contact & Checkout */}
-      <SectionGroup id="contact-checkout" label="📞 কন্টাক্ট ও চেকআউট">
-        <RadiusSlider section="contact" field="borderRadius" label="কন্টাক্ট বর্ডার রেডিয়াস" />
-        <RadiusSlider section="checkout" field="borderRadius" label="চেকআউট বর্ডার রেডিয়াস" />
-      </SectionGroup>
+      {SectionGroup({ id: "contact-checkout", label: "🛒 চেকআউট", children: (<>
+        {RadiusSlider({ section: "checkout", field: "borderRadius", label: "চেকআউট বর্ডার রেডিয়াস", })}
+      </>) })}
 
       {/* Footer */}
-      <SectionGroup id="footer" label="📄 ফুটার">
+      {SectionGroup({ id: "footer", label: "📄 ফুটার", children: (<>
         <div className="grid grid-cols-2 gap-2">
-          <ColorField section="footer" field="backgroundColor" label="ব্যাকগ্রাউন্ড" />
-          <ColorField section="footer" field="textColor" label="টেক্সট কালার" />
+          {ColorField({ section: "footer", field: "backgroundColor", label: "ব্যাকগ্রাউন্ড", })}
+          {ColorField({ section: "footer", field: "textColor", label: "টেক্সট কালার", })}
         </div>
-      </SectionGroup>
+      </>) })}
     </div>
   );
 };

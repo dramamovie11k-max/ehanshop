@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { salesPageTemplates, SalesPageTemplate } from "@/lib/salesPageTemplates";
+import { selectableSalesPageTemplates, SalesPageTemplate } from "@/lib/salesPageTemplates";
 import { ScrollArea } from "@/components/ui/scroll-area";
  import { Badge } from "@/components/ui/badge";
 
@@ -52,12 +52,12 @@ const TemplateGallery = ({
    };
  
    // Get unique categories
-   const categories = ['all', ...new Set(salesPageTemplates.map(t => t.category))];
+   const categories = ['all', ...new Set(selectableSalesPageTemplates.map(t => t.category))];
  
    // Filter templates
    const filteredTemplates = categoryFilter === 'all' 
-     ? salesPageTemplates 
-     : salesPageTemplates.filter(t => t.category === categoryFilter);
+     ? selectableSalesPageTemplates 
+     : selectableSalesPageTemplates.filter(t => t.category === categoryFilter);
  
    // Sort: New templates first
    const sortedTemplates = [...filteredTemplates].sort((a, b) => {

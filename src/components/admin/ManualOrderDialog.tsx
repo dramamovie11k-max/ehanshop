@@ -18,8 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { apiFetch } from "@/lib/apiClient";
-import { createOrder } from "@/lib/dataApi";
+import { api } from "@/integrations/cloudflare/client";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
@@ -55,15 +54,25 @@ const ManualOrderDialog = ({ open, onOpenChange }: ManualOrderDialogProps) => {
 
   useEffect(() => {
     const fetchShippingSettings = async () => {
-      const settings = await apiFetch<any>("/settings").catch(() => null);
-      const list = Array.isArray(settings) ? settings : settings?.data;
-      if (Array.isArray(list)) {
-        const next = { inside: 60, outside: 120 };
-        list.forEach((item: any) => {
-          if (item.setting_key === "default_shipping_inside_dhaka") next.inside = Number(item.setting_value) || 60;
-          if (item.setting_key === "default_shipping_outside_dhaka") next.outside = Number(item.setting_value) || 120;
+      const { data } = await api
+        .from("site_settings")
+        .select("setting_key, setting_value")
+        .in("setting_key", [
+          "default_shipping_inside_dhaka",
+          "default_shipping_outside_dhaka",
+        ]);
+
+      if (data) {
+        const settings = { inside: 60, outside: 120 };
+        data.forEach((item: any) => {
+          if (item.setting_key === "default_shipping_inside_dhaka") {
+            settings.inside = Number(item.setting_value) || 60;
+          }
+          if (item.setting_key === "default_shipping_outside_dhaka") {
+            settings.outside = Number(item.setting_value) || 120;
+          }
         });
-        setDefaultShippingSettings(next);
+        setDefaultShippingSettings(settings);
       }
     };
     fetchShippingSettings();
@@ -78,22 +87,23 @@ const ManualOrderDialog = ({ open, onOpenChange }: ManualOrderDialogProps) => {
   });
 
   // Fetch products for selection
-  const { data: productsData } = useQuery({
+  const { data: products = [] } = useQuery({
     queryKey: ["allProducts"],
-    queryFn: () => apiFetch<Product[]>("/products?limit=200"),
-  });
+    queryFn: async () => {
+      const { data, error } = await api
+        .from("products")
+        .select("*")
+        .order("name_bn");
 
-  // API response may be wrapped or empty; this dialog stays mounted even when closed.
-  const products: Product[] = Array.isArray(productsData)
-    ? productsData
-    : Array.isArray((productsData as any)?.data)
-      ? (productsData as any).data
-      : [];
+      if (error) throw error;
+      return data as Product[];
+    },
+  });
 
   const filteredProducts = products.filter(
     (p) =>
-      String(p?.name ?? "").toLowerCase().includes(productSearch.toLowerCase()) ||
-      String(p?.name_bn ?? "").includes(productSearch)
+      p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+      p.name_bn.includes(productSearch)
   );
 
   const addProduct = (product: Product) => {
@@ -172,24 +182,53 @@ const ManualOrderDialog = ({ open, onOpenChange }: ManualOrderDialogProps) => {
         orderNotes = orderNotes ? `${orderNotes}\n${discountInfo}` : discountInfo;
       }
 
-      // Create order — সার্ভার-সাইড ভ্যালিডেশনসহ Cloudflare রুটে
-      await createOrder({
-        customer_name: customerInfo.name,
-        customer_phone: customerInfo.phone,
-        customer_address: customerInfo.address,
-        customer_city: customerInfo.city,
-        notes: orderNotes || undefined,
-        shipping_cost: shippingCost,
-        payment_method: "cod",
-        order_source: "manual",
-        items: orderItems.map((item) => ({
-          product_id: item.product.id,
-          product_name: item.product.name_bn,
-          product_price: item.product.price,
-          quantity: item.quantity,
-        })),
-      });
+      // Create order
+      const { data: order, error: orderError } = await api
+        .from("orders")
+        .insert({
+          customer_name: customerInfo.name,
+          customer_phone: customerInfo.phone,
+          customer_address: customerInfo.address,
+          customer_city: customerInfo.city,
+          notes: orderNotes || null,
+          total_amount: total,
+          shipping_cost: shippingCost,
+          payment_method: "cod",
+          status: "pending",
+          user_id: null,
+          order_source: "manual",
+        })
+        .select()
+        .single();
 
+      if (orderError) throw orderError;
+
+      // Create order items
+      const orderItemsData = orderItems.map((item) => ({
+        order_id: order.id,
+        product_id: item.product.id,
+        product_name: item.product.name_bn,
+        product_price: item.product.price,
+        quantity: item.quantity,
+      }));
+
+      const { error: itemsError } = await api
+        .from("order_items")
+        .insert(orderItemsData);
+
+      if (itemsError) throw itemsError;
+
+      // Log the order creation
+      const logNotes = discountAmount > 0 
+        ? `ফোনে অর্ডার নেওয়া হয়েছে (ডিস্কাউন্ট: ৳${discountAmount})`
+        : "ফোনে অর্ডার নেওয়া হয়েছে";
+        
+      await api.from("order_logs").insert({
+        order_id: order.id,
+        action: "manual_order_created",
+        notes: logNotes,
+        performed_by: user?.id,
+      });
 
       toast.success("অর্ডার তৈরি হয়েছে!");
       queryClient.invalidateQueries({ queryKey: ["adminOrders"] });

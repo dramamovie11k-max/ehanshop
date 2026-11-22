@@ -5,8 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import AdminLayout from "@/components/admin/AdminLayout";
 import AdminGuard from "@/components/admin/AdminGuard";
-import { supabase } from "@/integrations/supabase/client";
-import { saveSiteSettings } from "@/lib/dataApi";
+import { api } from "@/integrations/cloudflare/client";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -20,7 +19,7 @@ const AdminCustomCode = () => {
   const { data: settings, isLoading } = useQuery({
     queryKey: ["siteSettings"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("site_settings").select("*");
+      const { data, error } = await api.from("site_settings").select("*");
       if (error) throw error;
       return data;
     },
@@ -34,16 +33,33 @@ const AdminCustomCode = () => {
     }
   }, [settings]);
 
+  const upsertSetting = async (key: string, value: string) => {
+    const { data: existing } = await api
+      .from("site_settings")
+      .select("id")
+      .eq("setting_key", key)
+      .single();
+
+    if (existing) {
+      const { error } = await api
+        .from("site_settings")
+        .update({ setting_value: value })
+        .eq("setting_key", key);
+      if (error) throw error;
+    } else {
+      const { error } = await api
+        .from("site_settings")
+        .insert({ setting_key: key, setting_value: value });
+      if (error) throw error;
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      // এক রিকোয়েস্টে ৩টি কোড সেভ
-      await saveSiteSettings({
-        header_code: headerCode,
-        body_code: bodyCode,
-        footer_code: footerCode,
-      });
+      await upsertSetting("header_code", headerCode);
+      await upsertSetting("body_code", bodyCode);
+      await upsertSetting("footer_code", footerCode);
       toast.success("কোড সেভ হয়েছে");
       queryClient.invalidateQueries({ queryKey: ["siteSettings"] });
     } catch (error: any) {

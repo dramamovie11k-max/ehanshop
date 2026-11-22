@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { useSalesPages, useDeleteSalesPage } from "@/hooks/useSalesPages";
 import { Button } from "@/components/ui/button";
@@ -14,14 +15,12 @@ import {
 import { Plus, Pencil, Trash2, ExternalLink, Copy, Eye, Palette } from "lucide-react";
 import { SalesPage } from "@/types/salesPage";
 import SimplifiedSalesPageEditor from "@/components/admin/SimplifiedSalesPageEditor";
-import AdminGuard from "@/components/admin/AdminGuard";
 import { toast } from "sonner";
 import { getTemplate } from "@/lib/salesPageTemplates";
 
 const AdminSalesPages = () => {
   const { data: salesPages, isLoading } = useSalesPages();
   const deleteMutation = useDeleteSalesPage();
-  
   const [editorOpen, setEditorOpen] = useState(false);
   const [selectedPage, setSelectedPage] = useState<SalesPage | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -45,7 +44,7 @@ const AdminSalesPages = () => {
     <AdminLayout title="Sales Pages">
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <div><p className="text-muted-foreground">Manage your sales/landing pages</p></div>
+          <div><p className="text-muted-foreground">Manage your sales/landing pages</p><Link to="/admin/settings" className="text-sm text-primary underline">হোমপেজের মোড বদলাতে সাইট সেটিংসে যান</Link></div>
           <Button onClick={handleCreate}><Plus className="h-4 w-4 mr-2" />New Sales Page</Button>
         </div>
 

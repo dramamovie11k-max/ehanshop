@@ -40,15 +40,12 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import AdminGuard from "@/components/admin/AdminGuard";
 import ManualOrderDialog from "@/components/admin/ManualOrderDialog";
 import CourierSendDialog from "@/components/admin/CourierSendDialog";
-import BulkCourierSendDialog from "@/components/admin/BulkCourierSendDialog";
 import CourierRatioChecker from "@/components/admin/CourierRatioChecker";
 import OrderEditDialog from "@/components/admin/OrderEditDialog";
 import InvoicePrint from "@/components/admin/InvoicePrint";
 import { getSourceLabel, getSourceColor } from "@/hooks/useOrderSource";
 import { useAdminOrders } from "@/hooks/useAdmin";
-import { supabase } from "@/integrations/supabase/client";
-import { apiFetch } from "@/lib/apiClient";
-
+import { api } from "@/integrations/cloudflare/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
@@ -66,8 +63,7 @@ const statusMap: Record<string, { label: string; color: string }> = {
 };
 
 const AdminOrders = () => {
-  const { data: ordersData, isLoading } = useAdminOrders();
-  const orders: any[] = Array.isArray(ordersData) ? ordersData : [];
+  const { data: orders = [], isLoading } = useAdminOrders();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { getSetting } = useSiteSettings();
@@ -82,7 +78,6 @@ const AdminOrders = () => {
   const [selectedOrderForCourier, setSelectedOrderForCourier] = useState<any>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
-  const [bulkCourierOpen, setBulkCourierOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [orderToEdit, setOrderToEdit] = useState<any>(null);
@@ -118,12 +113,11 @@ const AdminOrders = () => {
   };
 
   const filteredOrders = orders.filter((order: any) => {
-    const q = searchQuery.toLowerCase();
     const matchesSearch =
-      String(order?.customer_name ?? "").toLowerCase().includes(q) ||
-      String(order?.customer_phone ?? "").includes(searchQuery) ||
-      String(order?.id ?? "").toLowerCase().includes(q);
-    const matchesStatus = statusFilter === "all" || order?.status === statusFilter;
+      order.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.customer_phone.includes(searchQuery) ||
+      order.id.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === "all" || order.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -146,9 +140,12 @@ const AdminOrders = () => {
   const handleBulkDelete = async () => {
     setIsDeleting(true);
     try {
-      for (const id of selectedIds) {
-        await apiFetch(`/orders/${encodeURIComponent(id)}`, { method: "DELETE" });
-      }
+      const { error } = await api
+        .from("orders")
+        .delete()
+        .in("id", selectedIds);
+
+      if (error) throw error;
 
       toast.success(`${selectedIds.length} orders deleted`);
       setSelectedIds([]);
@@ -165,40 +162,55 @@ const AdminOrders = () => {
     setSelectedOrder(order);
     setLoadingItems(true);
 
-    try {
-      const data = await apiFetch<any>(`/orders/${encodeURIComponent(order.id)}`);
-      const items = Array.isArray(data?.items) ? data.items : [];
-      setOrderItems(items);
-    } catch {
+    const { data, error } = await api
+      .from("order_items")
+      .select("*, products(image_url), product_variations(image_url)")
+      .eq("order_id", order.id);
+
+    if (error) {
       toast.error("Failed to load order items");
-      setOrderItems([]);
+    } else {
+      setOrderItems(data);
     }
     setLoadingItems(false);
   };
 
   const handleStatusChange = async (orderId: string, newStatus: string, oldStatus: string) => {
-    // স্ট্যাটাস পরিবর্তন, লগ ও স্টক সমন্বয় — সবই সার্ভার-সাইড রুটে
-    try {
-      await apiFetch(`/orders/${encodeURIComponent(orderId)}`, {
-        method: "PUT",
-        body: JSON.stringify({ status: newStatus }),
-      });
-    } catch {
+    const { error } = await api
+      .from("orders")
+      .update({ status: newStatus })
+      .eq("id", orderId);
+
+    if (error) {
       toast.error("Failed to update status");
       return;
     }
 
+    // Log the change
+    await api.from("order_logs").insert({
+      order_id: orderId,
+      action: "status_change",
+      old_status: oldStatus,
+      new_status: newStatus,
+      performed_by: user?.id,
+    });
 
     // Cancel tracking
     if (newStatus === "cancelled" && getSetting("cancel_tracking_enabled", "true") === "true") {
       try {
-        const orderData = await apiFetch<any>(`/orders/${encodeURIComponent(orderId)}`);
+        const { data: orderData } = await api
+          .from("orders")
+          .select("purchase_event_id, tracking_data, customer_name, customer_phone, customer_city, customer_ip")
+          .eq("id", orderId)
+          .single();
 
         if (orderData?.purchase_event_id) {
-          const items: any[] = Array.isArray(orderData.items) ? orderData.items : [];
+          const { data: items } = await api
+            .from("order_items")
+            .select("product_id, product_name, product_price, quantity")
+            .eq("order_id", orderId);
 
-          if (items.length > 0) {
-
+          if (items && items.length > 0) {
             const td: any = orderData.tracking_data || {};
             trackOrderCancelled(
               orderId,
@@ -244,7 +256,7 @@ const AdminOrders = () => {
   };
 
   const handleBlockCustomer = async (phone: string) => {
-    const { error } = await supabase.from("blocked_users").insert({
+    const { error } = await api.from("blocked_users").insert({
       phone,
       reason: "Admin blocked from order management",
       block_type: "permanent",
@@ -252,7 +264,7 @@ const AdminOrders = () => {
     });
 
     if (error) {
-      if (error.code === "23505") {
+      if (error.code === "CONFLICT") {
         toast.error("This number is already blocked");
       } else {
         toast.error("Failed to block");
@@ -300,24 +312,14 @@ const AdminOrders = () => {
               Export Excel
             </Button>
             {selectedIds.length > 0 && (
-              <>
-                <Button
-                  onClick={() => setBulkCourierOpen(true)}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  <Truck className="h-4 w-4 mr-2" />
-                  Send to Courier ({selectedIds.length})
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => setBulkDeleteOpen(true)}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete ({selectedIds.length})
-                </Button>
-              </>
+              <Button
+                variant="destructive"
+                onClick={() => setBulkDeleteOpen(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete ({selectedIds.length})
+              </Button>
             )}
-
           </div>
 
           {/* Manual Order Dialog */}
@@ -674,15 +676,6 @@ const AdminOrders = () => {
             onOpenChange={setCourierDialogOpen}
             order={selectedOrderForCourier}
           />
-
-          {/* Bulk Courier Send Dialog */}
-          <BulkCourierSendDialog
-            open={bulkCourierOpen}
-            onOpenChange={setBulkCourierOpen}
-            orders={orders.filter((o: any) => selectedIds.includes(o.id))}
-          />
-
-
 
           {/* Order Edit Dialog */}
           <OrderEditDialog

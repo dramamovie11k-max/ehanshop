@@ -1,36 +1,34 @@
+import { lazy, Suspense } from "react";
  import { useParams, useNavigate } from "react-router-dom";
  import { useSalesPage } from "@/hooks/useSalesPages";
  import { Skeleton } from "@/components/ui/skeleton";
  import { Button } from "@/components/ui/button";
+import { pageWithAvailableDesigns } from "@/lib/salesSectionDesignAvailability";
+import { withCustomSectionOrder } from '@/lib/salesCustomSections';
  
  // Template Components - Self-contained full page templates
- import Template01Organic from "@/components/salespage/templates/Template01Organic";
- import Template02Clothing from "@/components/salespage/templates/Template02Clothing";
-import Template03Fashion from "@/components/salespage/templates/Template03Fashion";
-import Template04Gadget from "@/components/salespage/templates/Template04Gadget";
-import Template05Countdown from "@/components/salespage/templates/Template05Countdown";
-import Template06Panjabi from "@/components/salespage/templates/Template06Panjabi";
-import Template07Gadget from "@/components/salespage/templates/Template07Gadget";
-import Template08Minimal from "@/components/salespage/templates/Template08Minimal";
-import Template09SuperFood from "@/components/salespage/templates/Template09SuperFood";
-import Template10SuperFood2 from "@/components/salespage/templates/Template10SuperFood2";
-import Template11SuperFood3 from "@/components/salespage/templates/Template11SuperFood3";
-import Template12Gadget3 from "@/components/salespage/templates/Template12Gadget3";
-import Template13NaturalCard from "@/components/salespage/templates/Template13NaturalCard";
-import Template14VideoOrganic from "@/components/salespage/templates/Template14VideoOrganic";
-import Template15Universal from "@/components/salespage/templates/Template15Universal";
+const Template01Organic = lazy(() => import("@/components/salespage/templates/Template01Organic"));
+const Template02Clothing = lazy(() => import("@/components/salespage/templates/Template02Clothing"));
+const Template03Fashion = lazy(() => import("@/components/salespage/templates/Template03Fashion"));
+const Template04Gadget = lazy(() => import("@/components/salespage/templates/Template04Gadget"));
+const Template05Countdown = lazy(() => import("@/components/salespage/templates/Template05Countdown"));
+const Template06Panjabi = lazy(() => import("@/components/salespage/templates/Template06Panjabi"));
+const Template07Gadget = lazy(() => import("@/components/salespage/templates/Template07Gadget"));
+const Template08Minimal = lazy(() => import("@/components/salespage/templates/Template08Minimal"));
+const Template09SuperFood = lazy(() => import("@/components/salespage/templates/Template09SuperFood"));
+const Template10SuperFood2 = lazy(() => import("@/components/salespage/templates/Template10SuperFood2"));
+const Template11SuperFood3 = lazy(() => import("@/components/salespage/templates/Template11SuperFood3"));
+const Template12Gadget3 = lazy(() => import("@/components/salespage/templates/Template12Gadget3"));
+const Template13NaturalCard = lazy(() => import("@/components/salespage/templates/Template13NaturalCard"));
+const Template14VideoOrganic = lazy(() => import("@/components/salespage/templates/Template14VideoOrganic"));
+import SalesPageEngagementTracker from "@/components/salespage/SalesPageEngagementTracker";
+const Template15Universal = lazy(() => import("@/components/salespage/templates/Template15Universal"));
 
-// Legacy Section Components (for backward compatibility)
- import HeroSection from "@/components/salespage/HeroSection";
- import VideoSection from "@/components/salespage/VideoSection";
- import GallerySection from "@/components/salespage/GallerySection";
- import FeaturesSection from "@/components/salespage/FeaturesSection";
- import ReviewsSection from "@/components/salespage/ReviewsSection";
- import ContactSection from "@/components/salespage/ContactSection";
- import CheckoutSection from "@/components/salespage/CheckoutSection";
+const LegacySalesPageRenderer = lazy(() => import("@/components/salespage/LegacySalesPageRenderer"));
 
-const SalesPage = () => {
-  const { slug } = useParams<{ slug: string }>();
+const SalesPage = ({ slugOverride }: { slugOverride?: string } = {}) => {
+  const params = useParams<{ slug: string }>();
+  const slug = slugOverride || params.slug;
   const navigate = useNavigate();
   const { data: page, isLoading, error } = useSalesPage(slug || "");
 
@@ -59,9 +57,13 @@ const SalesPage = () => {
     );
   }
 
-   // Render template based on template_id
-   // New template system: Each template is a self-contained component
-   const renderTemplate = () => {
+   return <SalesPageContent page={page} />;
+ };
+
+type LoadedSalesPage = NonNullable<ReturnType<typeof useSalesPage>['data']>;
+
+export const SalesPageContent = ({ page: rawPage }: { page: LoadedSalesPage }) => {
+   const renderTemplate = (page: LoadedSalesPage) => {
      switch (page.template_id) {
        case 'template-01-organic':
        case 'nature-fresh': // Legacy support
@@ -115,58 +117,13 @@ const SalesPage = () => {
      }
    };
  
-   return renderTemplate();
+   return (
+     <>
+       <SalesPageEngagementTracker page={rawPage} />
+       <Suspense fallback={<div className="min-h-screen p-4" role="status" aria-label="পেজ লোড হচ্ছে"><Skeleton className="h-64 max-w-3xl mx-auto" /></div>}>{renderTemplate(withCustomSectionOrder(pageWithAvailableDesigns(rawPage)))}</Suspense>
+     </>
+   );
  };
  
- // Legacy renderer for backward compatibility with old templates
- const LegacySalesPageRenderer = ({ page }: { page: ReturnType<typeof useSalesPage>['data'] }) => {
-   if (!page) return null;
- 
-   const scrollToCheckout = () => {
-     document.getElementById("checkout")?.scrollIntoView({ behavior: "smooth" });
-   };
- 
-   return (
-     <div className="min-h-screen">
-       {/* Hero Section */}
-       {page.show_hero_section && (
-         <HeroSection page={page} onOrderClick={scrollToCheckout} />
-       )}
- 
-       {/* Video Section - After Hero */}
-       {page.show_video_section && page.video_url && (
-         <VideoSection page={page} />
-       )}
- 
-       {/* Gallery Section */}
-       {page.show_gallery_section && (
-         <GallerySection page={page} onOrderClick={scrollToCheckout} />
-       )}
- 
-       {/* Features Section */}
-       {page.show_features_section && <FeaturesSection page={page} />}
- 
-       {/* Reviews Section */}
-       {page.show_reviews_section && <ReviewsSection page={page} />}
- 
-       {/* Contact Section */}
-       {page.show_contact_section && <ContactSection page={page} />}
- 
-       {/* Checkout Section */}
-       {page.show_checkout_section && <CheckoutSection page={page} />}
- 
-       {/* Footer */}
-       <div
-         className="py-8 text-center text-sm"
-         style={{
-           background: `linear-gradient(180deg, #0f172a, ${page.background_color})`,
-           color: page.text_color,
-         }}
-       >
-         <p className="opacity-60">© {new Date().getFullYear()} - সকল অধিকার সংরক্ষিত</p>
-       </div>
-     </div>
-   );
-};
 
 export default SalesPage;

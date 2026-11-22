@@ -1,11 +1,14 @@
 import { useCallback, useRef, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/integrations/cloudflare/client";
 import {
   captureFbclid,
   getCookie as fbGetCookie,
   getOrCreateExternalId,
   getPersistedUser,
   persistUser,
+  normalizePhoneE164,
+  splitName,
+  ensureFbp,
 } from "@/lib/fbTracking";
 import { captureTtclid, getTtclid, getTtp } from "@/lib/ttTracking";
 
@@ -122,8 +125,11 @@ const buildCustomerParams = (customer?: CustomerData) => {
   };
 };
 
+// Shared across every hook instance so the same event never fires twice on a page
+const sharedFiredEvents = new Set<string>();
+
 export const usePixelTracking = () => {
-  const firedEvents = useRef<Set<string>>(new Set());
+  const firedEvents = useRef<Set<string>>(sharedFiredEvents);
 
   useEffect(() => {
     window.dataLayer = window.dataLayer || [];
@@ -155,22 +161,27 @@ export const usePixelTracking = () => {
     const userInput: any = data?._user || {};
     // Internal control flags (stripped before sending to Meta)
     const capiOnly: boolean = !!data?._capi_only;
+    const isCustom: boolean = !!data?._custom;
     const overrideFbp: string | undefined = data?._fbp;
     const overrideFbc: string | undefined = data?._fbc;
     const overrideUa: string | undefined = data?._client_user_agent;
     const overrideSourceUrl: string | undefined = data?._source_url;
     const overrideIp: string | undefined = data?._client_ip_address;
-    const { event_id, _user, _capi_only, _fbp, _fbc, _client_user_agent, _source_url, _client_ip_address, ...rest } =
+    const { event_id, _user, _capi_only, _custom, _fbp, _fbc, _client_user_agent, _source_url, _client_ip_address, ...rest } =
       data || {};
 
     // Merge with persisted user (prior checkouts/orders) for max EMQ
     const persisted = getPersistedUser();
     const externalId = getOrCreateExternalId();
+    const nameParts = splitName(
+      userInput.firstName || userInput.first_name || rest.customer_name || persisted.firstName,
+      userInput.lastName || userInput.last_name || persisted.lastName,
+    );
     const mergedUser = {
       email: userInput.email || persisted.email,
-      phone: userInput.phone || rest.customer_phone || persisted.phone,
-      firstName: userInput.firstName || userInput.first_name || persisted.firstName,
-      lastName: userInput.lastName || userInput.last_name || persisted.lastName,
+      phone: normalizePhoneE164(userInput.phone || rest.customer_phone || persisted.phone),
+      firstName: nameParts.firstName,
+      lastName: nameParts.lastName,
       city: userInput.city || rest.customer_city || persisted.city,
       state: userInput.state || persisted.state,
       postcode: userInput.postcode || userInput.zip || persisted.postcode,
@@ -236,9 +247,9 @@ export const usePixelTracking = () => {
     if (!capiOnly && typeof (window as any).fbq === "function") {
       try {
         (window as any).fbq(
-          "track",
+          isCustom ? "trackCustom" : "track",
           eventName,
-          customData,
+          isCustom ? { ...rest, ...customData } : customData,
           event_id ? { eventID: event_id } : undefined
         );
       } catch (e) {
@@ -247,7 +258,7 @@ export const usePixelTracking = () => {
     }
 
     // Server-side Conversions API (deduped by event_id)
-    supabase.functions
+    api.functions
       .invoke("fb-conversions-api", {
         body: {
           event_name: eventName,
@@ -267,10 +278,10 @@ export const usePixelTracking = () => {
             external_id: mergedUser.external_id,
             client_user_agent: overrideUa || navigator.userAgent,
             client_ip_address: overrideIp || undefined,
-            fbp: overrideFbp || fbGetCookie("_fbp"),
+            fbp: overrideFbp || ensureFbp(),
             fbc: overrideFbc || fbGetCookie("_fbc"),
           },
-          custom_data: customData,
+          custom_data: isCustom ? { ...rest, ...customData } : customData,
         },
       })
       .catch((e) => console.warn("[CAPI] invoke failed", e));
@@ -367,7 +378,7 @@ export const usePixelTracking = () => {
     }
 
     // Server-side Events API (deduped by event_id)
-    supabase.functions
+    api.functions
       .invoke("tiktok-events-api", {
         body: {
           event_name: eventName,
@@ -945,10 +956,8 @@ export const usePixelTracking = () => {
         description: productData.product_name,
         contents: buildTikTokContents([productData]),
       });
-    } else {
-      // Fire PageView via CAPI for non-product pages
-      firePixelEvent("PageView", { event_id: eventId });
     }
+    // Meta PageView (browser + server) is fired by FBPixelLoader on every route change
 
     // TikTok PageView — always fire on every page (browser ttq.page + Events API)
     fireTikTokEvent("PageView", { event_id: eventId });
@@ -1004,11 +1013,22 @@ export const usePixelTracking = () => {
     });
   }, [pushToDataLayer]);
 
+  // Engagement events (Scroll 50/90, time on page) — browser Pixel + Conversions API with shared event_id
+  const trackEngagement = useCallback((eventName: string, salesPageTitle: string, params: Record<string, any> = {}) => {
+    const eventKey = `engagement_${eventName}_${window.location.pathname}`;
+    if (firedEvents.current.has(eventKey)) return;
+    firedEvents.current.add(eventKey);
+    const eventId = generateEventId();
+    pushToDataLayer(eventName, { event_id: eventId, ...getCommonParams(), page_title: salesPageTitle, ...params });
+    firePixelEvent(eventName, { event_id: eventId, _custom: true, content_name: salesPageTitle, ...params });
+  }, [pushToDataLayer, firePixelEvent]);
+
   const resetFiredEvents = useCallback(() => {
     firedEvents.current.clear();
   }, []);
 
   return {
+    trackEngagement,
     trackAddToCart,
     trackInitiateCheckout,
     trackPurchase,

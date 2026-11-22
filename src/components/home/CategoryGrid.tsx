@@ -1,3 +1,5 @@
+import { imageVariant, imageSrcSet } from "@/lib/responsiveImage";
+import { homeSectionEnabled, homeColor } from "@/lib/homePageSettings";
 import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useCategories } from "@/hooks/useProducts";
@@ -6,20 +8,19 @@ import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 const CategoryGrid = () => {
-  const { data: categoryData, isLoading } = useCategories();
-  const categories = Array.isArray(categoryData) ? categoryData : [];
+  const { data: categories = [], isLoading } = useCategories();
   const { getSetting } = useSiteSettings();
   const { language, t } = useLanguage();
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentPage, setCurrentPage] = useState(0);
   
-  const sectionEnabled = getSetting("category_section_enabled", "true") !== "false";
   const dbTitle = getSetting("category_section_title", "");
   const sectionTitle = language === 'en' ? t('section.top_categories') : (dbTitle || t('section.top_categories'));
   const titleColor = getSetting("category_section_title_color", "");
   const buttonText = getSetting("category_section_button_text", "");
   const buttonTextColor = getSetting("category_section_button_text_color", "");
   const buttonBgColor = getSetting("category_section_button_bg_color", "");
+  const categoryEnabled = homeSectionEnabled(getSetting('category_section_enabled','true'));
   const seeAllLabel = language === 'en' ? 'See All' : (buttonText || 'সব দেখুন');
 
   const scrollLeft = () => {
@@ -53,13 +54,11 @@ const CategoryGrid = () => {
 
     container.addEventListener("scroll", handleScroll);
     return () => container.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [categoryEnabled, categories.length]);
 
   const totalPages = Math.ceil(categories.length / 3);
 
-  if (!sectionEnabled) {
-    return null;
-  }
+  if (!categoryEnabled) return null;
 
   if (isLoading) {
     return (
@@ -76,14 +75,14 @@ const CategoryGrid = () => {
   }
 
   return (
-    <section className="py-4 mt-5 mb-0 bg-background w-[calc(100vw-40px)] left-1/2 -translate-x-1/2 relative">
+    <section data-home-categories style={{backgroundColor:homeColor(getSetting("category_section_bg_color"))}} className="py-4 mt-5 mb-0 bg-background w-[calc(100vw-40px)] left-1/2 -translate-x-1/2 relative">
       <div className="w-full">
         <div className="flex justify-between items-center mb-6 gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
             <span className="inline-block w-1 h-6 md:h-7 rounded-full bg-primary" />
             <h2
               className="text-xl md:text-2xl font-bold tracking-tight text-foreground truncate"
-              style={{ fontFamily: "'Hind Siliguri', sans-serif", ...(titleColor ? { color: titleColor } : {}) }}
+              style={{ fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif", ...(titleColor ? { color: titleColor } : {}) }}
             >
               {sectionTitle}
             </h2>
@@ -92,7 +91,7 @@ const CategoryGrid = () => {
             to="/products"
             className="inline-flex items-center gap-0.5 px-2.5 py-1 rounded-full text-primary text-[11px] font-medium border border-primary/30 hover:opacity-90 transition-all duration-200 group/btn"
             style={{
-              fontFamily: "'Hind Siliguri', sans-serif",
+              fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
               ...(buttonTextColor ? { color: buttonTextColor, borderColor: buttonTextColor } : {}),
               ...(buttonBgColor ? { backgroundColor: buttonBgColor } : {}),
             }}
@@ -136,18 +135,17 @@ const CategoryGrid = () => {
                     to={`/products?category=${category.slug}`}
                     className="flex flex-col gap-2 cursor-pointer group/item"
                   >
-                    <div className="aspect-square rounded-xl overflow-hidden category-card-border p-1.5 group-hover/item:p-0 transition-all duration-300">
-                      <div className="w-full h-full rounded-lg overflow-hidden bg-secondary">
+                    <div style={{borderColor:homeColor(getSetting("category_card_border_color")),borderWidth:homeSectionEnabled(getSetting("category_section_border","true"))?undefined:0,backgroundColor:homeColor(getSetting("category_card_bg_color"))}} className="aspect-square rounded-xl overflow-hidden category-card-border p-1.5 group-hover/item:p-0 transition-all duration-300">
+                      <div style={{backgroundColor:homeColor(getSetting("category_card_bg_color"))}} className="w-full h-full rounded-lg overflow-hidden bg-secondary">
                         {category.image_url ? (
                           <img
-                            src={category.image_url}
+                            src={imageVariant(category.image_url,384)} decoding="async"
                             alt={catName}
                             loading="lazy"
-                            decoding="async"
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
+                          <div style={{background:homeColor(getSetting("category_card_bg_color"))}} className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
                             <span className="text-4xl md:text-5xl">
                               {category.icon || "📦"}
                             </span>
@@ -155,7 +153,7 @@ const CategoryGrid = () => {
                         )}
                       </div>
                     </div>
-                    <p className="font-semibold text-foreground text-[11px] sm:text-sm leading-tight px-1 line-clamp-2 text-center">
+                    <p style={{color:homeColor(getSetting("category_text_color"))}} className="font-semibold text-foreground text-[11px] sm:text-sm leading-tight px-1 line-clamp-2 text-center">
                       {catName}
                     </p>
                   </Link>

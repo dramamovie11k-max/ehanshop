@@ -1,3 +1,4 @@
+import { renderSalesText } from '@/components/salespage/SalesRichText';
 import { motion } from "framer-motion";
 import { SalesPage } from "@/types/salesPage";
 import { Phone, MessageCircle, Clock } from "lucide-react";
@@ -21,7 +22,7 @@ const ContactVariant01 = ({ page, colors, isLightTheme }: ContactVariantProps) =
         style={{ backgroundColor: colors.primary }}
       />
 
-      <div className="relative max-w-md mx-auto">
+      <div className="relative max-w-md md:max-w-2xl lg:max-w-3xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -29,10 +30,10 @@ const ContactVariant01 = ({ page, colors, isLightTheme }: ContactVariantProps) =
           className="text-center mb-5"
         >
           <h2 className="text-xl font-bold mb-1" style={{ color: isLightTheme ? colors.text : '#fff' }}>
-            {page.contact_headline}
+            {renderSalesText(page.contact_headline)}
           </h2>
           <p style={{ color: colors.accent }} className="text-sm font-medium">
-            {page.contact_subheadline}
+            {renderSalesText(page.contact_subheadline)}
           </p>
         </motion.div>
 
@@ -59,7 +60,7 @@ const ContactVariant01 = ({ page, colors, isLightTheme }: ContactVariantProps) =
             </div>
             <div className="flex-1 text-left min-w-0">
               <p className="text-white/70 text-xs">ফোন অর্ডার</p>
-              <p className="text-white text-base font-bold truncate">{page.contact_phone}</p>
+              <p className="text-white text-base font-bold truncate">{renderSalesText(page.contact_phone)}</p>
             </div>
             <div className="px-3 py-1.5 rounded-full text-xs font-medium bg-white/20 text-white flex-shrink-0">
               কল করুন
@@ -84,7 +85,7 @@ const ContactVariant01 = ({ page, colors, isLightTheme }: ContactVariantProps) =
             </div>
             <div className="flex-1 text-left min-w-0">
               <p className="text-white/80 text-xs">হোয়াটসঅ্যাপ</p>
-              <p className="text-white text-base font-bold truncate">{page.contact_whatsapp_text}</p>
+              <p className="text-white text-base font-bold truncate">{renderSalesText(page.contact_whatsapp_text)}</p>
             </div>
             <div className="px-3 py-1.5 rounded-full text-xs font-medium bg-white/20 text-white flex-shrink-0">
               মেসেজ করুন
@@ -115,7 +116,7 @@ const ContactVariant01 = ({ page, colors, isLightTheme }: ContactVariantProps) =
               <Clock className="w-3 h-3" style={{ color: colors.accent }} />
             </div>
             <span className="text-xs font-medium" style={{ color: isLightTheme ? colors.text : '#fff', opacity: 0.8 }}>
-              {page.contact_availability}
+              {renderSalesText(page.contact_availability)}
             </span>
           </div>
         </motion.div>

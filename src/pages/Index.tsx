@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import Header from "@/components/layout/Header";
 import HeroSlider from "@/components/home/HeroSlider";
 import CategoryGrid from "@/components/home/CategoryGrid";
-
+import BlogSection from "@/components/home/BlogSection";
 import Footer from "@/components/layout/Footer";
 import DynamicProductSection from "@/components/home/DynamicProductSection";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
@@ -39,6 +39,8 @@ const Index = () => {
           <DynamicProductSection sectionNumber={4} />
           <DynamicProductSection sectionNumber={5} />
           <DynamicProductSection sectionNumber={6} />
+          
+          <BlogSection />
         </div>
       </main>
       <Footer />

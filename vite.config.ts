@@ -8,20 +8,11 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    proxy: { "/api": { target: "http://127.0.0.1:8788", changeOrigin: false } },
     hmr: {
       overlay: false,
     },
-    // ডেভ/এডিটর প্রিভিউতে Cloudflare Pages Functions চলে না —
-    // তাই /api কল লাইভ Cloudflare ডিপ্লয়মেন্টে প্রক্সি করা হয়।
-    proxy: {
-      "/api": {
-        target: process.env.VITE_API_PROXY_TARGET || "http://127.0.0.1:8788",
-        changeOrigin: true,
-        secure: true,
-      },
-    },
   },
-
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
     alias: {

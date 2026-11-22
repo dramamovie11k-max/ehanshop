@@ -146,9 +146,9 @@ const translations: Record<Language, Record<string, string>> = {
     'auth.confirm_password': 'পাসওয়ার্ড নিশ্চিত করুন',
     'auth.register_button': 'রেজিস্ট্রেশন',
     'auth.register_failed': 'রেজিস্ট্রেশন ব্যর্থ হয়েছে',
-    'auth.register_success': 'রেজিস্ট্রেশন সফল! ইমেইল ভেরিফাই করুন।',
+    'auth.register_success': 'রেজিস্ট্রেশন সফল!',
     'auth.password_mismatch': 'পাসওয়ার্ড মিলছে না',
-    'auth.password_min': 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে',
+    'auth.password_min': 'পাসওয়ার্ড কমপক্ষে ১০ অক্ষরের হতে হবে',
     'auth.have_account': 'ইতিমধ্যে অ্যাকাউন্ট আছে?',
     // Dashboard
     'dashboard.welcome': 'স্বাগতম',
@@ -392,9 +392,9 @@ const translations: Record<Language, Record<string, string>> = {
     'auth.confirm_password': 'Confirm Password',
     'auth.register_button': 'Register',
     'auth.register_failed': 'Registration failed',
-    'auth.register_success': 'Registration successful! Please verify your email.',
+    'auth.register_success': 'Registration successful!',
     'auth.password_mismatch': 'Passwords do not match',
-    'auth.password_min': 'Password must be at least 6 characters',
+    'auth.password_min': 'Password must be at least 10 characters',
     'auth.have_account': 'Already have an account?',
     // Dashboard
     'dashboard.welcome': 'Welcome',

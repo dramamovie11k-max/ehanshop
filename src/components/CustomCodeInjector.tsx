@@ -1,6 +1,5 @@
 import { useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 declare global {
   interface Window {
@@ -11,15 +10,7 @@ declare global {
 }
 
 const CustomCodeInjector = () => {
-  const { data: settings } = useQuery({
-    queryKey: ["siteSettings"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("site_settings").select("*");
-      if (error) throw error;
-      return data;
-    },
-    staleTime: 1000 * 60 * 5,
-  });
+  const { settings } = useSiteSettings();
 
   useEffect(() => {
     if (!settings) return;

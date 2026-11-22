@@ -18,7 +18,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/integrations/cloudflare/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -43,7 +43,7 @@ const AdminReviews = () => {
   const { data: reviews = [], isLoading } = useQuery({
     queryKey: ["admin-reviews"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await api
         .from("product_reviews")
         .select(`*, products (name_bn, slug)`)
         .order("created_at", { ascending: false });
@@ -54,7 +54,7 @@ const AdminReviews = () => {
 
   const approveMutation = useMutation({
     mutationFn: async (reviewId: string) => {
-      const { error } = await supabase
+      const { error } = await api
         .from("product_reviews")
         .update({ is_approved: true })
         .eq("id", reviewId);
@@ -71,7 +71,7 @@ const AdminReviews = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (reviewId: string) => {
-      const { error } = await supabase
+      const { error } = await api
         .from("product_reviews")
         .delete()
         .eq("id", reviewId);

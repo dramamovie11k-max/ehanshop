@@ -1,8 +1,20 @@
-import { useState, useEffect } from "react";
+import { bottomBarDefaults } from "@/lib/bottomBarSettings";
+import BottomBarSettings from "@/components/admin/BottomBarSettings";
+import { useState, useEffect, useRef } from "react";
+import ProductPageSettings from "@/components/admin/ProductPageSettings";
+import { productPageDefaults } from "@/lib/productPageSettings";
+import HomePageSettings from "@/components/admin/HomePageSettings";
+import { homePageDefaults } from "@/lib/homePageSettings";
+import FaviconUploader from "@/components/admin/FaviconUploader";
+import SiteModeSettings from "@/components/admin/SiteModeSettings";
 import InvoiceLivePreview from "@/components/admin/InvoiceLivePreview";
 import { getInvoiceColors, invoiceColorDefaults } from "@/lib/invoiceTheme";
 import { STICKER_TEMPLATES } from "@/lib/stickerTemplates";
-import { Loader2, Save, Truck, Package, Eye, EyeOff, Code, Users, Ban, Shield, Clock, Plus, Search, Trash2, User, UserPlus, ShieldX, MessageCircle, Phone, Settings2, Menu, Palette, Smartphone, ExternalLink, Image, Printer, BarChart3, KeyRound, ShoppingCart, Home } from "lucide-react";
+import { Loader2, Save, Truck, Package, Eye, EyeOff, Code, Users, Ban, Shield, Clock, Plus, Search, Trash2, User, UserPlus, ShieldX, MessageCircle, Phone, Settings2, Printer, BarChart3, KeyRound, ShoppingCart, PanelTop, } from "lucide-react";
+import HeaderComponentCustomizer from "@/components/admin/HeaderComponentCustomizer";
+import HeaderCustomizer from "@/components/admin/HeaderCustomizer";
+import FooterSettings from "@/components/admin/FooterSettings";
+import BannerSettings from "@/components/admin/BannerSettings";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,40 +60,40 @@ import {
 } from "@/components/ui/alert-dialog";
 import AdminLayout from "@/components/admin/AdminLayout";
 import AdminGuard from "@/components/admin/AdminGuard";
-import LogoUploader from "@/components/admin/LogoUploader";
 
-import HeaderCustomizer from "@/components/admin/HeaderCustomizer";
-import BottomNavManager from "@/components/admin/BottomNavManager";
 import AccountSettings from "@/components/admin/AccountSettings";
-import FooterManager, { FooterLink } from "@/components/admin/FooterManager";
-import SliderManager from "@/components/admin/SliderManager";
-import { supabase } from "@/integrations/supabase/client";
-import { saveSiteSettings } from "@/lib/dataApi";
+import { api } from "@/integrations/cloudflare/client";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useBlockedUsers } from "@/hooks/useAdmin";
 import { useAuth } from "@/contexts/AuthContext";
+import { saveSiteSettings, changedSiteSettings } from "@/hooks/useSiteSettings";
 
-interface AllSettings {
+interface AllSettings extends Record<keyof typeof bottomBarDefaults,string>, Record<keyof typeof homePageDefaults, string>, Record<keyof typeof productPageDefaults, string> {
   // Shipping
   default_shipping_inside_dhaka: string;
   default_shipping_outside_dhaka: string;
   // Site Settings
+  site_mode: string;
+  header_customization: string;
   site_name: string;
   site_tagline: string;
   browser_tab_title: string;
+  site_favicon_url: string;
   og_title: string;
   og_description: string;
   og_image: string;
   published_url: string;
   site_logo_text: string;
   site_logo_url: string;
+  home_banner_image: string;
   logo_size: string;
   topbar_phone: string;
   topbar_delivery: string;
   topbar_original: string;
   topbar_support: string;
   topbar_messages: string;
+  topbar_enabled: string;
   footer_phone: string;
   footer_email: string;
   footer_address: string;
@@ -115,6 +127,14 @@ interface AllSettings {
   // Footer
   footer_quick_links: string;
   footer_customer_service_links: string;
+  footer_quick_title: string;
+  footer_service_title: string;
+  footer_contact_title: string;
+  footer_whatsapp_number: string;
+  footer_call_label: string;
+  footer_whatsapp_label: string;
+  footer_show_brand: string;
+  footer_show_contact: string;
   // Bottom Nav
   bottom_nav_home_link: string;
   bottom_nav_shop_link: string;
@@ -177,32 +197,25 @@ interface AllSettings {
   category_icon_color: string;
   category_text_color: string;
   category_section_border: string;
-  category_section_enabled: string;
   // Homepage Product Sections (6 sections)
   product_section_1_enabled: string;
   product_section_1_title: string;
   product_section_1_category: string;
-  product_section_1_count: string;
   product_section_2_enabled: string;
   product_section_2_title: string;
   product_section_2_category: string;
-  product_section_2_count: string;
   product_section_3_enabled: string;
   product_section_3_title: string;
   product_section_3_category: string;
-  product_section_3_count: string;
   product_section_4_enabled: string;
   product_section_4_title: string;
   product_section_4_category: string;
-  product_section_4_count: string;
   product_section_5_enabled: string;
   product_section_5_title: string;
   product_section_5_category: string;
-  product_section_5_count: string;
   product_section_6_enabled: string;
   product_section_6_title: string;
   product_section_6_category: string;
-  product_section_6_count: string;
   // Invoice Settings
   invoice_brand_name: string;
   invoice_brand_tagline: string;
@@ -274,22 +287,30 @@ interface AllSettings {
 
 
 const defaultSettings: AllSettings = {
+  ...homePageDefaults,
+  ...bottomBarDefaults,
+  ...productPageDefaults,
   default_shipping_inside_dhaka: "60",
   default_shipping_outside_dhaka: "120",
+  site_mode: "landing",
+  header_customization: "{}",
   site_name: "সাজিব",
   site_tagline: "এন্টারপ্রাইজ",
   browser_tab_title: "",
+  site_favicon_url: "",
   og_title: "",
   og_description: "",
   og_image: "",
   published_url: "",
   site_logo_text: "SE",
   site_logo_url: "",
+  home_banner_image: "",
   logo_size: "44",
   topbar_phone: "হেল্পলাইন: 01700-000000",
   topbar_delivery: "সারা বাংলাদেশে হোম ডেলিভারি",
   topbar_original: "100% অরিজিনাল প্রোডাক্ট",
   topbar_support: "24/7 কাস্টমার সাপোর্ট",
+  topbar_enabled: "1",
   topbar_messages: "👉 টাকা হাতে পেয়ে দেখে টাকা দিন|🏆 ১০০% কোয়ালিটি পণ্য|🔁 ৭ দিনের রিটার্ন/এক্সচেঞ্জ|🚚 হোম ডেলিভারি সারা বাংলাদেশে",
   footer_phone: "01700-000000",
   footer_email: "info@example.com",
@@ -340,10 +361,18 @@ const defaultSettings: AllSettings = {
     { id: "3", label: "Refund Policy", url: "/page/refund-policy" },
     { id: "4", label: "Terms & Conditions", url: "/page/terms" },
   ]),
+  footer_quick_title: "Quick Links",
+  footer_service_title: "Customer Service",
+  footer_contact_title: "যোগাযোগ",
+  footer_whatsapp_number: "",
+  footer_call_label: "কল করুন",
+  footer_whatsapp_label: "WhatsApp",
+  footer_show_brand: "1",
+  footer_show_contact: "1",
   // Bottom Nav
   bottom_nav_home_link: "/",
   bottom_nav_shop_link: "/products",
-  bottom_nav_whatsapp_link: "https://wa.me/8801XXXXXXXXX",
+  bottom_nav_whatsapp_link: "",
   bottom_nav_account_link: "/dashboard",
   bottom_nav_offers_link: "/products?featured=true",
   // API Keys
@@ -398,32 +427,25 @@ const defaultSettings: AllSettings = {
   category_icon_color: "",
   category_text_color: "",
   category_section_border: "true",
-  category_section_enabled: "true",
   // Homepage Product Sections (6 sections)
   product_section_1_enabled: "true",
   product_section_1_title: "নতুন প্রোডাক্ট",
   product_section_1_category: "",
-  product_section_1_count: "10",
   product_section_2_enabled: "true",
   product_section_2_title: "জনপ্রিয় প্রোডাক্ট",
   product_section_2_category: "",
-  product_section_2_count: "10",
   product_section_3_enabled: "true",
   product_section_3_title: "বিশেষ অফার",
   product_section_3_category: "",
-  product_section_3_count: "10",
   product_section_4_enabled: "true",
   product_section_4_title: "ট্রেন্ডিং প্রোডাক্ট",
   product_section_4_category: "",
-  product_section_4_count: "10",
   product_section_5_enabled: "true",
   product_section_5_title: "বেস্ট সেলিং",
   product_section_5_category: "",
-  product_section_5_count: "10",
   product_section_6_enabled: "true",
   product_section_6_title: "হট ডিলস",
   product_section_6_category: "",
-  product_section_6_count: "10",
   // Invoice
   invoice_brand_name: "",
   invoice_brand_tagline: "সেরা পণ্যের নির্ভরযোগ্য প্রতিষ্ঠান",
@@ -513,6 +535,8 @@ const AdminSettings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<AllSettings>(defaultSettings);
+  const savedSettings = useRef<Record<string, string>>({});
+  const settingsReady = useRef(false);
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
 
   // User Management State
@@ -542,14 +566,14 @@ const AdminSettings = () => {
   const { data: users = [], isLoading: usersLoading } = useQuery({
     queryKey: ["adminUsers"],
     queryFn: async () => {
-      const { data: profiles, error: profilesError } = await supabase
+      const { data: profiles, error: profilesError } = await api
         .from("profiles")
         .select("*")
         .order("created_at", { ascending: false });
 
       if (profilesError) throw profilesError;
 
-      const { data: roles, error: rolesError } = await supabase
+      const { data: roles, error: rolesError } = await api
         .from("user_roles")
         .select("*");
 
@@ -578,7 +602,7 @@ const AdminSettings = () => {
 
   const fetchSettings = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await api
         .from("site_settings")
         .select("setting_key, setting_value");
 
@@ -591,6 +615,8 @@ const AdminSettings = () => {
             (newSettings as any)[item.setting_key] = item.setting_value || "";
           }
         });
+        savedSettings.current = Object.fromEntries(data.map(item => [item.setting_key, item.setting_value ?? ""]));
+        settingsReady.current = true;
         setSettings(newSettings);
       }
     } catch (error) {
@@ -602,16 +628,18 @@ const AdminSettings = () => {
   };
 
   const handleSaveSettings = async () => {
+    if (!settingsReady.current) { toast.error("সেটিংস লোড হয়নি। পেজ রিফ্রেশ করে আবার চেষ্টা করুন।"); return; }
     setSaving(true);
     try {
-      // এক রিকোয়েস্টে সব সেটিংস — আগের sequential loop-এ ২০০+ রাউন্ডট্রিপ হতো
-      await saveSiteSettings(settings as unknown as Record<string, string>);
+      const snapshot = { ...settings };
+      await saveSiteSettings(changedSiteSettings(snapshot, savedSettings.current));
+      savedSettings.current = { ...savedSettings.current, ...snapshot };
 
       toast.success("সেটিংস সেভ হয়েছে!");
       queryClient.invalidateQueries({ queryKey: ["site-settings"] });
     } catch (error) {
       console.error("Error saving settings:", error);
-      toast.error("সেটিংস সেভ করতে সমস্যা হয়েছে");
+      toast.error(error instanceof Error ? error.message : "সেটিংস সেভ করতে সমস্যা হয়েছে");
     } finally {
       setSaving(false);
     }
@@ -674,14 +702,14 @@ const AdminSettings = () => {
         return;
       }
 
-      const { data: existingRole } = await supabase
+      const { data: existingRole } = await api
         .from("user_roles")
         .select("*")
         .eq("user_id", userId)
         .single();
 
       if (existingRole) {
-        const { error } = await supabase
+        const { error } = await api
           .from("user_roles")
           .update({ role: newUserRole })
           .eq("user_id", userId);
@@ -689,7 +717,7 @@ const AdminSettings = () => {
         if (error) throw error;
         toast.success("ইউজার রোল আপডেট হয়েছে");
       } else {
-        const { error } = await supabase
+        const { error } = await api
           .from("user_roles")
           .insert({ user_id: userId, role: newUserRole });
 
@@ -710,21 +738,21 @@ const AdminSettings = () => {
 
   const handleUpdateRole = async (userId: string, newRole: AppRole) => {
     try {
-      const { data: existingRole } = await supabase
+      const { data: existingRole } = await api
         .from("user_roles")
         .select("*")
         .eq("user_id", userId)
         .maybeSingle();
 
       if (existingRole) {
-        const { error } = await supabase
+        const { error } = await api
           .from("user_roles")
           .update({ role: newRole })
           .eq("user_id", userId);
 
         if (error) throw error;
       } else {
-        const { error } = await supabase
+        const { error } = await api
           .from("user_roles")
           .insert({ user_id: userId, role: newRole });
 
@@ -742,7 +770,7 @@ const AdminSettings = () => {
     if (!selectedUser) return;
 
     try {
-      const { error } = await supabase
+      const { error } = await api
         .from("user_roles")
         .delete()
         .eq("user_id", selectedUser.user_id);
@@ -786,10 +814,10 @@ const AdminSettings = () => {
       blocked_by: user?.id,
     };
 
-    const { error } = await supabase.from("blocked_users").insert(blockData);
+    const { error } = await api.from("blocked_users").insert(blockData);
 
     if (error) {
-      if (error.code === "23505") {
+      if (error.code === "CONFLICT") {
         toast.error("এই ফোন/IP ইতিমধ্যে ব্লক করা আছে");
       } else {
         toast.error("ব্লক করতে ব্যর্থ");
@@ -811,7 +839,7 @@ const AdminSettings = () => {
   };
 
   const handleUnblock = async (id: string) => {
-    const { error } = await supabase.from("blocked_users").delete().eq("id", id);
+    const { error } = await api.from("blocked_users").delete().eq("id", id);
 
     if (error) {
       toast.error("আনব্লক করতে ব্যর্থ");
@@ -844,15 +872,18 @@ const AdminSettings = () => {
                 সাইট সেটিংস
               </TabsTrigger>
               <TabsTrigger value="header" className="gap-2">
-                <Palette className="h-4 w-4" />
+                <PanelTop className="h-4 w-4" />
                 হেডার
               </TabsTrigger>
-              <TabsTrigger value="bottom-nav" className="gap-2">
-                <Smartphone className="h-4 w-4" />
-                বটম নেভ
+              <TabsTrigger value="product-page">প্রোডাক্ট পেজ</TabsTrigger>
+              <TabsTrigger value="bottom-bar">বটম বার</TabsTrigger>
+              <TabsTrigger value="home">হোম পেজ</TabsTrigger>
+              <TabsTrigger value="banner" className="gap-2">
+                <PanelTop className="h-4 w-4" />
+                ব্যানার
               </TabsTrigger>
               <TabsTrigger value="footer" className="gap-2">
-                <ExternalLink className="h-4 w-4" />
+                <PanelTop className="h-4 w-4 rotate-180" />
                 ফুটার
               </TabsTrigger>
               <TabsTrigger value="shipping" className="gap-2">
@@ -878,14 +909,6 @@ const AdminSettings = () => {
               <TabsTrigger value="blocked" className="gap-2">
                 <Ban className="h-4 w-4" />
                 ব্লক তালিকা
-              </TabsTrigger>
-              <TabsTrigger value="product-page" className="gap-2">
-                <Package className="h-4 w-4" />
-                প্রোডাক্ট পেজ
-              </TabsTrigger>
-              <TabsTrigger value="homepage-sections" className="gap-2">
-                <Home className="h-4 w-4" />
-                হোম পেজ
               </TabsTrigger>
               <TabsTrigger value="invoice" className="gap-2">
                 <Printer className="h-4 w-4" />
@@ -917,6 +940,7 @@ const AdminSettings = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                  <SiteModeSettings value={settings.site_mode} onChange={site_mode => setSettings(prev => ({ ...prev, site_mode }))} />
                   {/* Site Identity */}
                   <div className="space-y-4">
                     <h3 className="font-semibold text-lg border-b pb-2">সাইট পরিচয়</h3>
@@ -940,15 +964,16 @@ const AdminSettings = () => {
                         />
                       </div>
                     </div>
+                    <FaviconUploader value={settings.site_favicon_url} onChange={site_favicon_url => setSettings(prev => ({ ...prev, site_favicon_url }))} />
                     <div className="space-y-2">
-                      <Label htmlFor="browser_tab_title">ব্রাউজার ট্যাবের নাম</Label>
+                      <Label htmlFor="browser_tab_title">ব্রাউজার ট্যাবের নাম (সাইটের নাম)</Label>
                       <Input
                         id="browser_tab_title"
-                        value={settings.browser_tab_title || ""}
-                        onChange={(e) => setSettings({ ...settings, browser_tab_title: e.target.value } as any)}
+                        value={settings.site_name || ""}
+                        readOnly
                         placeholder="যেমন: Shadamon Shop - অনলাইন শপিং"
                       />
-                      <p className="text-xs text-muted-foreground">ব্রাউজারের ট্যাবে যা দেখাবে</p>
+                      <p className="text-xs text-muted-foreground">সাইটের নাম পরিবর্তন করলে ব্রাউজার ট্যাবের নামও বদলাবে।</p>
                     </div>
 
 
@@ -1138,369 +1163,13 @@ const AdminSettings = () => {
               </Card>
             </TabsContent>
 
-            {/* Slider Tab */}
-            {/* Slider & Categories now live inside the হোম পেজ tab below */}
-            <TabsContent value="__legacy_slider_categories__" className="hidden">
-              <div className="space-y-6">
-                {/* Category Style Settings */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Palette className="h-5 w-5" />
-                      ক্যাটাগরি স্টাইল
-                    </CardTitle>
-                    <CardDescription>
-                      হোমপেজে ক্যাটাগরি সেকশনের কালার ও স্টাইল কাস্টমাইজ করুন
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {/* Section Enable/Disable Toggle */}
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>সেকশন চালু/বন্ধ</Label>
-                        <p className="text-xs text-muted-foreground">বন্ধ করলে হোমপেজে ক্যাটাগরি সেকশন আর দেখাবে না</p>
-                      </div>
-                      <Select
-                        value={settings.category_section_enabled || "true"}
-                        onValueChange={(value) => setSettings({ ...settings, category_section_enabled: value })}
-                      >
-                        <SelectTrigger className="w-32">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="true">চালু</SelectItem>
-                          <SelectItem value="false">বন্ধ</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Section Title */}
-                    <div className="space-y-2">
-                      <Label>সেকশন টাইটেল</Label>
-                      <Input
-                        value={settings.category_section_title || ""}
-                        onChange={(e) => setSettings({ ...settings, category_section_title: e.target.value })}
-                        placeholder="টপ ক্যাটাগরি"
-                      />
-                    </div>
-
-                    {/* Section Border Toggle */}
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>সেকশন বর্ডার</Label>
-                        <p className="text-xs text-muted-foreground">পুরো ক্যাটাগরি সেকশনের চারপাশে বর্ডার দেখান</p>
-                      </div>
-                      <Select
-                        value={settings.category_section_border || "true"}
-                        onValueChange={(value) => setSettings({ ...settings, category_section_border: value })}
-                      >
-                        <SelectTrigger className="w-32">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="true">চালু</SelectItem>
-                          <SelectItem value="false">বন্ধ</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <Separator />
-
-                    {/* Card Colors */}
-                    <div className="space-y-4">
-                      <h4 className="font-medium">কার্ড কালার</h4>
-                      <div className="grid sm:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>কার্ড টপ বর্ডার কালার</Label>
-                          <div className="flex gap-2">
-                            <Input
-                              type="color"
-                              value={settings.category_card_border_color || "#16a34a"}
-                              onChange={(e) => setSettings({ ...settings, category_card_border_color: e.target.value })}
-                              className="w-14 h-10 p-1"
-                            />
-                            <Input
-                              value={settings.category_card_border_color || ""}
-                              onChange={(e) => setSettings({ ...settings, category_card_border_color: e.target.value })}
-                              placeholder="#16a34a (ডিফল্ট: primary)"
-                            />
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <Label>কার্ড ব্যাকগ্রাউন্ড</Label>
-                          <div className="flex gap-2">
-                            <Input
-                              type="color"
-                              value={settings.category_card_bg_color || "#ffffff"}
-                              onChange={(e) => setSettings({ ...settings, category_card_bg_color: e.target.value })}
-                              className="w-14 h-10 p-1"
-                            />
-                            <Input
-                              value={settings.category_card_bg_color || ""}
-                              onChange={(e) => setSettings({ ...settings, category_card_bg_color: e.target.value })}
-                              placeholder="ডিফল্ট: card color"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    {/* Icon Colors */}
-                    <div className="space-y-4">
-                      <h4 className="font-medium">আইকন কালার</h4>
-                      <div className="grid sm:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>আইকন ব্যাকগ্রাউন্ড</Label>
-                          <div className="flex gap-2">
-                            <Input
-                              type="color"
-                              value={settings.category_icon_bg_color || "#dcfce7"}
-                              onChange={(e) => setSettings({ ...settings, category_icon_bg_color: e.target.value })}
-                              className="w-14 h-10 p-1"
-                            />
-                            <Input
-                              value={settings.category_icon_bg_color || ""}
-                              onChange={(e) => setSettings({ ...settings, category_icon_bg_color: e.target.value })}
-                              placeholder="ডিফল্ট: primary/10"
-                            />
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <Label>আইকন কালার</Label>
-                          <div className="flex gap-2">
-                            <Input
-                              type="color"
-                              value={settings.category_icon_color || "#16a34a"}
-                              onChange={(e) => setSettings({ ...settings, category_icon_color: e.target.value })}
-                              className="w-14 h-10 p-1"
-                            />
-                            <Input
-                              value={settings.category_icon_color || ""}
-                              onChange={(e) => setSettings({ ...settings, category_icon_color: e.target.value })}
-                              placeholder="ডিফল্ট: primary"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    {/* Text Color */}
-                    <div className="space-y-2">
-                      <Label>টেক্সট কালার</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          type="color"
-                          value={settings.category_text_color || "#1f2937"}
-                          onChange={(e) => setSettings({ ...settings, category_text_color: e.target.value })}
-                          className="w-14 h-10 p-1"
-                        />
-                        <Input
-                          value={settings.category_text_color || ""}
-                          onChange={(e) => setSettings({ ...settings, category_text_color: e.target.value })}
-                          placeholder="ডিফল্ট: foreground"
-                        />
-                      </div>
-                    </div>
-
-                    <Button onClick={handleSaveSettings} disabled={saving} className="gap-2">
-                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                      সংরক্ষণ করুন
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                {/* Link to Category Management */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Package className="h-5 w-5" />
-                      ক্যাটাগরি ম্যানেজমেন্ট
-                    </CardTitle>
-                    <CardDescription>
-                      নতুন ক্যাটাগরি যোগ করুন, ছবি আপলোড করুন এবং আইকন সেট করুন
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Button asChild className="bg-gradient-brand">
-                      <a href="/admin/categories">
-                        ক্যাটাগরি ম্যানেজ করুন
-                        <ExternalLink className="h-4 w-4 ml-2" />
-                      </a>
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            {/* Header Customization Tab */}
+            {/* Tracking Settings Tab */}
             <TabsContent value="header">
               <div className="space-y-6">
-                <LogoUploader
-                  currentLogoUrl={settings.site_logo_url || ""}
-                  onLogoChange={(url) => setSettings({ ...settings, site_logo_url: url })}
-                />
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">📢 টপ বার মার্কি মেসেজ</CardTitle>
-                    <CardDescription>হেডারের উপরে স্ক্রল হওয়া মেসেজগুলো</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <Label htmlFor="topbar_messages">
-                        মেসেজ লিস্ট (প্রতি লাইনে একটি অথবা <code>|</code> দিয়ে আলাদা করুন) — HTML ও inline CSS সাপোর্টেড
-                      </Label>
-                      <textarea
-                        id="topbar_messages"
-                        value={(settings as any).topbar_messages ?? ""}
-                        onChange={(e) => setSettings({ ...settings, topbar_messages: e.target.value } as any)}
-                        placeholder={"👉 <b style='color:#fde047'>টাকা হাতে পেয়ে দেখে টাকা দিন</b>\n🏆 <span style='color:#22d3ee'>১০০% কোয়ালিটি পণ্য</span>\n🔁 ৭ দিনের রিটার্ন/এক্সচেঞ্জ\n🚚 হোম ডেলিভারি সারা বাংলাদেশে"}
-                        rows={6}
-                        className="w-full rounded-md border bg-background px-3 py-2 text-sm font-medium leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary"
-                        style={{ fontFamily: "'Hind Siliguri', sans-serif" }}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        ইমোজি ও HTML ট্যাগ ব্যবহার করতে পারেন। উদাহরণ: <code>&lt;b style="color:#fde047"&gt;টেক্সট&lt;/b&gt;</code> অথবা <code>&lt;span style="font-size:14px;color:#22d3ee"&gt;টেক্সট&lt;/span&gt;</code>
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Header Menu Items Manager */}
-                {(() => {
-                  let items: Array<{ label_bn: string; label_en: string; url?: string; type?: string }> = [];
-                  try {
-                    const parsed = JSON.parse((settings as any).header_menu_items || "[]");
-                    if (Array.isArray(parsed)) items = parsed;
-                  } catch {}
-                  // Auto-inject Categories system item if missing
-                  if (!items.some((it) => it?.type === "categories")) {
-                    const insertAt = Math.min(2, items.length);
-                    items = [
-                      ...items.slice(0, insertAt),
-                      { type: "categories", label_bn: "ক্যাটেগরি", label_en: "Categories" },
-                      ...items.slice(insertAt),
-                    ];
-                  }
-                  const update = (next: typeof items) =>
-                    setSettings({ ...settings, header_menu_items: JSON.stringify(next) } as any);
-                  return (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-lg">🧭 হেডার মেনু আইটেম</CardTitle>
-                        <CardDescription>
-                          ডেস্কটপ হেডারের মাঝখানে দেখানো মেনু লিংকগুলো। লেবেল (বাংলা/ইংরেজি) ও URL দিন।
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        {items.length === 0 && (
-                          <p className="text-sm text-muted-foreground">কোনো মেনু আইটেম নেই। নিচে থেকে যোগ করুন।</p>
-                        )}
-                        {items.map((item, idx) => {
-                          const isSystem = item?.type === "categories";
-                          return (
-                          <div key={idx} className={`grid grid-cols-1 md:grid-cols-[1fr,1fr,1.5fr,auto] gap-2 items-end p-3 border rounded-lg ${isSystem ? "bg-muted/40" : ""}`}>
-                            <div className="space-y-1">
-                              <Label className="text-xs">লেবেল (বাংলা){isSystem && " 🔒"}</Label>
-                              <Input
-                                value={item.label_bn || ""}
-                                disabled={isSystem}
-                                onChange={(e) => {
-                                  const next = [...items];
-                                  next[idx] = { ...item, label_bn: e.target.value };
-                                  update(next);
-                                }}
-                                placeholder="হোম"
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-xs">Label (English){isSystem && " 🔒"}</Label>
-                              <Input
-                                value={item.label_en || ""}
-                                disabled={isSystem}
-                                onChange={(e) => {
-                                  const next = [...items];
-                                  next[idx] = { ...item, label_en: e.target.value };
-                                  update(next);
-                                }}
-                                placeholder="Home"
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-xs">{isSystem ? "টাইপ" : "URL / লিঙ্ক"}</Label>
-                              <Input
-                                value={isSystem ? "📂 সব ক্যাটেগরি (ড্রপডাউন)" : (item.url || "")}
-                                disabled={isSystem}
-                                onChange={(e) => {
-                                  const next = [...items];
-                                  next[idx] = { ...item, url: e.target.value };
-                                  update(next);
-                                }}
-                                placeholder="/products"
-                              />
-                            </div>
-                            <div className="flex gap-1">
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="outline"
-                                disabled={idx === 0}
-                                onClick={() => {
-                                  const next = [...items];
-                                  [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
-                                  update(next);
-                                }}
-                                title="উপরে নিন"
-                              >
-                                ↑
-                              </Button>
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="outline"
-                                disabled={idx === items.length - 1}
-                                onClick={() => {
-                                  const next = [...items];
-                                  [next[idx + 1], next[idx]] = [next[idx], next[idx + 1]];
-                                  update(next);
-                                }}
-                                title="নিচে নিন"
-                              >
-                                ↓
-                              </Button>
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="destructive"
-                                disabled={isSystem}
-                                onClick={() => update(items.filter((_, i) => i !== idx))}
-                                title={isSystem ? "সিস্টেম আইটেম মুছা যাবে না" : "মুছুন"}
-                              >
-                                ✕
-                              </Button>
-                            </div>
-                          </div>
-                          );
-                        })}
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => update([...items, { label_bn: "", label_en: "", url: "/" }])}
-                        >
-                          + নতুন মেনু আইটেম যোগ করুন
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  );
-                })()}
-
+                <HeaderComponentCustomizer value={settings.header_customization} onChange={header_customization => setSettings(prev => ({ ...prev, header_customization }))} />
                 <HeaderCustomizer
-                  headerBgColor={settings.header_bg_color || "#0f172a"}
-                  headerTextColor={settings.header_text_color || "#ffffff"}
+                  headerBgColor={settings.header_bg_color || ""}
+                  headerTextColor={settings.header_text_color || ""}
                   topbarBgColor={settings.topbar_bg_color || ""}
                   topbarTextColor={settings.topbar_text_color || ""}
                   topbarGradientFrom={settings.topbar_gradient_from || ""}
@@ -1514,41 +1183,67 @@ const AdminSettings = () => {
                   badgeTextColor={settings.header_badge_text || ""}
                   hoverBgColor={settings.header_hover_bg || ""}
                   hotdealColor={settings.header_hotdeal_color || ""}
-                  topbarMessages={(settings as any).topbar_messages || ""}
+                  topbarEnabled={settings.topbar_enabled !== "0"}
+                  topbarMessages={settings.topbar_messages || ""}
                   siteName={settings.site_name || ""}
                   siteLogoUrl={settings.site_logo_url || ""}
                   siteLogoText={settings.site_logo_text || ""}
-                  menuItems={(() => {
-                    try {
-                      const parsed = JSON.parse((settings as any).header_menu_items || "[]");
-                      const arr = Array.isArray(parsed) ? parsed : [];
-                      if (!arr.some((it: any) => it?.type === "categories")) {
-                        const at = Math.min(2, arr.length);
-                        arr.splice(at, 0, { type: "categories", label_bn: "ক্যাটেগরি", label_en: "Categories" });
-                      }
-                      return arr;
-                    } catch { return []; }
-                  })()}
-                  onHeaderBgChange={(color) => setSettings({ ...settings, header_bg_color: color })}
-                  onHeaderTextChange={(color) => setSettings({ ...settings, header_text_color: color })}
-                  onTopbarBgChange={(color) => setSettings({ ...settings, topbar_bg_color: color })}
-                  onTopbarTextChange={(color) => setSettings({ ...settings, topbar_text_color: color })}
-                  onTopbarGradientFromChange={(color) => setSettings({ ...settings, topbar_gradient_from: color })}
-                  onTopbarGradientToChange={(color) => setSettings({ ...settings, topbar_gradient_to: color })}
-                  onTopbarGradientDirectionChange={(dir) => setSettings({ ...settings, topbar_gradient_direction: dir })}
-                  onCatnavBgChange={(color) => setSettings({ ...settings, header_catnav_bg: color })}
-                  onCatnavTextChange={(color) => setSettings({ ...settings, header_catnav_text: color })}
-                  onSearchBgChange={(color) => setSettings({ ...settings, header_search_bg: color })}
-                  onSearchTextChange={(color) => setSettings({ ...settings, header_search_text: color })}
-                  onBadgeBgChange={(color) => setSettings({ ...settings, header_badge_bg: color })}
-                  onBadgeTextChange={(color) => setSettings({ ...settings, header_badge_text: color })}
-                  onHoverBgChange={(color) => setSettings({ ...settings, header_hover_bg: color })}
-                  onHotdealColorChange={(color) => setSettings({ ...settings, header_hotdeal_color: color })}
+                  logoSize={settings.logo_size || "44"}
+                  menuItems={(() => { try { return JSON.parse(settings.header_menu_items || "[]"); } catch { return []; } })()}
+                  onHeaderBgChange={(v) => setSettings({ ...settings, header_bg_color: v } as any)}
+                  onHeaderTextChange={(v) => setSettings({ ...settings, header_text_color: v } as any)}
+                  onTopbarBgChange={(v) => setSettings({ ...settings, topbar_bg_color: v } as any)}
+                  onTopbarTextChange={(v) => setSettings({ ...settings, topbar_text_color: v } as any)}
+                  onTopbarGradientFromChange={(v) => setSettings({ ...settings, topbar_gradient_from: v } as any)}
+                  onTopbarGradientToChange={(v) => setSettings({ ...settings, topbar_gradient_to: v } as any)}
+                  onTopbarGradientDirectionChange={(v) => setSettings({ ...settings, topbar_gradient_direction: v } as any)}
+                  onCatnavBgChange={(v) => setSettings({ ...settings, header_catnav_bg: v } as any)}
+                  onCatnavTextChange={(v) => setSettings({ ...settings, header_catnav_text: v } as any)}
+                  onSearchBgChange={(v) => setSettings({ ...settings, header_search_bg: v } as any)}
+                  onSearchTextChange={(v) => setSettings({ ...settings, header_search_text: v } as any)}
+                  onBadgeBgChange={(v) => setSettings({ ...settings, header_badge_bg: v } as any)}
+                  onBadgeTextChange={(v) => setSettings({ ...settings, header_badge_text: v } as any)}
+                  onHoverBgChange={(v) => setSettings({ ...settings, header_hover_bg: v } as any)}
+                  onHotdealColorChange={(v) => setSettings({ ...settings, header_hotdeal_color: v } as any)}
+                  onTopbarEnabledChange={(v) => setSettings({ ...settings, topbar_enabled: v ? "1" : "0" } as any)}
+                  onLogoUrlChange={(v) => setSettings({ ...settings, site_logo_url: v } as any)}
+                  onLogoTextChange={(v) => setSettings({ ...settings, site_logo_text: v } as any)}
+                  onLogoSizeChange={(v) => setSettings({ ...settings, logo_size: v } as any)}
                 />
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">📢 টপ বারের মেসেজ</CardTitle>
+                    <CardDescription>শুধু একটি মেসেজ দিন — এটি স্থিরভাবে দেখাবে, স্ক্রল হবে না। টপ বার বন্ধ করতে উপরের সুইচটি অফ করুন।</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Textarea
+                      value={settings.topbar_messages || ""}
+                      onChange={(e) => setSettings({ ...settings, topbar_messages: e.target.value } as any)}
+                      rows={2}
+                      placeholder="🔥 ঢাকায় সেরা অফার চলছে!"
+                    />
+                  </CardContent>
+                </Card>
               </div>
             </TabsContent>
 
-            {/* Tracking Settings Tab */}
+            <TabsContent value="bottom-bar"><BottomBarSettings values={settings as unknown as Record<string,string>} onChange={(key,value)=>setSettings(prev=>({...prev,[key]:value}))}/></TabsContent>
+            <TabsContent value="product-page">
+              <ProductPageSettings values={settings as unknown as Record<string,string>} onChange={(key,value)=>setSettings(prev=>({...prev,[key]:value}))} />
+            </TabsContent>
+
+            <TabsContent value="home">
+              <HomePageSettings values={settings as unknown as Record<string,string>} onChange={(key,value)=>setSettings(prev=>({...prev,[key]:value}))} />
+            </TabsContent>
+
+            <TabsContent value="banner">
+              <BannerSettings imageUrl={settings.home_banner_image} onChange={value => setSettings(prev => ({ ...prev, home_banner_image: value }))} />
+            </TabsContent>
+
+            <TabsContent value="footer">
+              <FooterSettings getValue={key => settings[key]} onChange={(key, value) => setSettings(prev => ({ ...prev, [key]: value }))} />
+            </TabsContent>
+
             <TabsContent value="tracking">
               <Card>
                 <CardHeader>
@@ -1939,164 +1634,6 @@ const AdminSettings = () => {
               </Card>
             </TabsContent>
 
-
-            {/* Bottom Navigation Tab */}
-            <TabsContent value="bottom-nav">
-              <BottomNavManager
-                settings={{
-                  bottom_nav_home_link: settings.bottom_nav_home_link || "/",
-                  bottom_nav_shop_link: settings.bottom_nav_shop_link || "/products",
-                  bottom_nav_whatsapp_link: settings.bottom_nav_whatsapp_link || "https://wa.me/8801XXXXXXXXX",
-                  bottom_nav_account_link: settings.bottom_nav_account_link || "/dashboard",
-                  bottom_nav_offers_link: settings.bottom_nav_offers_link || "/products?featured=true",
-                }}
-                onSettingsChange={(key, value) => setSettings({ ...settings, [key]: value })}
-              />
-            </TabsContent>
-
-            {/* Footer Tab */}
-            <TabsContent value="footer">
-              <div className="space-y-6">
-                {/* Footer Contact & Info */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Phone className="h-5 w-5" />
-                      ফুটার তথ্য ও যোগাযোগ
-                    </CardTitle>
-                    <CardDescription>ফুটারে প্রদর্শিত ফোন, ঠিকানা, সোশ্যাল লিঙ্ক ইত্যাদি পরিবর্তন করুন</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {/* Contact Info */}
-                    <div className="space-y-4">
-                      <h3 className="font-semibold text-lg border-b pb-2">যোগাযোগ তথ্য</h3>
-                      <div className="grid sm:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="footer_phone">ফোন নম্বর</Label>
-                          <Input
-                            id="footer_phone"
-                            value={settings.footer_phone}
-                            onChange={(e) => setSettings({ ...settings, footer_phone: e.target.value })}
-                            placeholder="01700-000000"
-                          />
-                          <p className="text-xs text-muted-foreground">ফুটার ও কল বাটনে এই নম্বর দেখাবে</p>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="footer_email">ইমেইল</Label>
-                          <Input
-                            id="footer_email"
-                            value={settings.footer_email}
-                            onChange={(e) => setSettings({ ...settings, footer_email: e.target.value })}
-                            placeholder="info@example.com"
-                          />
-                        </div>
-                        <div className="space-y-2 sm:col-span-2">
-                          <Label htmlFor="footer_address">ঠিকানা</Label>
-                          <Input
-                            id="footer_address"
-                            value={settings.footer_address}
-                            onChange={(e) => setSettings({ ...settings, footer_address: e.target.value })}
-                            placeholder="ঢাকা, বাংলাদেশ"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Social Links */}
-                    <div className="space-y-4">
-                      <h3 className="font-semibold text-lg border-b pb-2">সোশ্যাল মিডিয়া লিঙ্ক</h3>
-                      <div className="grid sm:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="social_facebook">Facebook URL</Label>
-                          <Input
-                            id="social_facebook"
-                            value={settings.social_facebook}
-                            onChange={(e) => setSettings({ ...settings, social_facebook: e.target.value })}
-                            placeholder="https://facebook.com/yourpage"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="social_instagram">Instagram URL</Label>
-                          <Input
-                            id="social_instagram"
-                            value={settings.social_instagram}
-                            onChange={(e) => setSettings({ ...settings, social_instagram: e.target.value })}
-                            placeholder="https://instagram.com/yourpage"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="social_youtube">YouTube URL</Label>
-                          <Input
-                            id="social_youtube"
-                            value={settings.social_youtube}
-                            onChange={(e) => setSettings({ ...settings, social_youtube: e.target.value })}
-                            placeholder="https://youtube.com/yourchannel"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="social_tiktok">TikTok URL</Label>
-                          <Input
-                            id="social_tiktok"
-                            value={settings.social_tiktok || ""}
-                            onChange={(e) => setSettings({ ...settings, social_tiktok: e.target.value } as any)}
-                            placeholder="https://tiktok.com/@yourpage"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Developer & Copyright */}
-                    <div className="space-y-4">
-                      <h3 className="font-semibold text-lg border-b pb-2">কপিরাইট ও ডেভেলপার</h3>
-                      <div className="grid sm:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="copyright_text">কপিরাইট টেক্সট</Label>
-                          <Input
-                            id="copyright_text"
-                            value={settings.copyright_text}
-                            onChange={(e) => setSettings({ ...settings, copyright_text: e.target.value })}
-                            placeholder="© 2024 সাজিব এন্টারপ্রাইজ"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="developer_text">ডেভেলপার টেক্সট</Label>
-                          <Input
-                            id="developer_text"
-                            value={settings.developer_text}
-                            onChange={(e) => setSettings({ ...settings, developer_text: e.target.value })}
-                            placeholder="Developed by Rebuild It"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Footer Menu Manager */}
-                <FooterManager
-                  quickLinks={(() => {
-                    try {
-                      return JSON.parse(settings.footer_quick_links || "[]") as FooterLink[];
-                    } catch {
-                      return [];
-                    }
-                  })()}
-                  customerServiceLinks={(() => {
-                    try {
-                      return JSON.parse(settings.footer_customer_service_links || "[]") as FooterLink[];
-                    } catch {
-                      return [];
-                    }
-                  })()}
-                  onQuickLinksChange={(links) => 
-                    setSettings({ ...settings, footer_quick_links: JSON.stringify(links) })
-                  }
-                  onCustomerServiceChange={(links) => 
-                    setSettings({ ...settings, footer_customer_service_links: JSON.stringify(links) })
-                  }
-                />
-              </div>
-            </TabsContent>
 
             {/* Shipping Tab */}
             <TabsContent value="shipping">
@@ -2889,656 +2426,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                     </CardContent>
                   </Card>
                 )}
-              </div>
-            </TabsContent>
-
-            {/* Product Page Settings Tab */}
-            <TabsContent value="product-page">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Package className="h-5 w-5" />
-                    প্রোডাক্ট পেজ কাস্টমাইজেশন
-                  </CardTitle>
-                  <CardDescription>
-                    প্রোডাক্ট পেজের বাটন কালার, টেক্সট এবং স্টাইল পরিবর্তন করুন
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Add to Cart Button */}
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-lg border-b pb-2">কার্টে যোগ করুন বাটন</h3>
-                    <div className="grid sm:grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="product_addtocart_label">বাটন টেক্সট</Label>
-                        <Input
-                          id="product_addtocart_label"
-                          value={settings.product_addtocart_label || ""}
-                          onChange={(e) => setSettings({ ...settings, product_addtocart_label: e.target.value })}
-                          placeholder="কার্টে যোগ করুন"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="product_addtocart_bg">ব্যাকগ্রাউন্ড কালার</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            type="color"
-                            id="product_addtocart_bg"
-                            value={settings.product_addtocart_bg || "#7c3aed"}
-                            onChange={(e) => setSettings({ ...settings, product_addtocart_bg: e.target.value })}
-                            className="w-12 h-10 p-1"
-                          />
-                          <Input
-                            value={settings.product_addtocart_bg || ""}
-                            onChange={(e) => setSettings({ ...settings, product_addtocart_bg: e.target.value })}
-                            placeholder="#7c3aed"
-                            className="flex-1"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="product_addtocart_text">টেক্সট কালার</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            type="color"
-                            id="product_addtocart_text"
-                            value={settings.product_addtocart_text || "#ffffff"}
-                            onChange={(e) => setSettings({ ...settings, product_addtocart_text: e.target.value })}
-                            className="w-12 h-10 p-1"
-                          />
-                          <Input
-                            value={settings.product_addtocart_text || ""}
-                            onChange={(e) => setSettings({ ...settings, product_addtocart_text: e.target.value })}
-                            placeholder="#ffffff"
-                            className="flex-1"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Order Now Button */}
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-lg border-b pb-2">অর্ডার করুন বাটন</h3>
-                    <div className="grid sm:grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="product_order_label">বাটন টেক্সট</Label>
-                        <Input
-                          id="product_order_label"
-                          value={settings.product_order_label || ""}
-                          onChange={(e) => setSettings({ ...settings, product_order_label: e.target.value })}
-                          placeholder="অর্ডার করুন"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="product_order_bg">ব্যাকগ্রাউন্ড কালার</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            type="color"
-                            id="product_order_bg"
-                            value={settings.product_order_bg || "#f97316"}
-                            onChange={(e) => setSettings({ ...settings, product_order_bg: e.target.value })}
-                            className="w-12 h-10 p-1"
-                          />
-                          <Input
-                            value={settings.product_order_bg || ""}
-                            onChange={(e) => setSettings({ ...settings, product_order_bg: e.target.value })}
-                            placeholder="#f97316"
-                            className="flex-1"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="product_order_text">টেক্সট কালার</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            type="color"
-                            id="product_order_text"
-                            value={settings.product_order_text || "#ffffff"}
-                            onChange={(e) => setSettings({ ...settings, product_order_text: e.target.value })}
-                            className="w-12 h-10 p-1"
-                          />
-                          <Input
-                            value={settings.product_order_text || ""}
-                            onChange={(e) => setSettings({ ...settings, product_order_text: e.target.value })}
-                            placeholder="#ffffff"
-                            className="flex-1"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* WhatsApp Button */}
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-lg border-b pb-2">WhatsApp বাটন</h3>
-                    <div className="space-y-2">
-                      <Label htmlFor="product_whatsapp_phone">WhatsApp নম্বর</Label>
-                      <Input
-                        id="product_whatsapp_phone"
-                        value={settings.product_whatsapp_phone || ""}
-                        onChange={(e) => setSettings({ ...settings, product_whatsapp_phone: e.target.value })}
-                        placeholder="০১৭XX-XXXXXX (খালি রাখলে ডিফল্ট WhatsApp নম্বর ব্যবহার হবে)"
-                      />
-                    </div>
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="product_whatsapp_label">বাটন টেক্সট</Label>
-                        <Input
-                          id="product_whatsapp_label"
-                          value={settings.product_whatsapp_label || ""}
-                          onChange={(e) => setSettings({ ...settings, product_whatsapp_label: e.target.value })}
-                          placeholder="WhatsApp এ অর্ডার করুন"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="product_whatsapp_bg">ব্যাকগ্রাউন্ড কালার</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            type="color"
-                            id="product_whatsapp_bg"
-                            value={(settings as any).product_whatsapp_bg || "#ffffff"}
-                            onChange={(e) => setSettings({ ...settings, product_whatsapp_bg: e.target.value } as any)}
-                            className="w-12 h-10 p-1"
-                          />
-                          <Input
-                            value={(settings as any).product_whatsapp_bg || ""}
-                            onChange={(e) => setSettings({ ...settings, product_whatsapp_bg: e.target.value } as any)}
-                            placeholder="খালি রাখলে ট্রান্সপারেন্ট"
-                            className="flex-1"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="product_whatsapp_border">বর্ডার কালার</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            type="color"
-                            id="product_whatsapp_border"
-                            value={settings.product_whatsapp_border || "#16a34a"}
-                            onChange={(e) => setSettings({ ...settings, product_whatsapp_border: e.target.value })}
-                            className="w-12 h-10 p-1"
-                          />
-                          <Input
-                            value={settings.product_whatsapp_border || ""}
-                            onChange={(e) => setSettings({ ...settings, product_whatsapp_border: e.target.value })}
-                            placeholder="#16a34a"
-                            className="flex-1"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="product_whatsapp_text">টেক্সট কালার</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            type="color"
-                            id="product_whatsapp_text"
-                            value={settings.product_whatsapp_text || "#16a34a"}
-                            onChange={(e) => setSettings({ ...settings, product_whatsapp_text: e.target.value })}
-                            className="w-12 h-10 p-1"
-                          />
-                          <Input
-                            value={settings.product_whatsapp_text || ""}
-                            onChange={(e) => setSettings({ ...settings, product_whatsapp_text: e.target.value })}
-                            placeholder="#16a34a"
-                            className="flex-1"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Call Button */}
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-lg border-b pb-2">কল বাটন</h3>
-                    <div className="space-y-2">
-                      <Label htmlFor="product_call_phone">ফোন নম্বর</Label>
-                      <Input
-                        id="product_call_phone"
-                        value={settings.product_call_phone || ""}
-                        onChange={(e) => setSettings({ ...settings, product_call_phone: e.target.value })}
-                        placeholder="০১৭XX-XXXXXX (খালি রাখলে ফুটারের নম্বর ব্যবহার হবে)"
-                      />
-                    </div>
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="product_call_bg">ব্যাকগ্রাউন্ড কালার</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            type="color"
-                            id="product_call_bg"
-                            value={(settings as any).product_call_bg || "#ffffff"}
-                            onChange={(e) => setSettings({ ...settings, product_call_bg: e.target.value } as any)}
-                            className="w-12 h-10 p-1"
-                          />
-                          <Input
-                            value={(settings as any).product_call_bg || ""}
-                            onChange={(e) => setSettings({ ...settings, product_call_bg: e.target.value } as any)}
-                            placeholder="খালি রাখলে ট্রান্সপারেন্ট"
-                            className="flex-1"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="product_call_border">বর্ডার কালার</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            type="color"
-                            id="product_call_border"
-                            value={settings.product_call_border || "#7c3aed"}
-                            onChange={(e) => setSettings({ ...settings, product_call_border: e.target.value })}
-                            className="w-12 h-10 p-1"
-                          />
-                          <Input
-                            value={settings.product_call_border || ""}
-                            onChange={(e) => setSettings({ ...settings, product_call_border: e.target.value })}
-                            placeholder="#7c3aed"
-                            className="flex-1"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="product_call_text">টেক্সট কালার</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            type="color"
-                            id="product_call_text"
-                            value={settings.product_call_text || "#7c3aed"}
-                            onChange={(e) => setSettings({ ...settings, product_call_text: e.target.value })}
-                            className="w-12 h-10 p-1"
-                          />
-                          <Input
-                            value={settings.product_call_text || ""}
-                            onChange={(e) => setSettings({ ...settings, product_call_text: e.target.value })}
-                            placeholder="#7c3aed"
-                            className="flex-1"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* WhatsApp Number */}
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-lg border-b pb-2">WhatsApp নম্বর / লিঙ্ক</h3>
-                    <div className="space-y-2">
-                      <Label htmlFor="whatsapp_number">WhatsApp নম্বর বা লিঙ্ক</Label>
-                      <Input
-                        id="whatsapp_number"
-                        value={(settings as any).whatsapp_number || ""}
-                        onChange={(e) => setSettings({ ...settings, whatsapp_number: e.target.value } as any)}
-                        placeholder="https://wa.me/8801XXXXXXXXX অথবা 01XXXXXXXXX"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        সরাসরি WhatsApp লিঙ্ক (https://wa.me/...), শর্ট লিঙ্ক (wa.me/...) অথবা শুধু নম্বর দিতে পারবেন। খালি রাখলে ফোন নম্বর ব্যবহার হবে।
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Preview */}
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-lg border-b pb-2">প্রিভিউ</h3>
-                    <div className="p-4 bg-secondary/20 rounded-lg space-y-2 max-w-md">
-                      {/* Order Now - Full width primary */}
-                      <button
-                        className="w-full h-11 px-4 text-sm sm:text-base font-semibold gap-2 rounded-full inline-flex items-center justify-center"
-                        style={{
-                          backgroundColor: settings.product_order_bg || "#16a34a",
-                          color: settings.product_order_text || "#ffffff",
-                        }}
-                      >
-                        🛒 <span className="truncate">{settings.product_order_label || "অর্ডার করুন"}</span>
-                      </button>
-                      {/* Add to Cart - Full width outline */}
-                      <button
-                        className="w-full h-11 px-4 text-sm sm:text-base font-semibold gap-2 rounded-full inline-flex items-center justify-center border-2"
-                        style={{
-                          backgroundColor: settings.product_addtocart_bg || "transparent",
-                          color: settings.product_addtocart_text || "#16a34a",
-                          borderColor: settings.product_addtocart_text || "#16a34a",
-                        }}
-                      >
-                        🛒 <span className="truncate">{settings.product_addtocart_label || "কার্টে যোগ করুন"}</span>
-                      </button>
-                      {/* WhatsApp & Call side-by-side */}
-                      <div className="grid grid-cols-2 gap-2 pt-1">
-                        <button
-                          className="w-full h-11 text-sm font-semibold rounded-full border-2 inline-flex items-center justify-center gap-2"
-                          style={{
-                            borderColor: settings.product_whatsapp_border || "#16a34a",
-                            color: ((settings as any).product_whatsapp_bg && (settings as any).product_whatsapp_bg !== 'transparent') ? (settings.product_whatsapp_text || "#16a34a") : "#ffffff",
-                            backgroundColor: ((settings as any).product_whatsapp_bg && (settings as any).product_whatsapp_bg !== 'transparent') ? (settings as any).product_whatsapp_bg : "#16a34a",
-                          }}
-                        >
-                          📱 <span className="truncate">WhatsApp</span>
-                        </button>
-                        <button
-                          className="w-full h-11 text-sm font-semibold rounded-full border-2 inline-flex items-center justify-center gap-2"
-                          style={{
-                            borderColor: settings.product_call_border || "#7c3aed",
-                            color: settings.product_call_text || "#7c3aed",
-                            backgroundColor: (settings as any).product_call_bg || "transparent",
-                          }}
-                        >
-                          📞 <span className="truncate">কল করুন</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Homepage Product Sections Tab */}
-            <TabsContent value="homepage-sections">
-              <div className="space-y-6">
-              {/* Slider Management */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Image className="h-5 w-5" />
-                    স্লাইডার
-                  </CardTitle>
-                  <CardDescription>হোমপেজের হিরো স্লাইডার ম্যানেজ করুন</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <SliderManager
-                    sliderImages={(() => {
-                      try {
-                        const parsed = JSON.parse(settings.slider_images || "[]");
-                        return Array.isArray(parsed) ? parsed : [];
-                      } catch {
-                        return [];
-                      }
-                    })()}
-                    onImagesChange={(images) => {
-                      setSettings({ ...settings, slider_images: JSON.stringify(images) });
-                    }}
-                    isFullWidth={settings.slider_full_width === "true"}
-                    onFullWidthChange={(value) => {
-                      setSettings({ ...settings, slider_full_width: value ? "true" : "false" });
-                    }}
-                    heightMobile={settings.slider_height_mobile}
-                    onHeightMobileChange={(value) => {
-                      setSettings({ ...settings, slider_height_mobile: value });
-                    }}
-                    heightDesktop={settings.slider_height_desktop}
-                    onHeightDesktopChange={(value) => {
-                      setSettings({ ...settings, slider_height_desktop: value });
-                    }}
-                  />
-                  <div className="mt-4">
-                    <Button onClick={handleSaveSettings} disabled={saving} className="gap-2">
-                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                      সংরক্ষণ করুন
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Category Style Settings */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Palette className="h-5 w-5" />
-                    ক্যাটাগরি স্টাইল
-                  </CardTitle>
-                  <CardDescription>
-                    হোমপেজে ক্যাটাগরি সেকশনের কালার ও স্টাইল কাস্টমাইজ করুন
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Section Enable/Disable Toggle */}
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label>সেকশন চালু/বন্ধ</Label>
-                      <p className="text-xs text-muted-foreground">বন্ধ করলে হোমপেজে ক্যাটাগরি সেকশন আর দেখাবে না</p>
-                    </div>
-                    <Select
-                      value={settings.category_section_enabled || "true"}
-                      onValueChange={(value) => setSettings({ ...settings, category_section_enabled: value })}
-                    >
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="true">চালু</SelectItem>
-                        <SelectItem value="false">বন্ধ</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>সেকশন টাইটেল</Label>
-                    <Input
-                      value={settings.category_section_title || ""}
-                      onChange={(e) => setSettings({ ...settings, category_section_title: e.target.value })}
-                      placeholder="টপ ক্যাটাগরি"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>টাইটেল কালার</Label>
-                    <div className="flex gap-2">
-                      <Input type="color" value={settings.category_section_title_color || "#000000"} onChange={(e) => setSettings({ ...settings, category_section_title_color: e.target.value })} className="w-14 h-10 p-1" />
-                      <Input value={settings.category_section_title_color || ""} onChange={(e) => setSettings({ ...settings, category_section_title_color: e.target.value })} placeholder="ডিফল্ট: foreground" />
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-4">
-                    <h4 className="font-medium">"সব দেখুন" বাটন</h4>
-                    <div className="space-y-2">
-                      <Label>বাটন টেক্সট</Label>
-                      <Input
-                        value={settings.category_section_button_text || ""}
-                        onChange={(e) => setSettings({ ...settings, category_section_button_text: e.target.value })}
-                        placeholder="সব দেখুন"
-                      />
-                    </div>
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>বাটন টেক্সট কালার</Label>
-                        <div className="flex gap-2">
-                          <Input type="color" value={settings.category_section_button_text_color || "#16a34a"} onChange={(e) => setSettings({ ...settings, category_section_button_text_color: e.target.value })} className="w-14 h-10 p-1" />
-                          <Input value={settings.category_section_button_text_color || ""} onChange={(e) => setSettings({ ...settings, category_section_button_text_color: e.target.value })} placeholder="ডিফল্ট: primary" />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>বাটন ব্যাকগ্রাউন্ড কালার</Label>
-                        <div className="flex gap-2">
-                          <Input type="color" value={settings.category_section_button_bg_color || "#ffffff"} onChange={(e) => setSettings({ ...settings, category_section_button_bg_color: e.target.value })} className="w-14 h-10 p-1" />
-                          <Input value={settings.category_section_button_bg_color || ""} onChange={(e) => setSettings({ ...settings, category_section_button_bg_color: e.target.value })} placeholder="ডিফল্ট: transparent" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label>সেকশন বর্ডার</Label>
-                      <p className="text-xs text-muted-foreground">পুরো ক্যাটাগরি সেকশনের চারপাশে বর্ডার দেখান</p>
-                    </div>
-                    <Select
-                      value={settings.category_section_border || "true"}
-                      onValueChange={(value) => setSettings({ ...settings, category_section_border: value })}
-                    >
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="true">চালু</SelectItem>
-                        <SelectItem value="false">বন্ধ</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-4">
-                    <h4 className="font-medium">কার্ড কালার</h4>
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>কার্ড টপ বর্ডার কালার</Label>
-                        <div className="flex gap-2">
-                          <Input type="color" value={settings.category_card_border_color || "#16a34a"} onChange={(e) => setSettings({ ...settings, category_card_border_color: e.target.value })} className="w-14 h-10 p-1" />
-                          <Input value={settings.category_card_border_color || ""} onChange={(e) => setSettings({ ...settings, category_card_border_color: e.target.value })} placeholder="#16a34a (ডিফল্ট: primary)" />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>কার্ড ব্যাকগ্রাউন্ড</Label>
-                        <div className="flex gap-2">
-                          <Input type="color" value={settings.category_card_bg_color || "#ffffff"} onChange={(e) => setSettings({ ...settings, category_card_bg_color: e.target.value })} className="w-14 h-10 p-1" />
-                          <Input value={settings.category_card_bg_color || ""} onChange={(e) => setSettings({ ...settings, category_card_bg_color: e.target.value })} placeholder="ডিফল্ট: card color" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-4">
-                    <h4 className="font-medium">আইকন কালার</h4>
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>আইকন ব্যাকগ্রাউন্ড</Label>
-                        <div className="flex gap-2">
-                          <Input type="color" value={settings.category_icon_bg_color || "#dcfce7"} onChange={(e) => setSettings({ ...settings, category_icon_bg_color: e.target.value })} className="w-14 h-10 p-1" />
-                          <Input value={settings.category_icon_bg_color || ""} onChange={(e) => setSettings({ ...settings, category_icon_bg_color: e.target.value })} placeholder="ডিফল্ট: primary/10" />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>আইকন কালার</Label>
-                        <div className="flex gap-2">
-                          <Input type="color" value={settings.category_icon_color || "#16a34a"} onChange={(e) => setSettings({ ...settings, category_icon_color: e.target.value })} className="w-14 h-10 p-1" />
-                          <Input value={settings.category_icon_color || ""} onChange={(e) => setSettings({ ...settings, category_icon_color: e.target.value })} placeholder="ডিফল্ট: primary" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-2">
-                    <Label>টেক্সট কালার</Label>
-                    <div className="flex gap-2">
-                      <Input type="color" value={settings.category_text_color || "#1f2937"} onChange={(e) => setSettings({ ...settings, category_text_color: e.target.value })} className="w-14 h-10 p-1" />
-                      <Input value={settings.category_text_color || ""} onChange={(e) => setSettings({ ...settings, category_text_color: e.target.value })} placeholder="ডিফল্ট: foreground" />
-                    </div>
-                  </div>
-
-                  <Button onClick={handleSaveSettings} disabled={saving} className="gap-2">
-                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                    সংরক্ষণ করুন
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {/* Category Management Link */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Package className="h-5 w-5" />
-                    ক্যাটাগরি ম্যানেজমেন্ট
-                  </CardTitle>
-                  <CardDescription>নতুন ক্যাটাগরি যোগ করুন, ছবি আপলোড করুন এবং আইকন সেট করুন</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button asChild className="bg-gradient-brand">
-                    <a href="/admin/categories">
-                      ক্যাটাগরি ম্যানেজ করুন
-                      <ExternalLink className="h-4 w-4 ml-2" />
-                    </a>
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {/* Product Sections */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Package className="h-5 w-5" />
-                    হোমপেজ প্রোডাক্ট সেকশন
-                  </CardTitle>
-                  <CardDescription>
-                    হোমপেজে প্রোডাক্ট সেকশনগুলোর শিরোনাম ও ক্যাটাগরি সেট করুন
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {[1, 2, 3, 4, 5, 6].map((num) => {
-                    const enabledKey = `product_section_${num}_enabled` as keyof AllSettings;
-                    const titleKey = `product_section_${num}_title` as keyof AllSettings;
-                    const categoryKey = `product_section_${num}_category` as keyof AllSettings;
-                    const countKey = `product_section_${num}_count` as keyof AllSettings;
-                    
-                    
-                    return (
-                      <div key={num} className="space-y-4 p-4 border rounded-lg">
-                        <div className="flex items-center justify-between">
-                          <h3 className="font-semibold text-lg">সেকশন {num}</h3>
-                          <label className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={settings[enabledKey] === "true"}
-                              onChange={(e) => setSettings({ ...settings, [enabledKey]: e.target.checked ? "true" : "false" })}
-                              className="w-4 h-4"
-                            />
-                            <span className="text-sm">সক্রিয়</span>
-                          </label>
-                        </div>
-                        <div className="grid sm:grid-cols-3 gap-4">
-                          <div className="space-y-2">
-                            <Label>সেকশন শিরোনাম</Label>
-                            <Input
-                              value={settings[titleKey] || ""}
-                              onChange={(e) => setSettings({ ...settings, [titleKey]: e.target.value })}
-                              placeholder="সেকশন শিরোনাম"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>কতটি প্রোডাক্ট দেখাবে</Label>
-                            <Input
-                              type="number"
-                              min={1}
-                              max={50}
-                              value={settings[countKey] || "10"}
-                              onChange={(e) => setSettings({ ...settings, [countKey]: e.target.value })}
-                              placeholder="10"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>ক্যাটাগরি (ফাঁকা রাখলে সব প্রোডাক্ট দেখাবে)</Label>
-                            <Select
-                              value={settings[categoryKey] || "all"}
-                              onValueChange={(value) => setSettings({ ...settings, [categoryKey]: value === "all" ? "" : value })}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="ক্যাটাগরি বাছুন" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="all">সব প্রোডাক্ট</SelectItem>
-                                <SelectItem value="kitchen">কিচেন আইটেম</SelectItem>
-                                <SelectItem value="mens-bag">পুরুষদের ব্যাগ</SelectItem>
-                                <SelectItem value="fashion">ফ্যাশন</SelectItem>
-                                <SelectItem value="baby-items">বেবি আইটেম</SelectItem>
-                                <SelectItem value="ladies-bag">মহিলাদের ব্যাগ</SelectItem>
-                                <SelectItem value="speakers">স্পিকার</SelectItem>
-                                <SelectItem value="smart-watch">স্মার্ট ওয়াচ</SelectItem>
-                                <SelectItem value="headphones">হেডফোন</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  <p className="text-sm text-muted-foreground bg-muted p-3 rounded-lg">
-                    💡 <strong>টিপস:</strong> ক্যাটাগরি বাছাই করলে সেই ক্যাটাগরির প্রোডাক্ট দেখাবে। ফাঁকা রাখলে সর্বশেষ প্রোডাক্ট দেখাবে।
-                  </p>
-                </CardContent>
-              </Card>
               </div>
             </TabsContent>
 

@@ -1,3 +1,5 @@
+import { salesPlainText } from '@/lib/salesRichText';
+import { renderSalesText } from '@/components/salespage/SalesRichText';
 import { motion } from "framer-motion";
 import { SalesPage } from "@/types/salesPage";
 import { Play } from "lucide-react";
@@ -22,7 +24,7 @@ const VideoSection = ({ page }: VideoSectionProps) => {
 
   return (
     <section 
-      className="py-10 px-4"
+      className="py-10 px-1.5"
       style={{ backgroundColor: isLightTheme ? colors.background : '#0f172a' }}
     >
       <motion.div
@@ -30,7 +32,7 @@ const VideoSection = ({ page }: VideoSectionProps) => {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.6 }}
-        className="max-w-2xl mx-auto"
+        className="max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto"
       >
         {/* Header */}
         <div className="text-center mb-6">
@@ -50,10 +52,10 @@ const VideoSection = ({ page }: VideoSectionProps) => {
             className="text-xl md:text-2xl font-bold mb-1"
             style={{ color: isLightTheme ? colors.text : '#fff' }}
           >
-            {page.video_title}
+            {renderSalesText(page.video_title)}
           </h2>
           <p style={{ color: isLightTheme ? colors.text : '#fff', opacity: 0.6 }}>
-            {page.video_subtitle}
+            {renderSalesText(page.video_subtitle)}
           </p>
         </div>
 
@@ -68,11 +70,11 @@ const VideoSection = ({ page }: VideoSectionProps) => {
             boxShadow: `0 20px 40px -12px ${colors.primary}40`
           }}
         >
-          {youtubeId ? (
+          {renderSalesText(youtubeId ? (
             <div className="aspect-video">
-              <iframe
+              <iframe loading="lazy"
                 src={`https://www.youtube.com/embed/${youtubeId}?rel=0`}
-                title={page.video_title}
+                title={salesPlainText(page.video_title)}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
                 className="w-full h-full"
@@ -87,11 +89,11 @@ const VideoSection = ({ page }: VideoSectionProps) => {
                 poster={page.gallery_images?.[0]}
               />
             </div>
-          )}
+          ))}
         </motion.div>
 
         {/* Optional quote/testimonial under video (like Image 30) */}
-        {template.id === 'classic-white' && (
+        {renderSalesText(template.id === 'classic-white' && (
           <motion.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
@@ -106,7 +108,7 @@ const VideoSection = ({ page }: VideoSectionProps) => {
               "সেরা মানের পণ্য, সেরা সেবা"
             </p>
           </motion.div>
-        )}
+        ))}
       </motion.div>
     </section>
   );

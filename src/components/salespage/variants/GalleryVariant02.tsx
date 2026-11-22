@@ -1,3 +1,5 @@
+import { salesPlainText } from '@/lib/salesRichText';
+import { renderSalesText } from '@/components/salespage/SalesRichText';
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -28,7 +30,7 @@ const GalleryVariant02 = ({ page, colors, isLightTheme, onOrderClick }: GalleryV
       className="py-8 px-3"
       style={{ backgroundColor: isLightTheme ? colors.background : '#0f172a' }}
     >
-      <div className="max-w-lg mx-auto">
+      <div className="max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -54,7 +56,7 @@ const GalleryVariant02 = ({ page, colors, isLightTheme, onOrderClick }: GalleryV
             <motion.img
               key={currentIndex}
               src={images[currentIndex]}
-              alt={`Product ${currentIndex + 1}`}
+              alt={salesPlainText(`Product ${currentIndex + 1}`)}
               className="w-full h-full object-cover"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -67,11 +69,11 @@ const GalleryVariant02 = ({ page, colors, isLightTheme, onOrderClick }: GalleryV
           <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between">
             <div>
               <p className="text-white font-medium text-sm">
-                {page.gallery_title || "প্রিমিয়াম কোয়ালিটি"}
+                {renderSalesText(page.gallery_title || "প্রিমিয়াম কোয়ালিটি")}
               </p>
               <div className="flex items-center gap-1 text-white/70 text-xs mt-0.5">
                 <Eye className="w-3 h-3" />
-                {currentIndex + 1} / {images.length}
+                {renderSalesText(currentIndex + 1)} / {renderSalesText(images.length)}
               </div>
             </div>
           </div>
@@ -83,7 +85,7 @@ const GalleryVariant02 = ({ page, colors, isLightTheme, onOrderClick }: GalleryV
             <ZoomIn className="w-4 h-4 text-white" />
           </button>
 
-          {images.length > 1 && (
+          {renderSalesText(images.length > 1 && (
             <>
               <button
                 onClick={prevSlide}
@@ -98,12 +100,12 @@ const GalleryVariant02 = ({ page, colors, isLightTheme, onOrderClick }: GalleryV
                 <ChevronRight className="w-4 h-4 text-white" />
               </button>
             </>
-          )}
+          ))}
         </motion.div>
 
         {/* Thumbnails */}
         <div className="flex gap-1.5 justify-center overflow-x-auto pb-2 scrollbar-hide">
-          {images.map((img, idx) => (
+          {renderSalesText(images.map((img, idx) => (
             <button
               key={idx}
               onClick={() => setCurrentIndex(idx)}
@@ -112,9 +114,9 @@ const GalleryVariant02 = ({ page, colors, isLightTheme, onOrderClick }: GalleryV
               }`}
               style={currentIndex === idx ? { boxShadow: `0 0 0 2px ${colors.accent}` } : {}}
             >
-              <img src={img} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+              <img src={img} alt={salesPlainText(`Thumbnail ${idx + 1}`)} className="w-full h-full object-cover" />
             </button>
-          ))}
+          )))}
         </div>
 
         <motion.div
@@ -131,14 +133,14 @@ const GalleryVariant02 = ({ page, colors, isLightTheme, onOrderClick }: GalleryV
               boxShadow: `0 8px 20px -6px ${colors.primary}50`
             }}
           >
-            {page.cta_button_text || "এখনই অর্ডার করুন"}
+            {renderSalesText(page.cta_button_text || "এখনই অর্ডার করুন")}
           </Button>
         </motion.div>
       </div>
 
       {/* Lightbox */}
       <AnimatePresence>
-        {selectedImage && (
+        {renderSalesText(selectedImage && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -161,7 +163,7 @@ const GalleryVariant02 = ({ page, colors, isLightTheme, onOrderClick }: GalleryV
               <X className="w-5 h-5 text-white" />
             </button>
           </motion.div>
-        )}
+        ))}
       </AnimatePresence>
     </section>
   );

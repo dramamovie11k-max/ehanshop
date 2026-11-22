@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/integrations/cloudflare/client";
 
 interface DuplicateBlockSettings {
   enabled: boolean;
@@ -29,7 +29,7 @@ const defaultSettings: DuplicateBlockSettings = {
 const normalizePhoneNumber = (phone: string): string => {
   let digits = phone.replace(/\D/g, "");
   if (digits.length === 13 && digits.startsWith("88")) {
-    digits = "0" + digits.slice(2);
+    digits = digits.slice(2);
   }
   if (digits.length === 10) {
     digits = "0" + digits;
@@ -49,7 +49,7 @@ const getUserIP = async (): Promise<string | null> => {
       }
     }
 
-    const { data, error } = await supabase.functions.invoke("get-client-ip");
+    const { data, error } = await api.functions.invoke("get-client-ip");
     
     if (!error && data?.ip) {
       localStorage.setItem(IP_CACHE_KEY, JSON.stringify({ ip: data.ip, timestamp: Date.now() }));
@@ -57,22 +57,6 @@ const getUserIP = async (): Promise<string | null> => {
     }
   } catch (error) {
     console.error("Error fetching IP via edge function:", error);
-  }
-
-  // Fallback: try ipify
-  try {
-    const response = await fetch("https://api.ipify.org?format=json", {
-      signal: AbortSignal.timeout(3000),
-    });
-    if (response.ok) {
-      const data = await response.json();
-      if (data.ip) {
-        localStorage.setItem(IP_CACHE_KEY, JSON.stringify({ ip: data.ip, timestamp: Date.now() }));
-        return data.ip;
-      }
-    }
-  } catch {
-    console.error("Fallback IP fetch also failed");
   }
 
   return null;
@@ -117,7 +101,7 @@ export const useDuplicateOrderBlock = () => {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await api
           .from("site_settings")
           .select("setting_key, setting_value")
           .in("setting_key", [
@@ -176,77 +160,11 @@ export const useDuplicateOrderBlock = () => {
         };
       }
 
-      const blockTimeAgo = new Date(Date.now() - settings.blockTimeMinutes * 60 * 1000);
-
-      // 2. Check by phone number in DB
-      const normalizedPhone = normalizePhoneNumber(phone);
-      if (normalizedPhone && normalizedPhone.length === 11) {
-        try {
-          const { data: recentOrders, error } = await supabase
-            .from("orders")
-            .select("created_at, status")
-            .eq("customer_phone", normalizedPhone)
-            .gte("created_at", blockTimeAgo.toISOString())
-            .not("status", "eq", "cancelled")
-            .order("created_at", { ascending: false })
-            .limit(1);
-
-          if (!error && recentOrders && recentOrders.length > 0) {
-            const lastOrderTime = new Date(recentOrders[0].created_at);
-            const unblockTime = new Date(lastOrderTime.getTime() + settings.blockTimeMinutes * 60 * 1000);
-            const now = new Date();
-
-            if (unblockTime > now) {
-              const remainingMs = unblockTime.getTime() - now.getTime();
-              const remainingMinutes = Math.ceil(remainingMs / 60000);
-              saveOrderBlock(remainingMinutes);
-              return {
-                isBlocked: true,
-                remainingMinutes,
-                message: settings.message,
-                whatsappNumber: settings.whatsappNumber,
-              };
-            }
-          }
-        } catch (error) {
-          console.error("Error checking phone block:", error);
-        }
-      }
-
-      // 3. Check by IP address in DB (like WooCommerce transient check)
-      // Use preloaded IP if available, otherwise fetch fresh
-      try {
-        const userIP = preloadedIP !== undefined ? preloadedIP : await getUserIP();
-        if (userIP) {
-          const { data: ipOrders, error } = await supabase
-            .from("orders")
-            .select("created_at, status")
-            .eq("customer_ip", userIP)
-            .gte("created_at", blockTimeAgo.toISOString())
-            .not("status", "eq", "cancelled")
-            .order("created_at", { ascending: false })
-            .limit(1);
-
-          if (!error && ipOrders && ipOrders.length > 0) {
-            const lastOrderTime = new Date(ipOrders[0].created_at);
-            const unblockTime = new Date(lastOrderTime.getTime() + settings.blockTimeMinutes * 60 * 1000);
-            const now = new Date();
-
-            if (unblockTime > now) {
-              const remainingMs = unblockTime.getTime() - now.getTime();
-              const remainingMinutes = Math.ceil(remainingMs / 60000);
-              saveOrderBlock(remainingMinutes);
-              return {
-                isBlocked: true,
-                remainingMinutes,
-                message: settings.message,
-                whatsappNumber: settings.whatsappNumber,
-              };
-            }
-          }
-        }
-      } catch (error) {
-        console.error("Error checking IP block:", error);
+      const { data, error } = await api.rpc("duplicate_status", { phone: normalizePhoneNumber(phone) });
+      if (error) throw error;
+      if (data?.isBlocked) {
+        saveOrderBlock(data.remainingMinutes);
+        return data;
       }
 
       return { isBlocked: false, remainingMinutes: 0, message: "", whatsappNumber: "" };

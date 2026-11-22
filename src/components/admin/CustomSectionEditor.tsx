@@ -11,14 +11,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ChevronDown, Plus, Trash2, GripVertical, Upload, X } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/integrations/cloudflare/client";
 import { toast } from "sonner";
+import type { CustomElementStyles, CustomSectionButton } from '@/lib/customSectionElements';
+import CustomSectionElementsEditor from './CustomSectionElementsEditor';
+import CustomHtmlCodeEditor from './CustomHtmlCodeEditor';
 
 export interface CustomSection {
   id: string;
-  type: "text" | "image-text" | "bullet-points" | "image-grid" | "banner" | "gallery" | "slider" | "image" | "video" | "faq" | "divider" | "html" | "testimonial" | "pricing" | "countdown-timer" | "feature-icons" | "cta-banner" | "comparison";
+  name?: string;
+  type: "text" | "image-text" | "bullet-points" | "image-grid" | "banner" | "gallery" | "slider" | "image" | "video" | "faq" | "divider" | "html" | "testimonial" | "pricing" | "countdown-timer" | "feature-icons" | "cta-banner" | "comparison" | "button";
   title: string;
   content: string;
+  description?: string;
+  elementStyles?: CustomElementStyles;
+  buttons?: CustomSectionButton[];
   videoUrl: string;
   points: string[];
   images: string[];
@@ -49,6 +56,17 @@ export interface CustomSection {
     showCta: boolean;
     ctaText: string;
     imagePosition: "top" | "left" | "right" | "bottom";
+    sectionWidth: string;
+    marginX: string;
+    marginTop?: string;
+    marginBottom?: string;
+    radiusTL?: string;
+    radiusTR?: string;
+    radiusBR?: string;
+    radiusBL?: string;
+    backgroundOpacity: string;
+    backgroundImage: string;
+    ctaLink: string;
   };
 }
 
@@ -73,6 +91,11 @@ const defaultSectionStyles: CustomSection["styles"] = {
   showCta: true,
   ctaText: "এখনই অর্ডার করুন",
   imagePosition: "top",
+  sectionWidth: "100",
+  marginX: "0",
+  backgroundOpacity: "100",
+  backgroundImage: "",
+  ctaLink: "",
 };
 
 const sectionTypeLabels: Record<CustomSection["type"], string> = {
@@ -94,6 +117,7 @@ const sectionTypeLabels: Record<CustomSection["type"], string> = {
   "feature-icons": "🎯 ফিচার গ্রিড",
   "cta-banner": "🔥 CTA ব্যানার",
   "comparison": "⚖️ তুলনা",
+  "button": "বাটন",
 };
 
 interface CustomSectionEditorProps {
@@ -162,9 +186,9 @@ const CustomSectionEditor = ({ sections, onChange }: CustomSectionEditorProps) =
         const fileExt = file.name.split(".").pop();
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
         const filePath = `sales-pages/custom-sections/${fileName}`;
-        const { error: uploadError } = await supabase.storage.from("products").upload(filePath, file);
+        const { error: uploadError } = await api.storage.from("products").upload(filePath, file);
         if (uploadError) throw uploadError;
-        const { data: urlData } = supabase.storage.from("products").getPublicUrl(filePath);
+        const { data: urlData } = api.storage.from("products").getPublicUrl(filePath);
         uploadedUrls.push(urlData.publicUrl);
       }
       const section = sections.find((s) => s.id === uploadTargetId);
@@ -234,7 +258,7 @@ const CustomSectionEditor = ({ sections, onChange }: CustomSectionEditorProps) =
                 </button>
               </div>
               <span className="text-[10px] text-muted-foreground">{sectionTypeLabels[section.type]}</span>
-              <span className="text-xs font-medium truncate">{section.title || "শিরোনামবিহীন"}</span>
+              <span className="text-xs font-medium truncate">{section.name?.trim() || section.title || "কাস্টম সেকশন"}</span>
             </div>
             <div className="flex items-center gap-1">
               <button
@@ -250,6 +274,17 @@ const CustomSectionEditor = ({ sections, onChange }: CustomSectionEditorProps) =
 
           {expandedId === section.id && (
             <div className="p-3 border-t space-y-3 bg-background">
+              {section.type === 'html' ? <CustomHtmlCodeEditor section={section} onUpdate={updates => updateSection(section.id, updates)} /> : <>
+              <div>
+                <Label htmlFor={`${section.id}-name`} className="text-[10px]">সেকশনের নাম</Label>
+                <Input
+                  id={`${section.id}-name`}
+                  value={section.name ?? ""}
+                  onChange={(e) => updateSection(section.id, { name: e.target.value })}
+                  placeholder="যেমন: হিরো সেকশন, গ্যালারি সেকশন"
+                  className="h-7 text-xs"
+                />
+              </div>
               {/* Title */}
               <div>
                 <Label className="text-[10px]">শিরোনাম</Label>
@@ -262,7 +297,8 @@ const CustomSectionEditor = ({ sections, onChange }: CustomSectionEditorProps) =
               </div>
 
               {/* Content (for text, image-text, banner) */}
-              {["text", "image-text", "banner"].includes(section.type) && (
+              {(
+
                 <div>
                   <Label className="text-[10px]">কন্টেন্ট</Label>
                   <Textarea
@@ -273,6 +309,19 @@ const CustomSectionEditor = ({ sections, onChange }: CustomSectionEditorProps) =
                   />
                 </div>
               )}
+
+              <div>
+                <Label className="text-[10px]">বর্ণনা / ডিসক্রিপশন</Label>
+                <Textarea value={section.description ?? ""}
+                  onChange={(e) => updateSection(section.id, { description: e.target.value })}
+                  className="min-h-[60px] text-xs" />
+              </div>
+              <div>
+                <Label className="text-[10px]">ভিডিও URL</Label>
+                <Input value={section.videoUrl || ""}
+                  onChange={(e) => updateSection(section.id, { videoUrl: e.target.value })}
+                  className="h-7 text-xs" />
+              </div>
 
               {/* Bullet points */}
               {["bullet-points", "image-text"].includes(section.type) && (
@@ -314,7 +363,8 @@ const CustomSectionEditor = ({ sections, onChange }: CustomSectionEditorProps) =
               )}
 
               {/* Images (for image-text, image-grid, banner) */}
-              {["image-text", "image-grid", "banner"].includes(section.type) && (
+              {(
+
                 <div className="space-y-1">
                   <div className="flex justify-between items-center">
                     <Label className="text-[10px]">ইমেজ</Label>
@@ -370,7 +420,9 @@ const CustomSectionEditor = ({ sections, onChange }: CustomSectionEditorProps) =
                 </div>
               )}
 
+              <CustomSectionElementsEditor section={section} onUpdate={updates => updateSection(section.id, updates)} />
               {/* CTA toggle + text */}
+              {section.buttons === undefined && <>
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -388,6 +440,7 @@ const CustomSectionEditor = ({ sections, onChange }: CustomSectionEditorProps) =
                   className="h-7 text-xs"
                 />
               )}
+              </>}
 
               {/* Styles */}
               <div className="border-t pt-2">
@@ -431,6 +484,7 @@ const CustomSectionEditor = ({ sections, onChange }: CustomSectionEditorProps) =
                   </div>
                 </div>
               </div>
+              </>}
             </div>
           )}
         </div>

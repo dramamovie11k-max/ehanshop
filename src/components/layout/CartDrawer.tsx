@@ -11,7 +11,7 @@ import {
   SheetFooter,
   SheetClose,
 } from "@/components/ui/sheet";
-import { useCart } from "@/contexts/CartContext";
+import { useCart, cartItemPrice, cartItemVariationLabel, cartItemKey } from "@/contexts/CartContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 interface CartDrawerProps {
@@ -67,10 +67,9 @@ const CartDrawer = ({ open, onOpenChange }: CartDrawerProps) => {
         <ScrollArea className="flex-1 px-4">
           <div className="py-4 space-y-4">
             {cartItems.map((item) => {
-              const itemKey = item.variation 
-                ? `${item.product.id}-${item.variation.id}` 
-                : item.product.id;
-              const itemPrice = item.variation?.price ?? item.product.price;
+              const itemKey = cartItemKey(item);
+              const itemPrice = cartItemPrice(item);
+              const variationLabel = cartItemVariationLabel(item);
               const displayName = language === 'en' ? (item.product.name || item.product.name_bn) : item.product.name_bn;
               
               return (
@@ -96,8 +95,8 @@ const CartDrawer = ({ open, onOpenChange }: CartDrawerProps) => {
                         {displayName}
                       </Link>
                     </SheetClose>
-                    {item.variation && (
-                      <p className="text-xs text-muted-foreground">{item.variation.variation_name}</p>
+                    {variationLabel && (
+                      <p className="text-xs text-muted-foreground">{variationLabel}</p>
                     )}
                     <p className="text-primary font-bold mt-1">৳{itemPrice.toLocaleString()}</p>
 
@@ -107,7 +106,7 @@ const CartDrawer = ({ open, onOpenChange }: CartDrawerProps) => {
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7"
-                          onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.variation?.id)}
+                          onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.variation?.id, itemKey)}
                         >
                           <Minus className="h-3 w-3" />
                         </Button>
@@ -116,7 +115,7 @@ const CartDrawer = ({ open, onOpenChange }: CartDrawerProps) => {
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7"
-                          onClick={() => updateQuantity(item.product.id, item.quantity + 1, item.variation?.id)}
+                          onClick={() => updateQuantity(item.product.id, item.quantity + 1, item.variation?.id, itemKey)}
                         >
                           <Plus className="h-3 w-3" />
                         </Button>
@@ -125,7 +124,7 @@ const CartDrawer = ({ open, onOpenChange }: CartDrawerProps) => {
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 text-destructive hover:text-destructive"
-                        onClick={() => removeFromCart(item.product.id, item.variation?.id)}
+                        onClick={() => removeFromCart(item.product.id, item.variation?.id, itemKey)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

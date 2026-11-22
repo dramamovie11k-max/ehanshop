@@ -1,3 +1,5 @@
+import { salesPlainText } from '@/lib/salesRichText';
+import { renderSalesText } from '@/components/salespage/SalesRichText';
  import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
  import { SalesPage } from "@/types/salesPage";
@@ -20,7 +22,7 @@ import { ArrowRight, ChevronDown } from "lucide-react";
         background: `linear-gradient(180deg, ${colors.primary} 0%, ${colors.background} 100%)`
        }}
      >
-      <div className="relative z-10 max-w-lg mx-auto px-3 pt-6 pb-8 text-center">
+      <div className="relative z-10 max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto px-3 pt-6 pb-8 text-center">
          {/* Badge */}
          <motion.div
            initial={{ opacity: 0, y: -10 }}
@@ -35,7 +37,7 @@ import { ArrowRight, ChevronDown } from "lucide-react";
               border: `1px solid ${colors.accent}40`
              }}
            >
-             🔥 {page.hero_badge_text || "সীমিত সময়ের অফার"}
+             🔥 {renderSalesText(page.hero_badge_text || "সীমিত সময়ের অফার")}
            </span>
          </motion.div>
  
@@ -46,7 +48,7 @@ import { ArrowRight, ChevronDown } from "lucide-react";
            transition={{ delay: 0.1 }}
           className="text-3xl md:text-4xl font-black text-white mb-2"
          >
-          মাত্র <span style={{ color: colors.accent }}>{page.price_unit}{page.offer_price}</span> টাকায়
+          মাত্র <span style={{ color: colors.accent }}>{renderSalesText(page.price_unit)}{renderSalesText(page.offer_price)}</span> টাকায়
         </motion.h1>
 
         <motion.p
@@ -55,7 +57,7 @@ import { ArrowRight, ChevronDown } from "lucide-react";
           transition={{ delay: 0.15 }}
           className="text-lg font-medium text-white/80 mb-6"
         >
-          {page.hero_headline}
+          {renderSalesText(page.hero_headline)}
         </motion.p>
  
         {/* Image Grid - 2x2 without buttons */}
@@ -65,7 +67,7 @@ import { ArrowRight, ChevronDown } from "lucide-react";
           transition={{ delay: 0.2 }}
           className="grid grid-cols-2 gap-3 mb-4"
          >
-           {images.map((image, i) => (
+           {renderSalesText(images.map((image, i) => (
              <div 
                key={i}
               className="relative rounded-xl overflow-hidden aspect-[3/4] shadow-lg"
@@ -73,20 +75,20 @@ import { ArrowRight, ChevronDown } from "lucide-react";
              >
                <img 
                  src={image} 
-                 alt={`Product ${i + 1}`}
+                 alt={salesPlainText(`Product ${i + 1}`)}
                  className="w-full h-full object-cover"
                />
               {/* Price badge on first image */}
-              {i === 0 && (
+              {renderSalesText(i === 0 && (
                 <div 
                   className="absolute top-2 left-2 px-2 py-1 rounded-lg text-xs font-bold text-white"
                   style={{ backgroundColor: colors.accent }}
                 >
-                  {page.price_unit}{page.offer_price}
+                  {renderSalesText(page.price_unit)}{renderSalesText(page.offer_price)}
                 </div>
-              )}
+              ))}
              </div>
-           ))}
+           )))}
          </motion.div>
  
         {/* Scroll indicator */}
@@ -117,7 +119,7 @@ import { ArrowRight, ChevronDown } from "lucide-react";
               boxShadow: `0 8px 30px -8px ${colors.accent}80`
             }}
           >
-            {page.cta_button_text || "এখনই অর্ডার করুন"}
+            {renderSalesText(page.cta_button_text || "এখনই অর্ডার করুন")}
             <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
          </motion.div>

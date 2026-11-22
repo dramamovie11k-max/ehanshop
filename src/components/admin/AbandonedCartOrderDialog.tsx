@@ -18,8 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { apiFetch } from "@/lib/apiClient";
-import { createOrder } from "@/lib/dataApi";
+import { api } from "@/integrations/cloudflare/client";
 import { useProducts } from "@/hooks/useProducts";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -132,7 +131,6 @@ const AbandonedCartOrderDialog = ({
     : 0;
 
   const shippingCost = subtotal >= 1000 ? 0 : 60;
-  const discountFactor = subtotal > 0 ? Math.max(0, subtotal - discountAmount) / subtotal : 1;
   const total = Math.max(0, subtotal - discountAmount + shippingCost);
 
   const filteredProducts = products.filter(
@@ -200,31 +198,55 @@ const AbandonedCartOrderDialog = ({
         ? `${orderNotes}\n(অসম্পূর্ণ অর্ডার থেকে তৈরি)` 
         : "(অসম্পূর্ণ অর্ডার থেকে তৈরি)";
 
-      // Create order — Cloudflare রুটে সার্ভার-সাইড ভ্যালিডেশনসহ
-      await createOrder({
-        customer_name: customerName,
-        customer_phone: customerPhone,
-        customer_address: customerAddress,
-        customer_city: customerCity,
-        shipping_cost: shippingCost,
-        payment_method: "cod",
-        notes: orderNotes,
-        order_source: "abandoned_cart",
-        items: orderItems.map((item) => ({
-          product_id: item.product.id,
-          product_name: item.product.name_bn,
-          // ডিসকাউন্ট প্রতিটি আইটেমে আনুপাতিকভাবে ভাগ হয়, তাই সার্ভারের
-          // হিসাব করা মোট = ইউআই-তে দেখানো মোট
-          product_price: Math.round(item.product.price * discountFactor * 100) / 100,
-          quantity: item.quantity,
-        })),
+      // Create order
+      const { data: order, error: orderError } = await api
+        .from("orders")
+        .insert({
+          customer_name: customerName,
+          customer_phone: customerPhone,
+          customer_address: customerAddress,
+          customer_city: customerCity,
+          total_amount: total,
+          shipping_cost: shippingCost,
+          payment_method: "cod",
+          notes: orderNotes,
+          status: "pending",
+          order_source: "abandoned_cart",
+        })
+        .select()
+        .single();
+
+      if (orderError) throw orderError;
+
+      // Create order items
+      const orderItemsData = orderItems.map((item) => ({
+        order_id: order.id,
+        product_id: item.product.id,
+        product_name: item.product.name_bn,
+        product_price: item.product.price,
+        quantity: item.quantity,
+      }));
+
+      const { error: itemsError } = await api
+        .from("order_items")
+        .insert(orderItemsData);
+
+      if (itemsError) throw itemsError;
+
+      // Create order log
+      await api.from("order_logs").insert({
+        order_id: order.id,
+        action: "order_created",
+        new_status: "pending",
+        notes: `অসম্পূর্ণ অর্ডার থেকে তৈরি${discountAmount > 0 ? ` - ${discountType === "percentage" ? `${discountValue}%` : `৳${discountValue}`} ডিসকাউন্ট দেওয়া হয়েছে` : ""}`,
       });
 
       // Delete abandoned cart
       if (abandonedCart) {
-        await apiFetch(`/abandoned-carts/${encodeURIComponent(abandonedCart.id)}`, {
-          method: "DELETE",
-        }).catch(() => undefined);
+        await api
+          .from("abandoned_carts")
+          .delete()
+          .eq("id", abandonedCart.id);
       }
 
       toast.success("অর্ডার সফলভাবে তৈরি হয়েছে!");

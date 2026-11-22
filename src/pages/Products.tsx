@@ -15,7 +15,7 @@ const Products = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const categorySlug = searchParams.get("category") || undefined;
   const searchQuery = searchParams.get("search") || "";
-  const { data: products = [], isLoading } = useProducts({ categorySlug });
+  const { data: products = [], isLoading } = useProducts({ categorySlug, compact: true });
   const { data: categories = [] } = useCategories();
   const { t, language } = useLanguage();
 

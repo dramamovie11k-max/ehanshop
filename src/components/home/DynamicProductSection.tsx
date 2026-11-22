@@ -3,7 +3,7 @@ import ProductCard from "./ProductCard";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/integrations/cloudflare/client";
 import { Product } from "@/types";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -30,20 +30,18 @@ const DynamicProductSection = ({ sectionNumber }: DynamicProductSectionProps) =>
   const subtitle = getSetting(`product_section_${sectionNumber}_subtitle`, "");
   const categorySlug = getSetting(`product_section_${sectionNumber}_category`, "");
   const isEnabled = getSetting(`product_section_${sectionNumber}_enabled`, "true") === "true";
-  const rawCount = parseInt(getSetting(`product_section_${sectionNumber}_count`, "10"), 10);
-  const productCount = Number.isFinite(rawCount) && rawCount > 0 ? Math.min(rawCount, 50) : 10;
 
   const { data: allProducts = [], isLoading: productsLoading } = useQuery({
     queryKey: ["dynamic-products", sectionNumber, categorySlug],
     staleTime: 3 * 60 * 1000,
     queryFn: async () => {
-      let query = supabase
+      let query = api
         .from("products")
         .select("*, categories(*)")
         .order("created_at", { ascending: false });
 
       if (categorySlug) {
-        const { data: category } = await supabase
+        const { data: category } = await api
           .from("categories")
           .select("id")
           .eq("slug", categorySlug)
@@ -56,15 +54,13 @@ const DynamicProductSection = ({ sectionNumber }: DynamicProductSectionProps) =>
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data ?? []) as Product[];
+      return data as Product[];
     },
     enabled: isEnabled && !settingsLoading,
   });
 
-  const list = Array.isArray(allProducts) ? allProducts : [];
-  const products = list.slice(0, productCount);
-  const hasMore = list.length > productCount;
-
+  const products = allProducts.slice(0, 10);
+  const hasMore = allProducts.length > 8;
 
   if (!isEnabled || settingsLoading) return null;
 
@@ -83,36 +79,33 @@ const DynamicProductSection = ({ sectionNumber }: DynamicProductSectionProps) =>
   return (
     <section className="py-4 w-[calc(100vw-40px)] left-1/2 -translate-x-1/2 relative">
       <div className="w-full">
-        <div className="mb-[30px]">
-          <div className="flex items-center gap-3 sm:gap-4">
-            <span className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-foreground/40" />
+        <div className="flex items-end justify-between gap-3 mb-4">
+          <div className="min-w-0">
             <h2
-              className="text-lg sm:text-2xl font-extrabold text-foreground leading-tight text-center whitespace-nowrap"
-              style={{ fontFamily: "'Hind Siliguri', sans-serif" }}
+              className="text-lg sm:text-2xl font-extrabold text-foreground flex items-center gap-1.5 leading-tight"
+              style={{ fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif" }}
             >
-              {title}
+              <span className="text-amber-500">✨</span>
+              <span className="truncate">{title}</span>
             </h2>
-            <span className="h-px flex-1 bg-gradient-to-l from-transparent via-border to-foreground/40" />
-          </div>
-          {subtitle && (
-            <p
-              className="text-xs sm:text-sm text-muted-foreground mt-1.5 text-center line-clamp-1"
-              style={{ fontFamily: "'Hind Siliguri', sans-serif" }}
-            >
-              {subtitle}
-            </p>
-          )}
-          {hasMore && (
-            <div className="flex justify-center mt-2.5">
-              <Link
-                to={categorySlug ? `/products?category=${categorySlug}` : '/products'}
-                className="text-xs sm:text-sm font-semibold text-primary border border-primary/30 hover:bg-primary hover:text-primary-foreground transition-colors rounded-full px-4 py-1 inline-flex items-center gap-1 whitespace-nowrap"
-                style={{ fontFamily: "'Hind Siliguri', sans-serif" }}
+            {subtitle && (
+              <p
+                className="text-xs sm:text-sm text-muted-foreground mt-1 line-clamp-1"
+                style={{ fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif" }}
               >
-                {t('section.see_all')}
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
+                {subtitle}
+              </p>
+            )}
+          </div>
+          {hasMore && (
+            <Link
+              to={categorySlug ? `/products?category=${categorySlug}` : '/products'}
+              className="shrink-0 text-xs sm:text-sm font-medium text-foreground hover:text-primary inline-flex items-center gap-1 whitespace-nowrap"
+              style={{ fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif" }}
+            >
+              {t('section.see_all')}
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
           )}
         </div>
 

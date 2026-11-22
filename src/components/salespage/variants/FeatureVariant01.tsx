@@ -1,3 +1,4 @@
+import { renderSalesText } from '@/components/salespage/SalesRichText';
 import { motion } from "framer-motion";
 import { SalesPage } from "@/types/salesPage";
 import { Check } from "lucide-react";
@@ -34,7 +35,7 @@ const FeatureVariant01 = ({ page, colors, isLightTheme }: FeatureVariantProps) =
       className="py-8 px-4 relative overflow-hidden"
       style={{ backgroundColor: colors.background }}
     >
-      <div className="max-w-lg mx-auto">
+      <div className="max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -42,10 +43,10 @@ const FeatureVariant01 = ({ page, colors, isLightTheme }: FeatureVariantProps) =
           className="text-center mb-5"
         >
           <h2 className="text-3xl font-bold mb-1" style={{ color: colors.text }}>
-            {page.features_headline}
+            {renderSalesText(page.features_headline)}
           </h2>
           <p className="text-lg" style={{ color: colors.text, opacity: 0.7 }}>
-            {page.features_subheadline}
+            {renderSalesText(page.features_subheadline)}
           </p>
         </motion.div>
 
@@ -56,7 +57,7 @@ const FeatureVariant01 = ({ page, colors, isLightTheme }: FeatureVariantProps) =
           viewport={{ once: true }}
           className="space-y-2"
         >
-          {features.map((feature, index) => (
+          {renderSalesText(features.map((feature, index) => (
             <motion.div
               key={index}
               variants={itemVariants}
@@ -75,16 +76,16 @@ const FeatureVariant01 = ({ page, colors, isLightTheme }: FeatureVariantProps) =
               </div>
               <div>
                 <h3 className="font-semibold text-sm" style={{ color: colors.text }}>
-                  {feature.text}
+                  {renderSalesText(feature.text)}
                 </h3>
-                {feature.desc && (
+                {renderSalesText(feature.desc && (
                   <p className="text-xs mt-0.5" style={{ color: colors.text, opacity: 0.7 }}>
-                    {feature.desc}
+                    {renderSalesText(feature.desc)}
                   </p>
-                )}
+                ))}
               </div>
             </motion.div>
-          ))}
+          )))}
         </motion.div>
       </div>
     </section>

@@ -1,7 +1,13 @@
+import SectionAppearance from '../SectionAppearance';
+import ExtraSection from '../ExtraSection';
+import { isExtraDesign } from '@/lib/extraSectionDesigns';
+import { salesPlainText } from '@/lib/salesRichText';
+import { renderSalesText } from '@/components/salespage/SalesRichText';
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { SalesPage, SpecItem } from "@/types/salesPage";
 import CheckoutSection from "../CheckoutSection";
+import SharedHeroSection from "../SharedHeroSection";
 import ContactSection from "../ContactSection";
 import VideoSection from "../VideoSection";
 import GallerySection from "../GallerySection";
@@ -37,7 +43,7 @@ const ImageLightbox = ({ src, alt, onClose }: { src: string; alt: string; onClos
     >✕</button>
     <motion.img
       initial={{ scale: 0.8 }} animate={{ scale: 1 }}
-      src={src} alt={alt}
+      src={src} alt={salesPlainText(alt)}
       onClick={(e) => e.stopPropagation()}
       style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: '8px', cursor: 'default' }}
     />
@@ -86,21 +92,21 @@ const ReviewCarousel = ({ images, accentColor }: { images: string[]; accentColor
     <>
       <div style={{ position: 'relative' }}>
         <div style={{ display: 'grid', gridTemplateColumns: visibleImages.length > 1 ? '1fr 1fr' : '1fr', gap: '8px' }}>
-          {visibleImages.map((img, i) => (
+          {renderSalesText(visibleImages.map((img, i) => (
             <div key={`${currentIndex}-${i}`} onClick={() => setLightboxImage(img)} style={{ borderRadius: '12px', overflow: 'hidden', border: `1px solid ${accentColor}20`, cursor: 'zoom-in' }}>
-              <motion.img initial={{ opacity: 0.5 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} src={img} alt={`Review ${i + 1}`} style={{ width: '100%', height: 'auto', objectFit: 'cover', display: 'block' }} />
+              <motion.img initial={{ opacity: 0.5 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} src={img} alt={salesPlainText(`Review ${i + 1}`)} style={{ width: '100%', height: 'auto', objectFit: 'cover', display: 'block' }} />
             </div>
-          ))}
+          )))}
         </div>
-        {images.length > 2 && (
+        {renderSalesText(images.length > 2 && (
           <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginTop: '12px' }}>
-            {images.map((_, i) => (
+            {renderSalesText(images.map((_, i) => (
               <button key={i} onClick={() => goTo(i)} style={{ height: '8px', width: i === currentIndex ? '22px' : '8px', borderRadius: '4px', backgroundColor: i === currentIndex ? accentColor : `${accentColor}40`, border: 'none', cursor: 'pointer', transition: 'all 0.3s' }} />
-            ))}
+            )))}
           </div>
-        )}
+        ))}
       </div>
-      {lightboxImage && <ImageLightbox src={lightboxImage} alt="Review" onClose={() => setLightboxImage(null)} />}
+      {renderSalesText(lightboxImage && <ImageLightbox src={lightboxImage} alt="Review" onClose={() => setLightboxImage(null)} />)}
     </>
   );
 };
@@ -176,6 +182,7 @@ const Template13NaturalCard = ({ page }: TemplateProps) => {
   // ===== HERO SECTION - কার্ভড কার্ড ডিজাইন =====
   const renderHero = () => {
     if (!page.show_hero_section) return null;
+    if (page.template_styles?.hero?.design) return <SharedHeroSection page={page} onOrderClick={scrollToCheckout} />;
 
     const heroImages = page.hero_images?.filter(img => img && img.trim()) || [];
 
@@ -183,7 +190,7 @@ const Template13NaturalCard = ({ page }: TemplateProps) => {
       <section
         key="hero"
         style={{
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
           background: c.bg,
           padding: '20px',
           display: 'flex',
@@ -218,23 +225,23 @@ const Template13NaturalCard = ({ page }: TemplateProps) => {
                 lineHeight: 1.3,
                 fontWeight: 700,
                 color: c.headline,
-                fontFamily: "'Hind Siliguri', sans-serif",
+                fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
               }}
             >
-              {page.hero_headline || 'আপনার প্রোডাক্টের হেডলাইন'}
-              {page.hero_subheadline && (
+              {renderSalesText(page.hero_headline || 'আপনার প্রোডাক্টের হেডলাইন')}
+              {renderSalesText(page.hero_subheadline && (
                 <>
-                  {' '}
-                  <span style={{ color: c.accent }}>{page.hero_subheadline}</span>
+                  {renderSalesText(' ')}
+                  <span style={{ color: c.accent }}>{renderSalesText(page.hero_subheadline)}</span>
                 </>
-              )}
+              ))}
             </motion.h2>
           </div>
 
           {/* ইমেজ - ডানে বামে মার্জিন সহ */}
-          {heroImages.length > 0 && (
+          {renderSalesText(heroImages.length > 0 && (
             <HeroImageSlider images={heroImages} />
-          )}
+          ))}
 
           {/* CTA বাটন */}
           <motion.div
@@ -258,7 +265,7 @@ const Template13NaturalCard = ({ page }: TemplateProps) => {
                 transition: 'all 0.2s ease',
                 cursor: 'pointer',
                 border: 'none',
-                fontFamily: "'Hind Siliguri', sans-serif",
+                fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-3px)';
@@ -269,7 +276,7 @@ const Template13NaturalCard = ({ page }: TemplateProps) => {
                 e.currentTarget.style.boxShadow = `0 6px 0px ${darkenHex(c.button, 0.3)}`;
               }}
             >
-              {page.cta_button_text || 'অর্ডার করুন'}
+              {renderSalesText(page.cta_button_text || 'অর্ডার করুন')}
             </button>
           </motion.div>
         </motion.div>
@@ -313,7 +320,7 @@ const Template13NaturalCard = ({ page }: TemplateProps) => {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
           src={images[currentSlide]}
-          alt={`Product ${currentSlide + 1}`}
+          alt={salesPlainText(`Product ${currentSlide + 1}`)}
           style={{
             width: '100%',
             height: '100%',
@@ -321,12 +328,12 @@ const Template13NaturalCard = ({ page }: TemplateProps) => {
             display: 'block',
           }}
         />
-        {images.length > 1 && (
+        {renderSalesText(images.length > 1 && (
           <div style={{
             position: 'absolute', bottom: '12px', left: '50%', transform: 'translateX(-50%)',
             display: 'flex', gap: '6px',
           }}>
-            {images.map((_, i) => (
+            {renderSalesText(images.map((_, i) => (
               <button
                 key={i}
                 onClick={() => { setCurrentSlide(i); if (sliderInterval.current) clearInterval(sliderInterval.current); }}
@@ -340,9 +347,9 @@ const Template13NaturalCard = ({ page }: TemplateProps) => {
                   transition: 'all 0.3s',
                 }}
               />
-            ))}
+            )))}
           </div>
-        )}
+        ))}
       </motion.div>
     );
   };
@@ -373,7 +380,7 @@ const Template13NaturalCard = ({ page }: TemplateProps) => {
       <section
         key="features"
         style={{
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
           background: c.bg,
           padding: '40px 15px',
         }}
@@ -390,26 +397,26 @@ const Template13NaturalCard = ({ page }: TemplateProps) => {
               fontWeight: 700,
               color: c.primary,
               marginBottom: '8px',
-              fontFamily: "'Hind Siliguri', sans-serif",
+              fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
             }}>
-              {page.features_headline || 'কি কি থাকছে?'}
+              {renderSalesText(page.features_headline || 'কি কি থাকছে?')}
             </h2>
-            {page.features_subheadline && (
+            {renderSalesText(page.features_subheadline && (
               <p style={{
                 textAlign: 'center',
                 fontSize: '14px',
                 color: '#666',
                 marginBottom: '24px',
               }}>
-                {page.features_subheadline}
+                {renderSalesText(page.features_subheadline)}
               </p>
-            )}
+            ))}
           </motion.div>
 
           {/* Feature Section Images */}
-          {page.feature_section_images && page.feature_section_images.length > 0 && (
+          {renderSalesText(page.feature_section_images && page.feature_section_images.length > 0 && (
             <div style={{ marginBottom: '20px' }}>
-              {page.feature_section_images.map((img, idx) => (
+              {renderSalesText(page.feature_section_images.map((img, idx) => (
                 <motion.div
                   key={idx}
                   initial={{ opacity: 0, y: 15 }}
@@ -418,17 +425,17 @@ const Template13NaturalCard = ({ page }: TemplateProps) => {
                   transition={{ delay: idx * 0.1 }}
                   style={{ marginBottom: '12px' }}
                 >
-                  <img src={img} alt={`Feature ${idx + 1}`} style={{
+                  <img src={img} alt={salesPlainText(`Feature ${idx + 1}`)} style={{
                     width: '100%', borderRadius: '16px', 
                     border: `2px solid ${c.primary}20`,
                   }} />
                 </motion.div>
-              ))}
+              )))}
             </div>
-          )}
+          ))}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {featureItems.map((item, i) => (
+            {renderSalesText(featureItems.map((item, i) => (
               <motion.div
                 key={i}
                 initial={{ opacity: 0, x: -15 }}
@@ -455,30 +462,30 @@ const Template13NaturalCard = ({ page }: TemplateProps) => {
                   background: `${c.accent}30`,
                   borderRadius: '10px',
                 }}>
-                  {item.icon}
+                  {renderSalesText(item.icon)}
                 </span>
                 <div>
                   <span style={{
                     fontSize: '16px',
                     fontWeight: 600,
                     color: c.text,
-                    fontFamily: "'Hind Siliguri', sans-serif",
+                    fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
                   }}>
-                    {item.text}
+                    {renderSalesText(item.text)}
                   </span>
-                  {item.description && (
+                  {renderSalesText(item.description && (
                     <p style={{
                       fontSize: '13px',
                       color: `${c.text}bb`,
                       marginTop: '2px',
-                      fontFamily: "'Hind Siliguri', sans-serif",
+                      fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
                     }}>
-                      {item.description}
+                      {renderSalesText(item.description)}
                     </p>
-                  )}
+                  ))}
                 </div>
               </motion.div>
-            ))}
+            )))}
           </div>
 
           {/* CTA Button */}
@@ -495,13 +502,13 @@ const Template13NaturalCard = ({ page }: TemplateProps) => {
                 border: 'none',
                 cursor: 'pointer',
                 boxShadow: `0 4px 0px ${darkenHex(c.button, 0.3)}`,
-                fontFamily: "'Hind Siliguri', sans-serif",
+                fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
                 transition: 'all 0.2s ease',
               }}
               onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
             >
-              {page.cta_button_text || 'অর্ডার করুন'}
+              {renderSalesText(page.cta_button_text || 'অর্ডার করুন')}
             </button>
           </div>
         </div>
@@ -519,7 +526,7 @@ const Template13NaturalCard = ({ page }: TemplateProps) => {
       <section
         key="spec"
         style={{
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
           background: c.bg,
           padding: '40px 15px',
         }}
@@ -532,7 +539,7 @@ const Template13NaturalCard = ({ page }: TemplateProps) => {
             color: c.primary,
             marginBottom: '20px',
           }}>
-            {page.spec_section_heading || 'স্পেসিফিকেশন'}
+            {renderSalesText(page.spec_section_heading || 'স্পেসিফিকেশন')}
           </h2>
           <div style={{
             background: '#fff',
@@ -540,7 +547,7 @@ const Template13NaturalCard = ({ page }: TemplateProps) => {
             overflow: 'hidden',
             boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
           }}>
-            {specItems.map((item: SpecItem, i: number) => (
+            {renderSalesText(specItems.map((item: SpecItem, i: number) => (
               <div key={i} style={{
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -548,10 +555,10 @@ const Template13NaturalCard = ({ page }: TemplateProps) => {
                 borderBottom: i < specItems.length - 1 ? '1px solid #eee' : 'none',
                 background: i % 2 === 0 ? '#f9f9f9' : '#fff',
               }}>
-                <span style={{ fontWeight: 600, color: '#333', fontSize: '14px' }}>{item.label}</span>
-                <span style={{ color: '#555', fontSize: '14px' }}>{item.value}</span>
+                <span style={{ fontWeight: 600, color: '#333', fontSize: '14px' }}>{renderSalesText(item.label)}</span>
+                <span style={{ color: '#555', fontSize: '14px' }}>{renderSalesText(item.value)}</span>
               </div>
-            ))}
+            )))}
           </div>
         </div>
       </section>
@@ -568,7 +575,7 @@ const Template13NaturalCard = ({ page }: TemplateProps) => {
       <section
         key="reviews"
         style={{
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
           background: c.bg,
           padding: '40px 15px',
         }}
@@ -586,36 +593,36 @@ const Template13NaturalCard = ({ page }: TemplateProps) => {
               color: c.primary,
               marginBottom: '6px',
             }}>
-              {page.reviews_headline || 'কাস্টমার ফিডব্যাক'}
+              {renderSalesText(page.reviews_headline || 'কাস্টমার ফিডব্যাক')}
             </h2>
-            {page.reviews_subheadline && (
+            {renderSalesText(page.reviews_subheadline && (
               <p style={{
                 textAlign: 'center',
                 fontSize: '14px',
                 color: '#666',
                 marginBottom: '20px',
               }}>
-                {page.reviews_subheadline}
+                {renderSalesText(page.reviews_subheadline)}
               </p>
-            )}
+            ))}
           </motion.div>
 
           {/* Review Video */}
-          {page.review_video_url && (
+          {renderSalesText(page.review_video_url && (
             <div style={{ marginBottom: '16px', borderRadius: '16px', overflow: 'hidden' }}>
-              <iframe
+              <iframe loading="lazy"
                 src={page.review_video_url.replace('watch?v=', 'embed/')}
                 style={{ width: '100%', height: isMobile ? '220px' : '280px', border: 'none' }}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               />
             </div>
-          )}
+          ))}
 
           {/* Review Image Carousel */}
-          {reviewImages.length > 0 && (
+          {renderSalesText(reviewImages.length > 0 && (
             <ReviewCarousel images={reviewImages} accentColor={c.primary} />
-          )}
+          ))}
         </div>
       </section>
     );
@@ -644,13 +651,13 @@ const Template13NaturalCard = ({ page }: TemplateProps) => {
       <section
         key={`extra${num}`}
         style={{
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
           background: c.bg,
           padding: '40px 15px',
         }}
       >
         <div style={{ maxWidth: '480px', margin: '0 auto' }}>
-          {heading && (
+          {renderSalesText(heading && (
             <h2 style={{
               textAlign: 'center',
               fontSize: '22px',
@@ -658,11 +665,11 @@ const Template13NaturalCard = ({ page }: TemplateProps) => {
               color: c.primary,
               marginBottom: '20px',
             }}>
-              {heading}
+              {renderSalesText(heading)}
             </h2>
-          )}
+          ))}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {points.map((pt, i) => (
+            {renderSalesText(points.map((pt, i) => (
               <motion.div
                 key={i}
                 initial={{ opacity: 0, x: -10 }}
@@ -691,9 +698,9 @@ const Template13NaturalCard = ({ page }: TemplateProps) => {
                 }}>
                   ✅
                 </span>
-                <span style={{ fontSize: '15px', fontFamily: "'Hind Siliguri', sans-serif" }}>{pt}</span>
+                <span style={{ fontSize: '15px', fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif" }}>{renderSalesText(pt)}</span>
               </motion.div>
-            ))}
+            )))}
           </div>
         </div>
       </section>
@@ -718,9 +725,9 @@ const Template13NaturalCard = ({ page }: TemplateProps) => {
       case 'contact':
         if (!page.show_contact_section) return null;
         return <div key="contact" style={{ background: c.bg }}><ContactSection page={page} /></div>;
-      case 'extra1': return renderExtraSection(1);
-      case 'extra2': return renderExtraSection(2);
-      case 'extra3': return renderExtraSection(3);
+      case 'extra1': return isExtraDesign(page.template_styles?.extra1?.design) ? <ExtraSection key="extra1" page={page} number={1} /> : renderExtraSection(1);
+      case 'extra2': return isExtraDesign(page.template_styles?.extra2?.design) ? <ExtraSection key="extra2" page={page} number={2} /> : renderExtraSection(2);
+      case 'extra3': return isExtraDesign(page.template_styles?.extra3?.design) ? <ExtraSection key="extra3" page={page} number={3} /> : renderExtraSection(3);
       case 'checkout':
         if (!page.show_checkout_section) return null;
         return <div key="checkout" id="checkout" style={{ background: c.bg }}><CheckoutSection page={page} /></div>;
@@ -729,10 +736,10 @@ const Template13NaturalCard = ({ page }: TemplateProps) => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: c.bg, fontFamily: "'Hind Siliguri', sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: c.bg, fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif" }}>
       <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet" />
 
-      {sectionOrder.map((key) => renderSectionByKey(key))}
+      {renderSalesText(sectionOrder.map((key) => <SectionAppearance key={key} page={page} section={key}>{renderSectionByKey(key)}</SectionAppearance>))}
 
       {/* Footer */}
       <div
@@ -742,10 +749,10 @@ const Template13NaturalCard = ({ page }: TemplateProps) => {
           background: c.primary,
           color: `${c.text}99`,
           fontSize: '13px',
-          fontFamily: "'Hind Siliguri', sans-serif",
+          fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
         }}
       >
-        <p>{page.footer_text || `© ${new Date().getFullYear()} - সকল অধিকার সংরক্ষিত`}</p>
+        <p>{renderSalesText(page.footer_text || `© ${new Date().getFullYear()} - সকল অধিকার সংরক্ষিত`)}</p>
       </div>
     </div>
   );

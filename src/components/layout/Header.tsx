@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { 
   Search, ShoppingCart, User, Menu, X, ChevronDown, ChevronRight,
@@ -15,9 +15,11 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { usePages } from "@/hooks/usePages";
 
 import CartDrawer from "./CartDrawer";
+import DesktopHeader from "./DesktopHeader";
+import { headerCustomizationCss, parseHeaderCustomization, type HeaderPart } from "@/lib/headerCustomization";
 import SearchPopover from "./SearchPopover";
 import LanguageSwitcher from "./LanguageSwitcher";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 
 // Icon mapping for categories
 const categoryIcons: Record<string, React.ElementType> = {
@@ -41,6 +43,8 @@ const categoryColors: Record<string, string> = {
 const Header = () => {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const menuTriggerRef = useRef<HTMLElement | null>(null);
+  const [menuDevice, setMenuDevice] = useState<'desktop' | 'mobile'>('mobile');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [mobileSearchQuery, setMobileSearchQuery] = useState("");
@@ -49,26 +53,32 @@ const Header = () => {
   
   const { user, signOut } = useAuth();
   const { cartCount, isDrawerOpen, setIsDrawerOpen } = useCart();
-  const { data: categoryData } = useCategories();
-  const { data: pageData } = usePages();
-  const categories = Array.isArray(categoryData) ? categoryData : [];
-  const pages = Array.isArray(pageData) ? pageData : [];
+  const { data: categories = [] } = useCategories();
+  const { data: pages = [] } = usePages();
   const { isAdmin, isModerator } = useStaffAccess();
   const navigate = useNavigate();
   const { getSetting } = useSiteSettings();
   const { t, language } = useLanguage();
+  const customization = parseHeaderCustomization(getSetting('header_customization'));
+  const mobilePart = (name: HeaderPart) => ({ 'data-header-device': 'mobile', 'data-header-part': name });
+  const mobileCopy = (name: HeaderPart, fallback: string) => customization.mobile[name]?.text?.trim() || fallback;
   
 
   const siteName = getSetting("site_name", "GadgetBD");
   const siteTagline = getSetting("site_tagline", "প্রিমিয়াম গ্যাজেট শপ");
   const siteLogo = getSetting("site_logo_text", "G");
-  const siteLogoUrl = getSetting("site_logo_url", "");
+  const siteLogoUrl = customization.mobile.logo?.imageUrl || getSetting("site_logo_url", "");
   const contactPhone = getSetting("footer_phone", "০১৭XX-XXXXXX");
   const contactEmail = getSetting("footer_email", "support@gadgetbd.com");
   
   // Header colors from settings
   const headerBgColor = getSetting("header_bg_color", "#0f172a");
   const headerTextColor = getSetting("header_text_color", "#ffffff");
+  const topBarEnabled = getSetting("topbar_enabled", "1") !== "0";
+  const topBarMessage = (getSetting(
+    "topbar_messages",
+    "👉 টাকা হাতে পেয়ে দেখে টাকা দিন|🏆 ১০০% কোয়ালিটি পণ্য|🔁 ৭ দিনের রিটার্ন/এক্সচেঞ্জ|🚚 হোম ডেলিভারি সারা বাংলাদেশে"
+  ).split(/\n|\|/).map(s => s.trim()).filter(Boolean)[0]) || "";
   const topBarBgColor = getSetting("topbar_bg_color", "");
   const topBarTextColor = getSetting("topbar_text_color", "");
   const topBarGradFrom = getSetting("topbar_gradient_from", "#16a34a");
@@ -136,52 +146,64 @@ const Header = () => {
   return (
     <>
       <header className="sticky top-0 z-50 bg-background shadow-lg">
-        {/* Top Bar */}
-        <div 
-          className="bg-primary text-primary-foreground"
-          style={{ 
-            backgroundColor: (topBarGradFrom && topBarGradTo) ? undefined : (topBarBgColor || undefined),
-            backgroundImage: (topBarGradFrom && topBarGradTo)
-              ? `linear-gradient(${topBarGradDir}, ${topBarGradFrom}, ${topBarGradTo})`
-              : undefined,
-            color: topBarTextColor || undefined 
-          }}
-        >
-          {(() => {
-            const raw = getSetting(
-              "topbar_messages",
-              "👉 টাকা হাতে পেয়ে দেখে টাকা দিন|🏆 ১০০% কোয়ালিটি পণ্য|🔁 ৭ দিনের রিটার্ন/এক্সচেঞ্জ|🚚 হোম ডেলিভারি সারা বাংলাদেশে"
-            );
-            const messages = raw.split(/\n|\|/).map(s => s.trim()).filter(Boolean);
-            if (messages.length === 0) return null;
-            const loop = [...messages, ...messages];
-            return (
-              <div className="overflow-hidden h-9 flex items-center">
-                <div className="animate-marquee flex whitespace-nowrap items-center text-[13px] font-medium">
-                  {loop.map((msg, i) => (
-                    <span key={i} className="flex items-center">
-                      <span className="px-5" dangerouslySetInnerHTML={{ __html: msg }} />
-                      <span className="opacity-50">|</span>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            );
-          })()}
-        </div>
+        <style>{headerCustomizationCss(customization)}</style>
+        <DesktopHeader onMenuOpen={trigger => { menuTriggerRef.current = trigger; setMenuDevice('desktop'); setMobileMenuOpen(true); }} />
+        {/* Top Bar (single static message, toggleable from header settings) */}
+        {(topBarEnabled || customization.mobile.topbar?.visible === true) && topBarMessage && (
+          <div 
+            {...mobilePart('topbar')}
+            className="bg-primary text-primary-foreground lg:hidden"
+            style={{ 
+              backgroundColor: (topBarGradFrom && topBarGradTo) ? undefined : (topBarBgColor || undefined),
+              backgroundImage: (topBarGradFrom && topBarGradTo)
+                ? `linear-gradient(${topBarGradDir}, ${topBarGradFrom}, ${topBarGradTo})`
+                : undefined,
+              color: topBarTextColor || undefined 
+            }}
+          >
+            <div className="overflow-hidden h-9 flex items-center justify-center">
+              <span {...mobilePart('message')} className="text-[13px] font-medium">{mobileCopy('message',topBarMessage.replace(/<[^>]*>/g, ''))}</span>
+            </div>
+          </div>
+        )}
 
         {/* Main Header */}
         <div 
-          className="text-white"
+          {...mobilePart('header')}
+          className="text-white lg:hidden"
           style={{ 
             backgroundColor: headerBgColor,
             color: headerTextColor 
           }}
         >
           <div className="w-[98%] max-w-[1240px] mx-auto">
-            <div className="flex items-center justify-between h-16 gap-4">
-              {/* Logo - LEFT */}
-              <Link to="/" className="flex items-center shrink-0">
+            <div data-header-row className="flex items-center justify-between h-16 gap-2">
+              {/* Mobile left: menu + search */}
+              <div className="flex items-center gap-2 lg:hidden flex-1">
+                <button
+                  {...mobilePart('menu')}
+                  onClick={event => { menuTriggerRef.current = event.currentTarget; setMenuDevice('mobile'); setMobileMenuOpen(!mobileMenuOpen); }}
+                  aria-label="মেনু"
+                  className="h-10 w-10 rounded-xl border border-white/20 flex items-center justify-center transition-colors"
+                  style={{ color: headerTextColor }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = hoverStyle}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                </button>
+                <button
+                  {...mobilePart('search')}
+                  onClick={() => setIsMobileSearchOpen((v) => !v)}
+                  aria-label="সার্চ"
+                  className="h-10 w-10 rounded-xl border border-white/20 flex items-center justify-center transition-colors"
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = hoverStyle}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  <Search className="h-5 w-5 opacity-90" />
+                </button>
+              </div>
+              {/* Logo - center on mobile, left on desktop */}
+              <Link {...mobilePart('logo')} to="/" className="flex items-center shrink-0">
                 {siteLogoUrl ? (
                   <img 
                     src={siteLogoUrl} 
@@ -268,21 +290,8 @@ const Header = () => {
                 })}
               </nav>
 
-              {/* Spacer to push actions to right */}
-              <div className="flex-1 lg:hidden" />
-
               {/* Actions */}
-              <div className="flex items-center gap-2 shrink-0">
-                {/* Mobile Search */}
-                <button
-                  onClick={() => setIsMobileSearchOpen((v) => !v)}
-                  className="lg:hidden p-2 rounded-lg border border-white/30 transition-colors"
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = hoverStyle}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                >
-                  <Search className="h-5 w-5 opacity-90" />
-                </button>
-
+              <div className="flex items-center gap-2 shrink-0 flex-1 lg:flex-none justify-end">
                 {/* Desktop Search Icon */}
                 <button
                   onClick={() => setIsSearchOpen(true)}
@@ -293,18 +302,18 @@ const Header = () => {
                   <Search className="h-5 w-5 opacity-90" />
                 </button>
 
-                {/* Account - Desktop */}
-                <div className="hidden sm:block relative group">
-                  <button className="flex items-center gap-2 p-2 rounded-xl transition-colors" style={{ color: headerTextColor }}>
+                {/* Account */}
+                <div className="relative group">
+                  <button {...mobilePart('account')} className="flex items-center gap-2 p-2 rounded-xl max-lg:h-10 max-lg:w-10 max-lg:justify-center max-lg:border max-lg:border-white/20 transition-colors" style={{ color: headerTextColor }}>
                     <User className="h-5 w-5 opacity-90" />
-                    <div className="text-left">
+                    <div className="text-left hidden sm:block">
                       <p className="text-xs opacity-70">{language === 'bn' ? 'আমার' : 'My'}</p>
                       <p className="text-sm font-medium -mt-0.5">{t('header.account')}</p>
                     </div>
                   </button>
                   
                   {/* Account Dropdown */}
-                  <div className="absolute right-0 top-full pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  <div {...mobilePart('dropdown')} className="absolute right-0 top-full pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                     <div className="bg-white text-foreground rounded-xl shadow-xl border min-w-[200px] py-2 overflow-hidden">
                       {user ? (
                         <>
@@ -359,34 +368,26 @@ const Header = () => {
 
                 {/* Cart */}
                 <button
+                  {...mobilePart('cart')}
                   onClick={() => setIsDrawerOpen(true)}
-                  className="relative p-2 rounded-lg lg:border-0 border border-white/30 transition-colors"
+                  aria-label={mobileCopy('cart','কার্ট')}
+                  className="relative p-2 rounded-xl max-lg:h-10 max-lg:w-10 max-lg:flex max-lg:items-center max-lg:justify-center lg:border-0 border border-white/20 transition-colors"
                   onMouseEnter={(e) => e.currentTarget.style.backgroundColor = hoverStyle}
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
                   <ShoppingCart className="h-5 w-5 opacity-90" />
                   {cartCount > 0 && (
                     <span
-                      className="absolute top-0 right-0 min-w-[18px] h-[18px] text-[10px] font-bold rounded-full flex items-center justify-center px-1"
+                      {...mobilePart('badge')}
+                      className="absolute -top-1 -right-1 min-w-[18px] h-[18px] text-[10px] font-bold rounded-full flex items-center justify-center px-1"
                       style={{
-                        backgroundColor: badgeBgColor || "hsl(var(--primary))",
-                        color: badgeTextColor || "hsl(var(--primary-foreground))",
+                        backgroundColor: badgeBgColor || "#22c55e",
+                        color: badgeTextColor || "#ffffff",
                       }}
                     >
                       {cartCount}
                     </span>
                   )}
-                </button>
-
-                {/* Mobile Menu Toggle - RIGHT (last) */}
-                <button
-                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                  className="lg:hidden p-2 rounded-lg border border-white/30 transition-colors"
-                  style={{ color: headerTextColor }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = hoverStyle}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                >
-                  {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
                 </button>
               </div>
             </div>
@@ -421,12 +422,14 @@ const Header = () => {
                     type="text"
                     value={mobileSearchQuery}
                     onChange={(e) => setMobileSearchQuery(e.target.value)}
-                    placeholder={t('header.search_placeholder')}
+                    {...mobilePart('searchInput')}
+                    placeholder={mobileCopy('searchInput',t('header.search_placeholder'))}
                     className="w-full h-10 pl-9 pr-12 rounded-full bg-muted text-foreground placeholder:text-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/30"
                   />
                   <button
                     type="submit"
-                    aria-label="Search"
+                    {...mobilePart('searchButton')}
+                    aria-label={mobileCopy('searchButton','Search')}
                     className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:opacity-90 transition-opacity"
                   >
                     <Search className="h-4 w-4" />
@@ -449,17 +452,22 @@ const Header = () => {
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <SheetContent
             side="left"
-            className="lg:hidden p-0 w-[85%] max-w-[340px] overflow-y-auto border-r bg-background text-foreground"
+            data-header-device={menuDevice}
+            data-header-part="dropdown"
+            aria-describedby={undefined}
+            onCloseAutoFocus={event => { event.preventDefault(); menuTriggerRef.current?.focus(); }}
+            className=" p-0 w-[85%] max-w-[340px] lg:w-[400px] lg:max-w-[400px] overflow-y-auto border-r bg-background text-foreground"
           >
+            <SheetTitle className="sr-only">{language === 'en' ? 'Menu and categories' : 'মেনু ও ক্যাটেগরি'}</SheetTitle>
             {/* Logo header strip — matches main header color */}
             <div
               className="px-4 py-4 border-b"
               style={{
-                backgroundColor: (topBarGradFrom && topBarGradTo) ? undefined : (headerBgColor || undefined),
-                backgroundImage: (topBarGradFrom && topBarGradTo)
+                backgroundColor: menuDevice === 'desktop' ? '#ffffff' : (topBarGradFrom && topBarGradTo) ? undefined : (headerBgColor || undefined),
+                backgroundImage: menuDevice === 'desktop' ? undefined : (topBarGradFrom && topBarGradTo)
                   ? `linear-gradient(${topBarGradDir}, ${topBarGradFrom}, ${topBarGradTo})`
                   : undefined,
-                color: headerTextColor,
+                color: menuDevice === 'desktop' ? '#07391E' : headerTextColor,
               }}
             >
               <Link
@@ -467,9 +475,9 @@ const Header = () => {
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex items-center gap-3"
               >
-                {siteLogoUrl ? (
+                {(customization[menuDevice].logo?.imageUrl || getSetting('site_logo_url')) ? (
                   <img
-                    src={siteLogoUrl}
+                    src={(customization[menuDevice].logo?.imageUrl || getSetting('site_logo_url'))}
                     alt={siteName}
                     style={{ height: `${logoSize}px` }}
                     className="w-auto object-contain"

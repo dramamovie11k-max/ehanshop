@@ -9,21 +9,20 @@ export interface Category {
   parent_id: string | null;
 }
  
- export interface ProductVariation {
-   id: string;
-   product_id: string;
-   variation_type: string;
-   variation_name: string;
-   price: number;
-   stock: number | null;
-   sort_order: number;
-   is_default: boolean;
-  image_url: string | null;
-  shipping_inside_dhaka?: number | null;
-  shipping_outside_dhaka?: number | null;
-  free_shipping?: boolean | null;
-   created_at: string;
- }
+  export interface ProductVariation {
+    id: string;
+    product_id: string;
+    variation_type: string;
+    variation_name: string;
+    price: number;
+    stock: number | null;
+    sort_order: number;
+    is_default: boolean;
+   image_url: string | null;
+   /** Variation group (e.g. "কালার", "সাইজ"); null/empty = legacy single group. */
+   group_name?: string | null;
+    created_at: string;
+  }
 
 export interface Product {
   id: string;

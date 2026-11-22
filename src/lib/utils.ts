@@ -29,7 +29,8 @@ export function getWhatsAppUrl(input: string, message?: string): string {
     return url;
   }
   
-  const phone = trimmed.replace(/[^\d+]/g, "").replace(/^\+/, "");
+  let phone = trimmed.replace(/[^\d+]/g, "").replace(/^\+/, "");
+  if (phone.startsWith("0") && phone.length === 11) phone = `88${phone}`;
   const url = `https://wa.me/${phone}`;
   return message ? `${url}?text=${encodeURIComponent(message)}` : url;
 }

@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { uploadFile } from "@/lib/dataApi";
+import { api } from "@/integrations/cloudflare/client";
 
 export type BlogSectionType = "text" | "image" | "video" | "product" | "button" | "gallery";
 
@@ -59,15 +58,19 @@ export interface BlogPost {
 }
 
 export const uploadBlogImage = async (file: File): Promise<string> => {
-  const { url } = await uploadFile(file, "blog-images");
-  return url;
+  const ext = file.name.split(".").pop();
+  const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const { error } = await api.storage.from("blog-images").upload(fileName, file);
+  if (error) throw error;
+  const { data } = api.storage.from("blog-images").getPublicUrl(fileName);
+  return data.publicUrl;
 };
 
 export const useBlogs = () => {
   return useQuery({
     queryKey: ["blog-posts"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await api
         .from("blog_posts" as any)
         .select("*, products(name, name_bn, image_url, slug)")
         .eq("is_published", true)
@@ -82,7 +85,7 @@ export const useAdminBlogs = () => {
   return useQuery({
     queryKey: ["admin-blog-posts"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await api
         .from("blog_posts" as any)
         .select("*, products(name, name_bn, image_url, slug)")
         .order("created_at", { ascending: false });
@@ -97,7 +100,7 @@ export const useBlogMutations = () => {
 
   const createBlog = useMutation({
     mutationFn: async (blog: Partial<BlogPost>) => {
-      const { data, error } = await supabase
+      const { data, error } = await api
         .from("blog_posts" as any)
         .insert(blog as any)
         .select()
@@ -113,7 +116,7 @@ export const useBlogMutations = () => {
 
   const updateBlog = useMutation({
     mutationFn: async ({ id, ...blog }: Partial<BlogPost> & { id: string }) => {
-      const { data, error } = await supabase
+      const { data, error } = await api
         .from("blog_posts" as any)
         .update(blog as any)
         .eq("id", id)
@@ -130,7 +133,7 @@ export const useBlogMutations = () => {
 
   const deleteBlog = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      const { error } = await api
         .from("blog_posts" as any)
         .delete()
         .eq("id", id);

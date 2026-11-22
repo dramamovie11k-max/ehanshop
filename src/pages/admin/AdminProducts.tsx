@@ -42,8 +42,7 @@ import ProductVariationEditor from "@/components/admin/ProductVariationEditor";
 import GalleryImageUploader from "@/components/admin/GalleryImageUploader";
 import { useAdminProducts } from "@/hooks/useAdmin";
 import { useCategories } from "@/hooks/useProducts";
-import { apiFetch } from "@/lib/apiClient";
-import { uploadFile } from "@/lib/dataApi";
+import { api } from "@/integrations/cloudflare/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -72,7 +71,6 @@ const AdminProducts = () => {
     price: "",
     original_price: "",
     category_id: "",
-    category_ids: [] as string[],
     stock: "",
     is_featured: false,
     is_new: false,
@@ -122,13 +120,12 @@ const AdminProducts = () => {
   const handleBulkDelete = async () => {
     setIsDeleting(true);
     try {
-      await apiFetch("/db", {
-        method: "POST",
-        body: JSON.stringify({
-          table: "products", action: "delete",
-          filters: [{ op: "in", column: "id", value: selectedIds }], returning: false,
-        }),
-      });
+      const { error } = await api
+        .from("products")
+        .delete()
+        .in("id", selectedIds);
+
+      if (error) throw error;
 
       toast.success(`${selectedIds.length}টি প্রোডাক্ট ডিলিট হয়েছে`);
       setSelectedIds([]);
@@ -161,9 +158,6 @@ const AdminProducts = () => {
         price: String(product.price),
         original_price: product.original_price ? String(product.original_price) : "",
         category_id: product.category_id || "",
-        category_ids: (product.product_categories || []).map((pc: any) => pc.category_id).length
-          ? (product.product_categories || []).map((pc: any) => pc.category_id)
-          : (product.category_id ? [product.category_id] : []),
         stock: String(product.stock),
         is_featured: product.is_featured,
         is_new: product.is_new,
@@ -186,7 +180,6 @@ const AdminProducts = () => {
         price: "",
         original_price: "",
         category_id: "",
-        category_ids: [],
         stock: "",
         is_featured: false,
         is_new: false,
@@ -207,15 +200,27 @@ const AdminProducts = () => {
     if (!file) return;
 
     setUploading(true);
-    try {
-      const { url } = await uploadFile(file, "products");
-      setFormData({ ...formData, image_url: url });
-      toast.success("ইমেজ আপলোড হয়েছে");
-    } catch {
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${Date.now()}.${fileExt}`;
+    const filePath = `products/${fileName}`;
+
+    const { error: uploadError } = await api.storage
+      .from("products")
+      .upload(filePath, file);
+
+    if (uploadError) {
       toast.error("ইমেজ আপলোড ব্যর্থ হয়েছে");
-    } finally {
       setUploading(false);
+      return;
     }
+
+    const { data: { publicUrl } } = api.storage
+      .from("products")
+      .getPublicUrl(filePath);
+
+    setFormData({ ...formData, image_url: publicUrl });
+    setUploading(false);
+    toast.success("ইমেজ আপলোড হয়েছে");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -230,7 +235,7 @@ const AdminProducts = () => {
       short_description_bn: formData.short_description_bn || null,
       price: parseFloat(formData.price),
       original_price: formData.original_price ? parseFloat(formData.original_price) : null,
-      category_id: formData.category_ids[0] || formData.category_id || null,
+      category_id: formData.category_id || null,
       stock: parseInt(formData.stock) || 0,
       is_featured: formData.is_featured,
       is_new: formData.is_new,
@@ -245,38 +250,19 @@ const AdminProducts = () => {
     };
 
     try {
-      let productId = editingProduct?.id as string | undefined;
-
       if (editingProduct) {
-        await apiFetch(`/products/${encodeURIComponent(editingProduct.id)}`, {
-          method: "PATCH", body: JSON.stringify(productData),
-        });
+        const { error } = await api
+          .from("products")
+          .update(productData)
+          .eq("id", editingProduct.id);
+
+        if (error) throw error;
         toast.success("প্রোডাক্ট আপডেট হয়েছে");
       } else {
-        const inserted = await apiFetch<any>("/products", {
-          method: "POST", body: JSON.stringify(productData),
-        });
-        productId = inserted?.id;
-        toast.success("প্রোডাক্ট যোগ হয়েছে");
-      }
+        const { error } = await api.from("products").insert(productData);
 
-      if (productId) {
-        await apiFetch("/db", {
-          method: "POST",
-          body: JSON.stringify({
-            table: "product_categories", action: "delete",
-            filters: [{ op: "eq", column: "product_id", value: productId }], returning: false,
-          }),
-        });
-        if (formData.category_ids.length > 0) {
-          await apiFetch("/db", {
-            method: "POST",
-            body: JSON.stringify({
-              table: "product_categories", action: "insert", returning: false,
-              values: formData.category_ids.map((cid) => ({ product_id: productId!, category_id: cid })),
-            }),
-          });
-        }
+        if (error) throw error;
+        toast.success("প্রোডাক্ট যোগ হয়েছে");
       }
 
       queryClient.invalidateQueries({ queryKey: ["adminProducts"] });
@@ -290,13 +276,14 @@ const AdminProducts = () => {
   };
 
   const handleDelete = async (productId: string) => {
-    try {
-      await apiFetch(`/products/${encodeURIComponent(productId)}`, { method: "DELETE" });
+    const { error } = await api.from("products").delete().eq("id", productId);
+
+    if (error) {
+      toast.error("ডিলিট ব্যর্থ হয়েছে");
+    } else {
       toast.success("প্রোডাক্ট ডিলিট হয়েছে");
       queryClient.invalidateQueries({ queryKey: ["adminProducts"] });
       queryClient.invalidateQueries({ queryKey: ["products"] });
-    } catch {
-      toast.error("ডিলিট ব্যর্থ হয়েছে");
     }
   };
 
@@ -449,36 +436,22 @@ const AdminProducts = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>ক্যাটাগরি (একাধিক সিলেক্ট করা যাবে)</Label>
-                    <div className="max-h-44 overflow-y-auto rounded-md border border-border p-3 grid grid-cols-2 gap-2">
-                      {categories.map((cat) => {
-                        const checked = formData.category_ids.includes(cat.id);
-                        return (
-                          <label
-                            key={cat.id}
-                            className="flex items-center gap-2 text-sm cursor-pointer"
-                          >
-                            <Checkbox
-                              checked={checked}
-                              onCheckedChange={(v) =>
-                                setFormData({
-                                  ...formData,
-                                  category_ids: v
-                                    ? [...formData.category_ids, cat.id]
-                                    : formData.category_ids.filter((id) => id !== cat.id),
-                                })
-                              }
-                            />
-                            <span>{cat.name_bn}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                    {formData.category_ids.length > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        {formData.category_ids.length} টি ক্যাটাগরি সিলেক্ট করা হয়েছে
-                      </p>
-                    )}
+                    <Label>ক্যাটাগরি</Label>
+                    <Select
+                      value={formData.category_id}
+                      onValueChange={(value) => setFormData({ ...formData, category_id: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="ক্যাটাগরি বাছুন" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            {cat.name_bn}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-2">

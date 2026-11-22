@@ -1,3 +1,8 @@
+import SectionAppearance from '../SectionAppearance';
+import ExtraSection from '../ExtraSection';
+import { isExtraDesign } from '@/lib/extraSectionDesigns';
+import { salesPlainText } from '@/lib/salesRichText';
+import { renderSalesText } from '@/components/salespage/SalesRichText';
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -5,6 +10,11 @@ import { SalesPage } from "@/types/salesPage";
 import { ArrowRight, Phone, MessageCircle, CheckCircle, Star, Truck, Shield, Package } from "lucide-react";
 import { getWhatsAppUrl } from "@/lib/utils";
 import CheckoutSection from "../CheckoutSection";
+import SharedHeroSection from "../SharedHeroSection";
+import SharedContactSection from "../ContactSection";
+import SharedReviewsSection from "../SharedReviewsSection";
+import SharedFeaturesSection from "../SharedFeaturesSection";
+import SharedGallerySection from "../SharedGallerySection";
 import { usePixelTracking } from "@/hooks/usePixelTracking";
 
 interface TemplateProps {
@@ -63,43 +73,23 @@ const Template05Countdown = ({ page }: TemplateProps) => {
     cardBg: darkenColor(page.primary_color || '#0d6b1e', 0.15),
   };
 
+  const sections: Record<string, React.ReactNode> = {
+    hero: page.show_hero_section && (page.template_styles?.hero?.design ? <SharedHeroSection page={page} onOrderClick={scrollToCheckout} /> : <HeroHealth page={page} colors={colors} onOrderClick={scrollToCheckout} />),
+    ...Object.fromEntries(([1, 2, 3] as const).map(number => [`extra${number}`, page[`show_extra_section_${number}`] && (isExtraDesign(page.template_styles?.[`extra${number}`]?.design) ? <ExtraSection page={page} number={number} /> : <ExtraBenefitsSection page={page} colors={colors} sectionNumber={number} onOrderClick={scrollToCheckout} />)])),
+    gallery: page.show_gallery_section && page.gallery_images?.length > 0 && (page.template_styles?.gallery?.design ? <SharedGallerySection page={page} onOrderClick={scrollToCheckout} /> : <GallerySection page={page} colors={colors} onOrderClick={scrollToCheckout} />),
+    features: page.show_features_section && (page.template_styles?.features?.design ? <SharedFeaturesSection page={page} /> : <FeaturesSection page={page} colors={colors} />),
+    reviews: page.show_reviews_section && (page.review_images?.length > 0 || page.review_video_url) && <SharedReviewsSection page={page} legacyColors={{ sectionBg: colors.background, headingText: colors.text, subtitleText: colors.headline, imageBorder: colors.border, videoBorder: colors.border }} />,
+    contact: page.show_contact_section && <SharedContactSection page={page} />,
+    checkout: <div ref={checkoutRef}>{page.show_checkout_section && <CheckoutSection page={page} />}</div>,
+  };
+  const order = page.section_order?.length ? page.section_order : Object.keys(sections);
   return (
-    <div className="min-h-screen" style={{ fontFamily: "'Hind Siliguri', sans-serif" }}>
-      <HeroHealth page={page} colors={colors} onOrderClick={scrollToCheckout} />
-
-      {page.show_extra_section_1 && (
-        <ExtraBenefitsSection page={page} colors={colors} sectionNumber={1} onOrderClick={scrollToCheckout} />
-      )}
-      {page.show_extra_section_2 && (
-        <ExtraBenefitsSection page={page} colors={colors} sectionNumber={2} onOrderClick={scrollToCheckout} />
-      )}
-      {page.show_extra_section_3 && (
-        <ExtraBenefitsSection page={page} colors={colors} sectionNumber={3} onOrderClick={scrollToCheckout} />
-      )}
-
-      {page.show_gallery_section && page.gallery_images && page.gallery_images.length > 0 && (
-        <GallerySection page={page} colors={colors} onOrderClick={scrollToCheckout} />
-      )}
-
-      {page.show_features_section && (
-        <FeaturesSection page={page} colors={colors} />
-      )}
-
-      {page.show_reviews_section && ((page.review_images && page.review_images.length > 0) || (page as any).review_video_url) && (
-        <ReviewsSection page={page} colors={colors} onOrderClick={scrollToCheckout} />
-      )}
-
-      {page.show_contact_section && (
-        <ContactSection page={page} colors={colors} />
-      )}
-
-      <div ref={checkoutRef}>
-        {page.show_checkout_section && <CheckoutSection page={page} />}
-      </div>
+    <div className="min-h-screen" style={{ fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif" }}>
+      {order.map(id => <SectionAppearance key={id} page={page} section={id}>{sections[id]}</SectionAppearance>)}
 
       <footer className="py-8 text-center" style={{ backgroundColor: colors.background }}>
         <p className="text-sm" style={{ color: colors.text, opacity: 0.6 }}>
-          {page.footer_text || `© ${new Date().getFullYear()} - সকল অধিকার সংরক্ষিত`}
+          {renderSalesText(page.footer_text || `© ${new Date().getFullYear()} - সকল অধিকার সংরক্ষিত`)}
         </p>
       </footer>
     </div>
@@ -125,10 +115,10 @@ const CTAButton = ({ colors, onClick, text }: { colors: any; onClick: () => void
         color: '#ffffff',
         textShadow: '1px 1px 2px rgba(0,0,0,0.4)',
         boxShadow: `0 4px 16px ${colors.button}80, inset 0 1px 0 rgba(255,255,255,0.3)`,
-        fontFamily: "'Hind Siliguri', sans-serif",
+        fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
       }}
     >
-      👆 {text}
+      👆 {renderSalesText(text)}
     </button>
   </motion.div>
 );
@@ -151,16 +141,16 @@ const SectionHeading = ({ colors, text, subtitle }: { colors: any; text: string;
         border: `2px solid ${colors.border}`,
         borderRadius: '8px',
         backgroundColor: 'rgba(0, 0, 0, 0.15)',
-        fontFamily: "'Hind Siliguri', sans-serif",
+        fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
       }}
     >
-      {text}
+      {renderSalesText(text)}
     </h2>
-    {subtitle && (
+    {renderSalesText(subtitle && (
       <p className="text-[15px] mt-2 font-medium" style={{ color: colors.text, opacity: 0.8 }}>
-        {subtitle}
+        {renderSalesText(subtitle)}
       </p>
-    )}
+    ))}
   </motion.div>
 );
 
@@ -201,7 +191,7 @@ const SliderArrows = ({ colors, onPrev, onNext }: { colors: any; onPrev: () => v
 // ══════════════════════════════════════════════
 const SliderDots = ({ colors, count, activeIndex, onSelect }: { colors: any; count: number; activeIndex: number; onSelect: (i: number) => void }) => (
   <div className="flex justify-center gap-2 mt-4">
-    {Array.from({ length: count }).map((_, idx) => (
+    {renderSalesText(Array.from({ length: count }).map((_, idx) => (
       <button
         key={idx}
         onClick={() => onSelect(idx)}
@@ -216,7 +206,7 @@ const SliderDots = ({ colors, count, activeIndex, onSelect }: { colors: any; cou
           boxShadow: activeIndex === idx ? `0 2px 8px ${colors.button}80` : 'none',
         }}
       />
-    ))}
+    )))}
   </div>
 );
 
@@ -243,14 +233,14 @@ const ExtraBenefitsSection = ({ page, colors, sectionNumber, onOrderClick }: { p
       className="py-8 px-4"
       style={{
         background: `linear-gradient(180deg, ${colors.primary} 0%, ${colors.background} 100%)`,
-        fontFamily: "'Hind Siliguri', sans-serif",
+        fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
       }}
     >
-      <div className="max-w-lg mx-auto">
-        {heading && <SectionHeading colors={colors} text={heading} />}
+      <div className="max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto">
+        {renderSalesText(heading && <SectionHeading colors={colors} text={heading} />)}
 
         <div className="space-y-3">
-          {points.map((point, idx) => (
+          {renderSalesText(points.map((point, idx) => (
             <motion.div
               key={idx}
               initial={{ opacity: 0, x: -20 }}
@@ -277,13 +267,13 @@ const ExtraBenefitsSection = ({ page, colors, sectionNumber, onOrderClick }: { p
                 className="text-[16px] md:text-[18px] font-medium leading-relaxed"
                 style={{
                   color: colors.text,
-                  fontFamily: "'Hind Siliguri', sans-serif",
+                  fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
                   textShadow: '0 1px 3px rgba(0,0,0,0.3)',
                 }}
-                dangerouslySetInnerHTML={{ __html: point }}
-              />
+                
+              >{renderSalesText(point)}</p>
             </motion.div>
-          ))}
+          )))}
         </div>
 
         <CTAButton colors={colors} onClick={onOrderClick} text={page.cta_button_text || "অর্ডার করতে ক্লিক করুন"} />
@@ -309,10 +299,10 @@ const HeroHealth = ({ page, colors, onOrderClick }: { page: SalesPage; colors: a
       className="relative overflow-hidden"
       style={{
         background: `linear-gradient(180deg, ${colors.background} 0%, ${colors.primary} 100%)`,
-        fontFamily: "'Hind Siliguri', sans-serif",
+        fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
       }}
     >
-      <div className="relative z-10 max-w-2xl mx-auto px-4 py-6 md:py-10">
+      <div className="relative z-10 max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto px-4 py-6 md:py-10">
         {/* Headline */}
         <motion.div initial={{ opacity: 0, y: -15 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-5">
           <h1
@@ -320,29 +310,29 @@ const HeroHealth = ({ page, colors, onOrderClick }: { page: SalesPage; colors: a
             style={{
               color: colors.headline,
               textShadow: '1px 1px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000, 0px 2px 6px rgba(0,0,0,0.6)',
-              fontFamily: "'Hind Siliguri', sans-serif",
+              fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
               border: `2px solid ${colors.border}`,
               borderRadius: '8px',
               backgroundColor: 'rgba(0, 0, 0, 0.15)',
             }}
           >
-            {page.hero_headline}
+            {renderSalesText(page.hero_headline)}
           </h1>
         </motion.div>
 
         {/* Sub-headline */}
-        {page.hero_subheadline && (
+        {renderSalesText(page.hero_subheadline && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }} className="text-center mb-6 px-2">
             <p
               className="text-[20px] md:text-[20px] lg:text-[22px] leading-relaxed font-semibold"
-              style={{ color: colors.text, fontFamily: "'Hind Siliguri', sans-serif" }}
-              dangerouslySetInnerHTML={{ __html: page.hero_subheadline }}
-            />
+              style={{ color: colors.text, fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif" }}
+              
+            >{renderSalesText(page.hero_subheadline)}</p>
           </motion.div>
-        )}
+        ))}
 
         {/* Video */}
-        {videoUrl && (
+        {renderSalesText(videoUrl && (
           <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.25 }} className="mb-6">
             <div
               className="rounded-lg overflow-hidden"
@@ -351,11 +341,11 @@ const HeroHealth = ({ page, colors, onOrderClick }: { page: SalesPage; colors: a
                 boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
               }}
             >
-              {youtubeId ? (
+              {renderSalesText(youtubeId ? (
                 <div className="aspect-video">
-                  <iframe
+                  <iframe loading="lazy"
                     src={`https://www.youtube.com/embed/${youtubeId}?rel=0`}
-                    title={page.hero_headline}
+                    title={salesPlainText(page.hero_headline)}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
                     className="w-full h-full"
@@ -365,13 +355,13 @@ const HeroHealth = ({ page, colors, onOrderClick }: { page: SalesPage; colors: a
                 <div className="aspect-video">
                   <video src={videoUrl} controls className="w-full h-full object-cover" poster={page.hero_images?.[0]} />
                 </div>
-              )}
+              ))}
             </div>
           </motion.div>
-        )}
+        ))}
 
         {/* Product Image fallback */}
-        {!videoUrl && page.hero_images?.[0] && (
+        {renderSalesText(!videoUrl && page.hero_images?.[0] && (
           <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.25 }} className="mb-6">
             <div
               className="rounded-lg overflow-hidden"
@@ -380,10 +370,10 @@ const HeroHealth = ({ page, colors, onOrderClick }: { page: SalesPage; colors: a
                 boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
               }}
             >
-              <img src={page.hero_images[0]} alt={page.hero_headline} className="w-full object-contain" style={{ maxHeight: '400px' }} />
+              <img src={page.hero_images[0]} alt={salesPlainText(page.hero_headline)} className="w-full object-contain" style={{ maxHeight: '400px' }} />
             </div>
           </motion.div>
-        )}
+        ))}
 
         {/* CTA Button */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="text-center px-4">
@@ -395,10 +385,10 @@ const HeroHealth = ({ page, colors, onOrderClick }: { page: SalesPage; colors: a
               color: '#ffffff',
               textShadow: '1px 1px 2px rgba(0,0,0,0.4)',
               boxShadow: `0 4px 16px ${colors.button}80, inset 0 1px 0 rgba(255,255,255,0.3)`,
-              fontFamily: "'Hind Siliguri', sans-serif",
+              fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
             }}
           >
-            👆 {page.cta_button_text || "অর্ডার করতে ক্লিক করুন"}
+            👆 {renderSalesText(page.cta_button_text || "অর্ডার করতে ক্লিক করুন")}
           </button>
         </motion.div>
       </div>
@@ -430,10 +420,10 @@ const GallerySection = ({ page, colors, onOrderClick }: { page: SalesPage; color
       className="py-8 px-4"
       style={{
         background: `linear-gradient(180deg, ${colors.primary} 0%, ${colors.background} 100%)`,
-        fontFamily: "'Hind Siliguri', sans-serif",
+        fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
       }}
     >
-      <div className="max-w-lg mx-auto">
+      <div className="max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto">
         <SectionHeading
           colors={colors}
           text={page.gallery_title || 'আমাদের সার্টিফিকেট ও ল্যাব রিপোর্ট'}
@@ -458,12 +448,12 @@ const GallerySection = ({ page, colors, onOrderClick }: { page: SalesPage; color
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.3 }}
               src={images[activeIndex]}
-              alt={`Certificate ${activeIndex + 1}`}
+              alt={salesPlainText(`Certificate ${activeIndex + 1}`)}
               className="w-full object-contain"
               style={{ maxHeight: '500px', minHeight: '280px' }}
             />
 
-            {images.length > 1 && <SliderArrows colors={colors} onPrev={prevSlide} onNext={nextSlide} />}
+            {renderSalesText(images.length > 1 && <SliderArrows colors={colors} onPrev={prevSlide} onNext={nextSlide} />)}
 
             <div
               className="absolute bottom-3 right-3 px-3 py-1 rounded-full text-xs font-bold text-white"
@@ -472,13 +462,13 @@ const GallerySection = ({ page, colors, onOrderClick }: { page: SalesPage; color
                 boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
               }}
             >
-              {activeIndex + 1} / {images.length}
+              {renderSalesText(activeIndex + 1)} / {renderSalesText(images.length)}
             </div>
           </div>
 
-          {images.length > 1 && (
+          {renderSalesText(images.length > 1 && (
             <SliderDots colors={colors} count={images.length} activeIndex={activeIndex} onSelect={setActiveIndex} />
-          )}
+          ))}
         </motion.div>
 
         <CTAButton colors={colors} onClick={onOrderClick} text={page.cta_button_text || "অর্ডার করতে ক্লিক করুন"} />
@@ -500,14 +490,14 @@ const FeaturesSection = ({ page, colors }: { page: SalesPage; colors: any }) => 
 
   return (
     <section className="py-10 px-4" style={{ backgroundColor: colors.background }}>
-      <div className="max-w-lg mx-auto">
+      <div className="max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto">
         <div className="text-center mb-8">
           <h2 className="text-xl md:text-2xl font-bold mb-2" style={{ color: colors.headline }}>
-            {page.features_headline || "কেন আমাদের থেকে কিনবেন?"}
+            {renderSalesText(page.features_headline || "কেন আমাদের থেকে কিনবেন?")}
           </h2>
         </div>
         <div className="grid grid-cols-2 gap-4">
-          {features.map((feature, idx) => (
+          {renderSalesText(features.map((feature, idx) => (
             <motion.div
               key={idx}
               initial={{ opacity: 0, y: 20 }}
@@ -523,9 +513,9 @@ const FeaturesSection = ({ page, colors }: { page: SalesPage; colors: any }) => 
               >
                 <feature.icon className="w-6 h-6 text-white" />
               </div>
-              <p className="text-sm font-medium" style={{ color: colors.text }}>{feature.text}</p>
+              <p className="text-sm font-medium" style={{ color: colors.text }}>{renderSalesText(feature.text)}</p>
             </motion.div>
-          ))}
+          )))}
         </div>
       </div>
     </section>
@@ -564,10 +554,10 @@ const ReviewsSection = ({ page, colors, onOrderClick }: { page: SalesPage; color
       className="py-8 px-4"
       style={{
         background: `linear-gradient(180deg, ${colors.primary} 0%, ${colors.background} 100%)`,
-        fontFamily: "'Hind Siliguri', sans-serif",
+        fontFamily: "'Baloo Da Digits', 'Hind Siliguri', sans-serif",
       }}
     >
-      <div className="max-w-lg mx-auto">
+      <div className="max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto">
         <SectionHeading
           colors={colors}
           text={`★★★ ${page.reviews_headline || "সম্মানিত কাস্টমারদের মতামত"} ★★★`}
@@ -575,7 +565,7 @@ const ReviewsSection = ({ page, colors, onOrderClick }: { page: SalesPage; color
         />
 
         {/* Review Video */}
-        {reviewVideoUrl && (
+        {renderSalesText(reviewVideoUrl && (
           <motion.div initial={{ opacity: 0, scale: 0.96 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} className="mb-6">
             <div
               className="rounded-xl overflow-hidden"
@@ -584,9 +574,9 @@ const ReviewsSection = ({ page, colors, onOrderClick }: { page: SalesPage; color
                 boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
               }}
             >
-              {youtubeId ? (
+              {renderSalesText(youtubeId ? (
                 <div className="aspect-video">
-                  <iframe
+                  <iframe loading="lazy"
                     src={`https://www.youtube.com/embed/${youtubeId}?rel=0`}
                     title="Customer Review Video"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -598,13 +588,13 @@ const ReviewsSection = ({ page, colors, onOrderClick }: { page: SalesPage; color
                 <div className="aspect-video">
                   <video src={reviewVideoUrl} controls className="w-full h-full object-cover" />
                 </div>
-              )}
+              ))}
             </div>
           </motion.div>
-        )}
+        ))}
 
         {/* Image Slider */}
-        {reviews.length > 0 && (
+        {renderSalesText(reviews.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="relative">
             <div
               className="relative rounded-xl overflow-hidden"
@@ -623,12 +613,12 @@ const ReviewsSection = ({ page, colors, onOrderClick }: { page: SalesPage; color
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.3 }}
                 src={reviews[activeIndex]}
-                alt={`Review ${activeIndex + 1}`}
+                alt={salesPlainText(`Review ${activeIndex + 1}`)}
                 className="w-full object-contain"
                 style={{ maxHeight: '500px', minHeight: '250px' }}
               />
 
-              {reviews.length > 1 && <SliderArrows colors={colors} onPrev={prevSlide} onNext={nextSlide} />}
+              {renderSalesText(reviews.length > 1 && <SliderArrows colors={colors} onPrev={prevSlide} onNext={nextSlide} />)}
 
               <div
                 className="absolute bottom-3 right-3 px-3 py-1 rounded-full text-xs font-bold text-white"
@@ -637,15 +627,15 @@ const ReviewsSection = ({ page, colors, onOrderClick }: { page: SalesPage; color
                   boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
                 }}
               >
-                {activeIndex + 1} / {reviews.length}
+                {renderSalesText(activeIndex + 1)} / {renderSalesText(reviews.length)}
               </div>
             </div>
 
-            {reviews.length > 1 && (
+            {renderSalesText(reviews.length > 1 && (
               <SliderDots colors={colors} count={reviews.length} activeIndex={activeIndex} onSelect={setActiveIndex} />
-            )}
+            ))}
           </motion.div>
-        )}
+        ))}
 
         <CTAButton colors={colors} onClick={onOrderClick} text={page.cta_button_text || "অর্ডার করতে ক্লিক করুন"} />
       </div>
@@ -656,47 +646,4 @@ const ReviewsSection = ({ page, colors, onOrderClick }: { page: SalesPage; color
 // ══════════════════════════════════════════════
 // Contact Section
 // ══════════════════════════════════════════════
-const ContactSection = ({ page, colors }: { page: SalesPage; colors: any }) => {
-  return (
-    <section className="py-10 px-4" style={{ backgroundColor: colors.cardBg || colors.background }}>
-      <div className="max-w-lg mx-auto text-center">
-        <h2 className="text-xl font-bold mb-2" style={{ color: colors.headline }}>
-          {page.contact_headline || "যোগাযোগ করুন"}
-        </h2>
-        <p className="mb-6" style={{ color: colors.text, opacity: 0.7 }}>
-          {page.contact_subheadline || "অর্ডার বা জিজ্ঞাসার জন্য কল করুন"}
-        </p>
-
-        <div className="flex flex-col gap-3">
-          {page.contact_phone && (
-            <a
-              href={`tel:${page.contact_phone}`}
-              className="flex items-center justify-center gap-3 py-4 px-6 rounded-xl text-white font-medium"
-              style={{ backgroundColor: colors.accent }}
-            >
-              <Phone className="w-5 h-5" />
-              {page.contact_phone}
-            </a>
-          )}
-          {page.contact_whatsapp && (
-            <a
-              href={getWhatsAppUrl(page.contact_whatsapp || "")}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-3 py-4 px-6 rounded-xl text-white font-medium bg-green-500"
-            >
-              <MessageCircle className="w-5 h-5" />
-              {page.contact_whatsapp_text || "WhatsApp করুন"}
-            </a>
-          )}
-        </div>
-
-        {page.contact_availability && (
-          <p className="text-sm mt-4" style={{ color: colors.text, opacity: 0.6 }}>{page.contact_availability}</p>
-        )}
-      </div>
-    </section>
-  );
-};
-
 export default Template05Countdown;

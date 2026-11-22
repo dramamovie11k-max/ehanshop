@@ -22,7 +22,7 @@ import {
 import { SalesPage } from "@/types/salesPage";
 import { useCreateSalesPage, useUpdateSalesPage } from "@/hooks/useSalesPages";
 import { useProducts } from "@/hooks/useProducts";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/integrations/cloudflare/client";
 import { X, Plus, Upload, Image as ImageIcon, Palette } from "lucide-react";
 import { toast } from "sonner";
 import TemplateGallery from "./TemplateGallery";
@@ -230,13 +230,13 @@ const SalesPageEditorDialog = ({
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
         const filePath = `sales-pages/${formData.slug || "temp"}/${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
+        const { error: uploadError } = await api.storage
           .from("products")
           .upload(filePath, file);
 
         if (uploadError) throw uploadError;
 
-        const { data: urlData } = supabase.storage.from("products").getPublicUrl(filePath);
+        const { data: urlData } = api.storage.from("products").getPublicUrl(filePath);
         uploadedUrls.push(urlData.publicUrl);
       }
 

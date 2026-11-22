@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import CourierRatioChecker from "@/components/admin/CourierRatioChecker";
-import { apiFetch } from "@/lib/apiClient";
+import { api } from "@/integrations/cloudflare/client";
 import AdminLayout from "@/components/admin/AdminLayout";
 import AdminGuard from "@/components/admin/AdminGuard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Save, Search, RotateCw, CheckSquare, Sparkles } from "lucide-react";
+import { Plus, Trash2, Save, Search, RotateCw, CheckSquare } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
@@ -54,7 +54,7 @@ const SPIN_STATUS_OPTIONS = [
 
 const AdminSpinSettings = () => {
   const queryClient = useQueryClient();
-  const { getSetting, updateSetting, isUpdating, isLoading } = useSiteSettings();
+  const { getSetting, bulkUpdateSettings, isUpdating, isLoading } = useSiteSettings();
   const { isAdmin } = useStaffAccess();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "used" | "unused">("all");
@@ -80,8 +80,12 @@ const AdminSpinSettings = () => {
   const { data: offers = [] } = useQuery({
     queryKey: ["spin-offers-admin"],
     queryFn: async () => {
-      const data = await apiFetch<SpinOffer[]>("/spin/offers");
-      return Array.isArray(data) ? data : [];
+      const { data, error } = await api
+        .from("spin_offers")
+        .select("*")
+        .order("sort_order");
+      if (error) throw error;
+      return data as SpinOffer[];
     },
   });
 
@@ -89,8 +93,12 @@ const AdminSpinSettings = () => {
   const { data: entries = [] } = useQuery({
     queryKey: ["spin-entries"],
     queryFn: async () => {
-      const data = await apiFetch<SpinEntry[]>("/spin/entries");
-      return Array.isArray(data) ? data : [];
+      const { data, error } = await api
+        .from("spin_entries")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as SpinEntry[];
     },
   });
 
@@ -103,8 +111,10 @@ const AdminSpinSettings = () => {
   // Save settings
   const handleSaveSettings = async () => {
     try {
-      await updateSetting("spin_enabled", spinEnabled ? "true" : "false");
-      await updateSetting("spin_delay_seconds", delaySeconds);
+      await bulkUpdateSettings({
+        spin_enabled: spinEnabled ? "true" : "false",
+        spin_delay_seconds: delaySeconds,
+      });
       setSettingsLoaded(false);
       toast.success("সেটিংস সেভ হয়েছে");
     } catch {
@@ -118,23 +128,24 @@ const AdminSpinSettings = () => {
       for (const offer of offersToSave) {
         if (offer.id.startsWith("new-")) {
           const { id, ...rest } = offer;
-          await apiFetch("/db", {
-            method: "POST",
-            body: JSON.stringify({ table: "spin_offers", action: "insert", values: rest }),
-          });
+          const { error } = await api.from("spin_offers").insert(rest);
+          if (error) throw error;
         } else {
-          await apiFetch("/db", {
-            method: "POST",
-            body: JSON.stringify({
-              table: "spin_offers", action: "update", filters: [{ op: "eq", column: "id", value: offer.id }],
-              values: {
-                offer_text: offer.offer_text, discount_type: offer.discount_type,
-                discount_value: offer.discount_value, color: offer.color,
-                text_color: offer.text_color, probability: offer.probability,
-                is_active: offer.is_active, sort_order: offer.sort_order, icon: offer.icon,
-              }, returning: false,
-            }),
-          });
+          const { error } = await api
+            .from("spin_offers")
+            .update({
+              offer_text: offer.offer_text,
+              discount_type: offer.discount_type,
+              discount_value: offer.discount_value,
+              color: offer.color,
+              text_color: offer.text_color,
+              probability: offer.probability,
+              is_active: offer.is_active,
+              sort_order: offer.sort_order,
+              icon: offer.icon,
+            })
+            .eq("id", offer.id);
+          if (error) throw error;
         }
       }
     },
@@ -164,42 +175,13 @@ const AdminSpinSettings = () => {
     ]);
   };
 
-  const DEMO_OFFERS: Omit<SpinOffer, "id">[] = [
-    { offer_text: "৫০০ টাকা ছাড়", discount_type: "fixed", discount_value: 500, color: "#0d6e3f", text_color: "#ffffff", probability: 5, is_active: true, sort_order: 0, icon: "💰" },
-    { offer_text: "১০% ছাড়", discount_type: "percentage", discount_value: 10, color: "#15803d", text_color: "#ffffff", probability: 15, is_active: true, sort_order: 1, icon: "🎁" },
-    { offer_text: "ফ্রি ডেলিভারি", discount_type: "free_shipping", discount_value: 0, color: "#166534", text_color: "#ffffff", probability: 10, is_active: true, sort_order: 2, icon: "🚚" },
-    { offer_text: "২০০ টাকা ছাড়", discount_type: "fixed", discount_value: 200, color: "#0d6e3f", text_color: "#ffffff", probability: 15, is_active: true, sort_order: 3, icon: "💸" },
-    { offer_text: "আবার স্পিন করুন", discount_type: "respin", discount_value: 0, color: "#14532d", text_color: "#ffffff", probability: 10, is_active: true, sort_order: 4, icon: "🔄" },
-    { offer_text: "৫% ছাড়", discount_type: "percentage", discount_value: 5, color: "#15803d", text_color: "#ffffff", probability: 20, is_active: true, sort_order: 5, icon: "🎉" },
-    { offer_text: "১০০ টাকা ছাড়", discount_type: "fixed", discount_value: 100, color: "#166534", text_color: "#ffffff", probability: 20, is_active: true, sort_order: 6, icon: "🏷️" },
-    { offer_text: "ধন্যবাদ!", discount_type: "none", discount_value: 0, color: "#14532d", text_color: "#ffffff", probability: 5, is_active: true, sort_order: 7, icon: "😊" },
-  ];
-
-  const seedDemoMutation = useMutation({
-    mutationFn: async () => {
-      await Promise.all(DEMO_OFFERS.map((offer) => apiFetch("/db", {
-        method: "POST",
-        body: JSON.stringify({ table: "spin_offers", action: "insert", values: offer }),
-      })));
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["spin-offers-admin"] });
-      toast.success("৮টি ডেমো অফার যোগ হয়েছে");
-    },
-    onError: () => toast.error("ডেমো অফার যোগ করতে সমস্যা হয়েছে"),
-  });
-
   const handleDeleteOffer = async (id: string) => {
     if (id.startsWith("new-")) {
       setEditingOffers((prev) => prev.filter((o) => o.id !== id));
       return;
     }
-    try {
-      await apiFetch("/db", {
-        method: "POST",
-        body: JSON.stringify({ table: "spin_offers", action: "delete", filters: [{ op: "eq", column: "id", value: id }], returning: false }),
-      });
-    } catch {
+    const { error } = await api.from("spin_offers").delete().eq("id", id);
+    if (error) {
       toast.error("ডিলিট করতে সমস্যা হয়েছে");
       return;
     }
@@ -252,12 +234,8 @@ const AdminSpinSettings = () => {
   const handleBulkDelete = async () => {
     if (selectedIds.size === 0) return;
     const ids = Array.from(selectedIds);
-    try {
-      await apiFetch("/db", {
-        method: "POST",
-        body: JSON.stringify({ table: "spin_entries", action: "delete", filters: [{ op: "in", column: "id", value: ids }], returning: false }),
-      });
-    } catch {
+    const { error } = await api.from("spin_entries").delete().in("id", ids);
+    if (error) {
       toast.error("ডিলিট করতে সমস্যা হয়েছে");
       return;
     }
@@ -268,12 +246,11 @@ const AdminSpinSettings = () => {
 
   // Update status
   const handleStatusChange = async (entryId: string, newStatus: string) => {
-    try {
-      await apiFetch("/db", {
-        method: "POST",
-        body: JSON.stringify({ table: "spin_entries", action: "update", filters: [{ op: "eq", column: "id", value: entryId }], values: { status: newStatus }, returning: false }),
-      });
-    } catch {
+    const { error } = await api
+      .from("spin_entries")
+      .update({ status: newStatus })
+      .eq("id", entryId);
+    if (error) {
       toast.error("স্ট্যাটাস আপডেট করতে সমস্যা হয়েছে");
       return;
     }
@@ -456,23 +433,10 @@ const AdminSpinSettings = () => {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-lg">অফার ম্যানেজমেন্ট</CardTitle>
-                <div className="flex gap-2">
-                  {offers.length === 0 && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => seedDemoMutation.mutate()}
-                      disabled={seedDemoMutation.isPending}
-                    >
-                      <Sparkles className="h-4 w-4 mr-1" />
-                      {seedDemoMutation.isPending ? "যোগ হচ্ছে..." : "ডেমো অফার যোগ করুন"}
-                    </Button>
-                  )}
-                  <Button size="sm" onClick={handleAddOffer}>
-                    <Plus className="h-4 w-4 mr-1" />
-                    অফার যোগ করুন
-                  </Button>
-                </div>
+                <Button size="sm" onClick={handleAddOffer}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  অফার যোগ করুন
+                </Button>
               </CardHeader>
               <CardContent className="space-y-4">
                 {editingOffers.map((offer, index) => (

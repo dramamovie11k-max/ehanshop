@@ -39,8 +39,7 @@ import { Badge } from "@/components/ui/badge";
 import AdminLayout from "@/components/admin/AdminLayout";
 import AdminGuard from "@/components/admin/AdminGuard";
 import { useCategories } from "@/hooks/useProducts";
-import { apiFetch } from "@/lib/apiClient";
-import { uploadFile } from "@/lib/dataApi";
+import { api } from "@/integrations/cloudflare/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
@@ -138,8 +137,16 @@ const AdminCategories = () => {
     if (!file) return;
     setUploading(true);
     try {
-      const { url } = await uploadFile(file, "categories");
-      setFormData((prev) => ({ ...prev, image_url: url }));
+      const fileExt = file.name.split(".").pop();
+      const filePath = `categories/category-${Date.now()}.${fileExt}`;
+      const { error: uploadError } = await api.storage
+        .from("products")
+        .upload(filePath, file);
+      if (uploadError) throw uploadError;
+      const {
+        data: { publicUrl },
+      } = api.storage.from("products").getPublicUrl(filePath);
+      setFormData((prev) => ({ ...prev, image_url: publicUrl }));
       toast.success("ছবি আপলোড হয়েছে");
     } catch {
       toast.error("ছবি আপলোড ব্যর্থ হয়েছে");
@@ -171,12 +178,15 @@ const AdminCategories = () => {
 
     try {
       if (editingCategory) {
-        await apiFetch(`/categories/${encodeURIComponent(editingCategory.id)}`, {
-          method: "PATCH", body: JSON.stringify(payload),
-        });
+        const { error } = await api
+          .from("categories")
+          .update(payload)
+          .eq("id", editingCategory.id);
+        if (error) throw error;
         toast.success("ক্যাটাগরি আপডেট হয়েছে");
       } else {
-        await apiFetch("/categories", { method: "POST", body: JSON.stringify(payload) });
+        const { error } = await api.from("categories").insert(payload);
+        if (error) throw error;
         toast.success("ক্যাটাগরি যোগ হয়েছে");
       }
       queryClient.invalidateQueries({ queryKey: ["categories"] });
@@ -189,26 +199,28 @@ const AdminCategories = () => {
   };
 
   const handleDelete = async (categoryId: string) => {
-    const linked = await apiFetch<any[]>(`/products?category=${encodeURIComponent(categoryId)}`)
-      .catch(() => [] as any[]);
-    const productCount = Array.isArray(linked)
-      ? linked.filter((p: any) => p.category_id === categoryId).length
-      : 0;
-    if (productCount > 0) {
+    const { count: productCount } = await api
+      .from("products")
+      .select("*", { count: "exact", head: true })
+      .eq("category_id", categoryId);
+    if (productCount && productCount > 0) {
       toast.error(`এই ক্যাটাগরিতে ${productCount}টি প্রোডাক্ট আছে।`);
       return;
     }
-    const subCount = categories.filter((c) => c.parent_id === categoryId).length;
-    if (subCount > 0) {
+    const { count: subCount } = await api
+      .from("categories")
+      .select("*", { count: "exact", head: true })
+      .eq("parent_id", categoryId);
+    if (subCount && subCount > 0) {
       toast.error(`এই ক্যাটাগরিতে ${subCount}টি সাবক্যাটাগরি আছে।`);
       return;
     }
-    try {
-      await apiFetch(`/categories/${encodeURIComponent(categoryId)}`, { method: "DELETE" });
+    const { error } = await api.from("categories").delete().eq("id", categoryId);
+    if (error) {
+      toast.error("ডিলিট ব্যর্থ: " + error.message);
+    } else {
       toast.success("ডিলিট হয়েছে");
       queryClient.invalidateQueries({ queryKey: ["categories"] });
-    } catch (e: any) {
-      toast.error("ডিলিট ব্যর্থ: " + (e?.message || ""));
     }
   };
 
@@ -218,8 +230,8 @@ const AdminCategories = () => {
     const a = list[index];
     const b = list[target];
     try {
-      await apiFetch(`/categories/${encodeURIComponent(a.id)}`, { method: "PATCH", body: JSON.stringify({ sort_order: target }) });
-      await apiFetch(`/categories/${encodeURIComponent(b.id)}`, { method: "PATCH", body: JSON.stringify({ sort_order: index }) });
+      await api.from("categories").update({ sort_order: target }).eq("id", a.id);
+      await api.from("categories").update({ sort_order: index }).eq("id", b.id);
       queryClient.invalidateQueries({ queryKey: ["categories"] });
     } catch (e: any) {
       toast.error("সাজানো যায়নি");
