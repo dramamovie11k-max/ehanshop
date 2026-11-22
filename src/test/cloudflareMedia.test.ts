@@ -23,6 +23,21 @@ describe('public media performance and caching',()=>{
     const response=await storage(new Request('https://example.test/api/media/products/image.png',{headers:{'If-None-Match':'W/"asset-etag"'}}),env,['products','image.png'],null);
     expect(response.status).toBe(304);expect(await response.text()).toBe('');
   });
+  it('only requests partial R2 reads for an explicit Range header',async()=>{
+    const full=object();
+    const get=vi.fn().mockResolvedValueOnce(full).mockResolvedValueOnce({...object(),range:{offset:0,length:2}});
+    const env={BUCKET:{get}} as unknown as Env;
+    const url='https://example.test/api/media/products/image.png';
+    const response=await storage(new Request(url),env,['products','image.png'],null);
+    expect(response.status).toBe(200);
+    expect(get).toHaveBeenNthCalledWith(1,'products/image.png');
+    expect(response.headers.has('Content-Range')).toBe(false);
+    const request=new Request(url,{headers:{Range:'bytes=0-1'}});
+    const partial=await storage(request,env,['products','image.png'],null);
+    expect(get).toHaveBeenNthCalledWith(2,'products/image.png',{range:request.headers});
+    expect(partial.status).toBe(206);
+    expect(partial.headers.get('Content-Range')).toBe('bytes 0-1/3');
+  });
   it('uses metadata-only HEAD requests instead of reading object bodies',async()=>{
     const get=vi.fn(),head=vi.fn().mockResolvedValue(object());
     const env={BUCKET:{get,head}} as unknown as Env;
@@ -38,11 +53,13 @@ describe('responsive media variants',()=>{
     const env={BUCKET:{get,head}} as unknown as Env;
     const response=await storage(new Request('https://example.test/api/media/products/image.png?width=384'),env,['products','image.png'],null);
     expect(response.status).toBe(200);expect(get.mock.calls[0][0]).toBe('products/image.png.responsive-384.webp');
+    expect(get).toHaveBeenCalledOnce();expect(head).not.toHaveBeenCalled();
   });
   it('falls back to the original when a variant is missing',async()=>{
-    const get=vi.fn().mockResolvedValue(object()),head=vi.fn().mockResolvedValue(null);
+    const get=vi.fn().mockResolvedValueOnce(null).mockResolvedValueOnce(object()),head=vi.fn();
     await storage(new Request('https://example.test/api/media/products/image.png?width=960'),{BUCKET:{get,head}} as unknown as Env,['products','image.png'],null);
-    expect(get.mock.calls[0][0]).toBe('products/image.png');
+    expect(get.mock.calls.map(([key])=>key)).toEqual(['products/image.png.responsive-960.webp','products/image.png']);
+    expect(head).not.toHaveBeenCalled();
   });
   it('serves a public cache hit without reading R2 or D1',async()=>{
     const get=vi.fn();const cached=new Response('cached image');

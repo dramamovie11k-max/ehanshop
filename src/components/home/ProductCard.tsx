@@ -14,9 +14,10 @@ import { cn } from "@/lib/utils";
 
 interface ProductCardProps {
   product: Product;
+  priority?: boolean;
 }
 
-const ProductCard = memo(({ product }: ProductCardProps) => {
+const ProductCard = memo(({ product, priority = false }: ProductCardProps) => {
   const { addToCart } = useCart();
   const navigate = useNavigate();
   const { data: variations = [] } = useProductVariations(product.has_variations ? product.id : null);
@@ -133,10 +134,11 @@ const ProductCard = memo(({ product }: ProductCardProps) => {
             <img 
               src={imageVariant(product.image_url,384)}
               srcSet={imageSrcSet(product.image_url)}
-              sizes="(max-width: 767px) 50vw, (max-width: 1023px) 33vw, 25vw"
+              sizes="(max-width: 767px) calc(50vw - 16px), (max-width: 1023px) 33vw, 25vw"
               decoding="async"
               alt={displayName}
-              loading="lazy"
+              loading={priority ? "eager" : "lazy"}
+              fetchPriority={priority ? "high" : undefined}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
           ) : (

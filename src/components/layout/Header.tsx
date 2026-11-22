@@ -1,3 +1,4 @@
+import { imageVariant } from "@/lib/responsiveImage";
 import { useState, useMemo, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { 
@@ -206,7 +207,7 @@ const Header = () => {
               <Link {...mobilePart('logo')} to="/" className="flex items-center shrink-0">
                 {siteLogoUrl ? (
                   <img 
-                    src={siteLogoUrl} 
+                    src={imageVariant(siteLogoUrl, 384)}
                     alt={siteName} 
                     style={{ height: `${logoSize}px` }}
                     className="w-auto object-contain"
@@ -477,7 +478,7 @@ const Header = () => {
               >
                 {(customization[menuDevice].logo?.imageUrl || getSetting('site_logo_url')) ? (
                   <img
-                    src={(customization[menuDevice].logo?.imageUrl || getSetting('site_logo_url'))}
+                    src={imageVariant(customization[menuDevice].logo?.imageUrl || getSetting('site_logo_url'), 384)}
                     alt={siteName}
                     style={{ height: `${logoSize}px` }}
                     className="w-auto object-contain"

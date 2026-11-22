@@ -1,3 +1,4 @@
+import { imageVariant } from "@/lib/responsiveImage";
 import FooterPayments from "./FooterPayments";
 import { Link } from "react-router-dom";
 import { Facebook, Instagram, Youtube, MessageCircle, Phone, MapPin, ChevronRight } from "lucide-react";
@@ -29,7 +30,7 @@ const Footer = () => {
       <div className="max-w-[1240px] mx-auto px-5 pt-7 pb-4">
         {value("footer_show_brand", "1") !== "0" && (logoUrl || description || socials.length > 0) && (
           <div className="flex flex-wrap items-center gap-4 pb-5 mb-6 footer-brand-row">
-            {logoUrl && <img src={logoUrl} alt={siteName} className="h-11 w-auto max-w-36 object-contain" />}
+            {logoUrl && <img src={imageVariant(logoUrl, 384)} alt={siteName} loading="lazy" decoding="async" className="h-11 w-auto max-w-36 object-contain" />}
             {description && <p className="text-sm leading-relaxed flex-1 min-w-0 max-w-xl opacity-90">{description}</p>}
             <div className="flex gap-2">{socials.map(s => <Button key={s.label} asChild variant="ghost" size="icon" className="footer-icon h-9 w-9 rounded-full"><a href={footerHref(s.href)} target="_blank" rel="noopener noreferrer" aria-label={s.label}><s.icon className="h-4 w-4" /></a></Button>)}</div>
           </div>

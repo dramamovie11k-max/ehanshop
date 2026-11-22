@@ -10,7 +10,7 @@ export async function imageVariantsUpload(file: Blob): Promise<{width:number;blo
       const context=canvas.getContext('2d');if(!context)continue;
       context.drawImage(bitmap,0,0,canvas.width,canvas.height);
       const blob=await new Promise<Blob|null>(resolve=>canvas.toBlob(resolve,'image/webp',0.82));
-      if(blob?.type==='image/webp')variants.push({width,blob});
+      if(blob?.type==='image/webp'&&blob.size<file.size)variants.push({width,blob});
     }
     return variants;
   } finally {bitmap.close();}

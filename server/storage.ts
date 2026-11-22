@@ -17,14 +17,17 @@ export function mediaType(bytes:Uint8Array) {
   throw new HttpError(415,'Upload a JPEG, PNG, GIF, WebP, AVIF, MP4 or WebM file');
 }
 export async function storage(request:Request,env:Env,parts:string[],user:Identity|null) {
-  let key=objectKey(parts);
+  const key=objectKey(parts);
   if(request.method==='GET'||request.method==='HEAD') {
     const width=new URL(request.url).searchParams.get('width');
-    if(width&&['384','960','1600'].includes(width)&&/\.(png|jpe?g|webp|avif)$/i.test(key)){
-      const variant=key+'.responsive-'+width+'.webp';
-      if(await env.BUCKET.head(variant))key=variant;
-    }
-    const obj=request.method==='HEAD'?await env.BUCKET.head(key):await env.BUCKET.get(key,{range:request.headers});
+    const range=request.headers.has('range')?request.headers:undefined;
+    const readObject = (path:string) => request.method==='HEAD'
+      ? env.BUCKET.head(path)
+      : range ? env.BUCKET.get(path,{range}) : env.BUCKET.get(path);
+    const variant = width && ['384','960','1600'].includes(width) && /\.(png|jpe?g|webp|avif)$/i.test(key)
+      ? await readObject(key+'.responsive-'+width+'.webp')
+      : null;
+    const obj=variant ?? await readObject(key);
     if(!obj)return new Response(null,{status:404,headers:securityHeaders});
     const objectBody=request.method==='GET'?obj as R2ObjectBody:null;
     const headers=new Headers(securityHeaders);obj.writeHttpMetadata(headers);headers.set('ETag',obj.httpEtag);headers.set('X-Content-Type-Options','nosniff');headers.set('Content-Security-Policy',"default-src 'none'; sandbox");headers.set('Cache-Control','public,max-age=86400');headers.set('Accept-Ranges','bytes');
@@ -32,9 +35,10 @@ export async function storage(request:Request,env:Env,parts:string[],user:Identi
       if(objectBody)await objectBody.body.cancel();
       return new Response(null,{status:304,headers});
     }
-    if(objectBody?.range&&'offset' in objectBody.range&&objectBody.range.offset!==undefined&&objectBody.range.length!==undefined){headers.set('Content-Range',`bytes ${objectBody.range.offset}-${objectBody.range.offset+objectBody.range.length-1}/${obj.size}`);headers.set('Content-Length',String(objectBody.range.length));}
+    const partial=range&&objectBody?.range;
+    if(partial&&'offset' in partial&&partial.offset!==undefined&&partial.length!==undefined){headers.set('Content-Range',`bytes ${partial.offset}-${partial.offset+partial.length-1}/${obj.size}`);headers.set('Content-Length',String(partial.length));}
     else headers.set('Content-Length',String(obj.size));
-    return new Response(objectBody?.body||null,{status:objectBody?.range?206:200,headers});
+    return new Response(objectBody?.body||null,{status:partial?206:200,headers});
   }
   assert(admin(user),'Administrator access required',403);
   if(request.method==='DELETE'){await env.BUCKET.delete([key,...[384,960,1600].map(width=>key+'.responsive-'+width+'.webp')]);return json({data:{path:key},error:null});}

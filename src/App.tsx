@@ -1,4 +1,5 @@
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
+import HomePage from "@/pages/HomePage";
 import AdminGuard from "@/components/admin/AdminGuard";
 import AppErrorBoundary from "@/components/AppErrorBoundary";
 import { Toaster } from "@/components/ui/toaster";
@@ -54,7 +55,6 @@ const AdminPages = lazy(() => import("./pages/admin/AdminPages"));
 const Register = lazy(() => import("./pages/Register"));
 const Login = lazy(() => import("./pages/Login"));
 const NotFound = lazy(() => import("./pages/NotFound"));
-const HomePage = lazy(() => import("./pages/HomePage"));
 const SalesPage = lazy(() => import("./pages/SalesPage"));
 const SalesPageOrderSuccess = lazy(() => import("./pages/SalesPageOrderSuccess"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
