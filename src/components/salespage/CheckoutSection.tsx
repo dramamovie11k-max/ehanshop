@@ -446,7 +446,7 @@ const CheckoutSection = ({ page, sectionId = "checkout" }: CheckoutSectionProps)
   const couponEnabled = page.template_styles?.checkout?.coupon !== "0";
 
   const renderQuantity = (value: number, onChange: (delta: number) => void) => (
-    <div className="checkout-quantity flex w-fit items-center gap-0.5" onClick={(event) => event.stopPropagation()}>
+    <div className="checkout-quantity flex w-fit shrink-0 items-center gap-0.5" onClick={(event) => event.stopPropagation()}>
       <button type="button" aria-label="পরিমাণ কমান" onClick={() => onChange(-1)} className="grid size-6 place-items-center rounded-md text-white" style={{ background: page.primary_color }}>
         <Minus className="size-3" />
       </button>
@@ -483,12 +483,14 @@ const CheckoutSection = ({ page, sectionId = "checkout" }: CheckoutSectionProps)
                   {renderSalesText(img && <img src={imageVariant(img,384)} loading="lazy" decoding="async" alt={salesPlainText(productLabel(p))} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />)}
                   <div className="min-w-0 flex-1 space-y-1">
                     <p className="checkout-product-name break-words text-sm font-medium leading-snug text-white">{renderSalesText(productLabel(p))}</p>
-                    {selected && renderQuantity(selectedQty[p.id], (delta) => changeQty(p.id, delta))}
-                    <div className="flex flex-wrap items-center gap-x-2">
-                      <p className="checkout-price text-base font-bold" style={{ color: page.accent_color }}>{renderSalesText(page.price_unit)}{renderSalesText(p.price)}</p>
-                      {renderSalesText(p.original_price && Number(p.original_price) > Number(p.price) && (
-                        <span className="checkout-old-price text-xs text-white/50 line-through">{renderSalesText(page.price_unit)}{renderSalesText(p.original_price)}</span>
-                      ))}
+                    <div className="grid grid-cols-[minmax(0,max-content)_max-content] items-center gap-x-3">
+                      <div className="flex flex-wrap items-center gap-x-2">
+                        <p className="checkout-price text-base font-bold" style={{ color: page.accent_color }}>{renderSalesText(page.price_unit)}{renderSalesText(p.price)}</p>
+                        {renderSalesText(p.original_price && Number(p.original_price) > Number(p.price) && (
+                          <span className="checkout-old-price text-xs text-white/50 line-through">{renderSalesText(page.price_unit)}{renderSalesText(p.original_price)}</span>
+                        ))}
+                      </div>
+                      {selected && renderQuantity(selectedQty[p.id], (delta) => changeQty(p.id, delta))}
                     </div>
                   </div>
                 </div>
@@ -511,27 +513,29 @@ const CheckoutSection = ({ page, sectionId = "checkout" }: CheckoutSectionProps)
                  <p className="checkout-product-name break-words text-sm font-medium leading-snug text-white">
                   {renderSalesText(product?.name_bn || product?.name || page.offer_details || page.title)}
                 </p>
-                {renderQuantity(quantity, (delta) => setQuantity((current) => Math.max(1, current + delta)))}
-                <div className="flex flex-wrap items-center gap-x-2">
-                   <p className="checkout-price text-lg font-bold" style={{ color: page.accent_color }}>
-                    {renderSalesText(page.price_unit)}{renderSalesText(unitPrice)}
-                  </p>
-                  {renderSalesText(originalPrice && originalPrice > unitPrice && (
-                    <>
-                       <span className="checkout-old-price text-sm text-white/50 line-through">
-                        {renderSalesText(page.price_unit)}{renderSalesText(originalPrice)}
-                      </span>
-                      <span
-                         className="checkout-discount text-xs font-medium px-1.5 py-0.5 rounded"
-                        style={{
-                          backgroundColor: `${page.accent_color}30`,
-                          color: page.accent_color
-                        }}
-                      >
-                         {renderSalesText(discountPercentage)}% {renderSalesText(text("discount", "ছাড়"))}
-                      </span>
-                    </>
-                  ))}
+                <div className="grid grid-cols-[minmax(0,max-content)_max-content] items-center gap-x-3">
+                  <div className="flex flex-wrap items-center gap-x-2">
+                     <p className="checkout-price text-lg font-bold" style={{ color: page.accent_color }}>
+                      {renderSalesText(page.price_unit)}{renderSalesText(unitPrice)}
+                    </p>
+                    {renderSalesText(originalPrice && originalPrice > unitPrice && (
+                      <>
+                         <span className="checkout-old-price text-sm text-white/50 line-through">
+                          {renderSalesText(page.price_unit)}{renderSalesText(originalPrice)}
+                        </span>
+                        <span
+                           className="checkout-discount text-xs font-medium px-1.5 py-0.5 rounded"
+                          style={{
+                            backgroundColor: `${page.accent_color}30`,
+                            color: page.accent_color
+                          }}
+                        >
+                           {renderSalesText(discountPercentage)}% {renderSalesText(text("discount", "ছাড়"))}
+                        </span>
+                      </>
+                    ))}
+                  </div>
+                  {renderQuantity(quantity, (delta) => setQuantity((current) => Math.max(1, current + delta)))}
                 </div>
               </div>
             </div>
