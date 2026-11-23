@@ -559,7 +559,7 @@ const CheckoutSection = ({ page, sectionId = "checkout" }: CheckoutSectionProps)
 
   // Payment method block — in the minimal design (02) it renders below the coupon field
   const paymentSection = (
-            <div className="space-y-1.5">
+            <div className="checkout-payment-method space-y-1.5">
               <Label className="checkout-field-label text-white/80 text-sm font-semibold tracking-wide flex items-center gap-1.5">
                 <CreditCard className="h-4 w-4" style={{ color: page.accent_color }} />
                  {renderSalesText(text("paymentLabel", "পেমেন্ট মেথড"))}

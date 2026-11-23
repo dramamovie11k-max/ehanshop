@@ -369,6 +369,7 @@
 
 /* Additional layouts keep a single shared checkout form. */
 .checkout-order-panel { display: contents; }
+.sales-checkout:not([data-checkout-design="08"]) .checkout-payment-method + .checkout-order-panel > .checkout-summary { margin-top: .5rem; }
 .checkout-order-panel > .checkout-submit, .checkout-order-panel > .checkout-footer-text { margin-top: .75rem; }
 .sales-checkout:is([data-checkout-design="07"],[data-checkout-design="08"],[data-checkout-design="09"],[data-checkout-design="10"]) {
   --checkout-layout-accent: var(--primary);
