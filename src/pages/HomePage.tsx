@@ -2,7 +2,7 @@ import { lazy, Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useSiteSettings } from '@/hooks/useSiteSettings';
 import { getSiteMode } from '@/lib/siteMode';
-import { parseHomeBannerConfig } from '@/lib/homeBanner';
+import { getBannerImages, parseHomeBannerConfig, useMobileBanner } from '@/lib/homeBanner';
 import { imageSrcSet } from '@/lib/responsiveImage';
 
 const LandingHome = lazy(() => import('./HomeSalesPage'));
@@ -11,8 +11,10 @@ const LoadingHome = () => <div role="status" aria-label="হোমপেজ ল�
 
 export default function HomePage() {
   const { getSetting, isLoading } = useSiteSettings();
+  const mobile = useMobileBanner();
   if (isLoading) return <LoadingHome />;
-  const [banner] = parseHomeBannerConfig(getSetting('home_banner_config'), getSetting('home_banner_image')).images;
+  const config = parseHomeBannerConfig(getSetting('home_banner_config'), getSetting('home_banner_image'));
+  const [banner] = getBannerImages(config, mobile);
   const bannerSources = banner ? imageSrcSet(banner) : undefined;
   return <>
     {bannerSources && <link rel="preload" as="image" imageSrcSet={bannerSources} imageSizes="100vw" />}

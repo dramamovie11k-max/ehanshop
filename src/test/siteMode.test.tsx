@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, cleanup } from '@testing-library/react';
 import HomePage from '@/pages/HomePage';
 import SiteModeSettings from '@/components/admin/SiteModeSettings';
@@ -12,6 +12,7 @@ vi.mock('@/pages/HomeSalesPage', () => ({ default: () => <h1>Sales page catalog<
 vi.mock('@/pages/WebsiteHome', () => ({ default: () => <h1>Product and category storefront</h1> }));
 
 beforeEach(() => { cleanup(); settings.mode = ''; settings.loading = false; settings.banner = ''; });
+afterEach(() => vi.unstubAllGlobals());
 describe('homepage mode switching', () => {
   it('keeps existing sites on the sales-page catalog when no mode is saved', async () => {
     render(<HomePage />);
@@ -34,6 +35,19 @@ describe('homepage mode switching', () => {
     expect(links[0].getAttribute('imagesrcset')).toContain('first.webp?width=384');
     expect(links[0].getAttribute('imagesrcset')).not.toContain('second.webp');
     expect(links[0]).toHaveAttribute('imagesizes', '100vw');
+  });
+  it('preloads the mobile banner without requesting the desktop banner on mobile', async () => {
+    vi.stubGlobal("matchMedia", () => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
+    settings.banner = JSON.stringify({
+      images: ['https://shop.example/api/media/products/desktop.webp'],
+      mobileImages: ['https://shop.example/api/media/products/mobile.webp'],
+    });
+    const { container } = render(<HomePage />);
+    await screen.findByText('Sales page catalog');
+    const links = container.querySelectorAll('link[rel="preload"][as="image"]');
+    expect(links).toHaveLength(1);
+    expect(links[0].getAttribute('imagesrcset')).toContain('mobile.webp');
+    expect(links[0].getAttribute('imagesrcset')).not.toContain('desktop.webp');
   });
   it('switches both ways without letting a legacy pinned landing page override the mode', async () => {
     settings.mode = 'website'; const { rerender } = render(<HomePage />);

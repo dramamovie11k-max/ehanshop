@@ -1,5 +1,8 @@
+import { useSyncExternalStore } from "react";
+
 export interface HomeBannerConfig {
   images: string[];
+  mobileImages: string[];
   width: number;
   height: number;
   heightMobile: number;
@@ -17,6 +20,7 @@ export interface HomeBannerConfig {
 
 export const defaultHomeBannerConfig: HomeBannerConfig = {
   images: [],
+  mobileImages: [],
   width: 100,
   height: 0,
   heightMobile: 0,
@@ -45,10 +49,11 @@ export function parseHomeBannerConfig(raw: string | undefined, legacyImage?: str
     data = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
   } catch { data = {}; }
   const d = defaultHomeBannerConfig;
-  const images = Array.isArray(data.images) ? data.images.filter((u): u is string => typeof u === "string" && /^https?:\/\//.test(u)) : [];
+  const images = parseImageList(data.images);
   if (!images.length && legacyImage) images.push(legacyImage);
   return {
     images,
+    mobileImages: parseImageList(data.mobileImages),
     width: clamp(data.width, 10, 100, d.width),
     height: clamp(data.height, 0, 1600, d.height),
     heightMobile: clamp(data.heightMobile, 0, 1600, clamp(data.height, 0, 1600, d.height)),
@@ -63,4 +68,27 @@ export function parseHomeBannerConfig(raw: string | undefined, legacyImage?: str
     showDots: data.showDots ?? d.showDots,
     showArrows: data.showArrows ?? d.showArrows,
   };
+}
+
+
+function parseImageList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((url): url is string => typeof url === "string" && /^https?:\/\//.test(url));
+}
+
+const desktopBannerQuery = "(min-width: 1024px)";
+const isMobileBanner = () => window.matchMedia ? !window.matchMedia(desktopBannerQuery).matches : false;
+
+function subscribeToBannerViewport(onChange: () => void) {
+  const query = window.matchMedia?.(desktopBannerQuery);
+  query?.addEventListener("change", onChange);
+  return () => query?.removeEventListener("change", onChange);
+}
+
+export function useMobileBanner() {
+  return useSyncExternalStore(subscribeToBannerViewport, isMobileBanner, () => false);
+}
+
+export function getBannerImages(config: HomeBannerConfig, mobile: boolean) {
+  return mobile && config.mobileImages.length ? config.mobileImages : config.images;
 }

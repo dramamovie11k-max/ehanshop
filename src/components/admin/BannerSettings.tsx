@@ -12,6 +12,8 @@ import { toast } from "sonner";
 
 type NumKey = "marginTop" | "marginRight" | "marginBottom" | "marginLeft" | "radius" | "intervalSec" | "width" | "heightMobile" | "heightDesktop";
 
+type ImageList = "images" | "mobileImages";
+
 interface BannerSettingsProps {
   config: HomeBannerConfig;
   onChange: (update: (current: HomeBannerConfig) => HomeBannerConfig) => void;
@@ -20,43 +22,44 @@ interface BannerSettingsProps {
 }
 
 export default function BannerSettings({ config, onChange, onSave, saving }: BannerSettingsProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
+  const desktopInput = useRef<HTMLInputElement>(null);
+  const mobileInput = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState<ImageList>();
 
   const patch = (changes: Partial<HomeBannerConfig>) =>
     onChange(current => ({ ...current, ...changes }));
 
-  const upload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const upload = async (list: ImageList, event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     event.target.value = "";
     if (!files.length) return;
     const valid = files.filter(f => ["image/jpeg", "image/png", "image/webp", "image/gif"].includes(f.type));
     if (valid.length !== files.length) toast.error("শুধু JPG, PNG, WebP অথবা GIF ছবি নেওয়া হবে।");
     if (!valid.length) return;
-    setUploading(true);
+    setUploading(list);
+    const urls: string[] = [];
     try {
-      const urls: string[] = [];
       for (const file of valid) {
         const path = `site/banner-${crypto.randomUUID()}.${file.type.split("/")[1]}`;
         const { error } = await api.storage.from("products").upload(path, file);
         if (error) throw error;
         urls.push(api.storage.from("products").getPublicUrl(path).data.publicUrl);
       }
-      onChange(current => ({ ...current, images: [...current.images, ...urls] }));
       toast.success("ছবি যোগ হয়েছে। সেভ করুন।");
     } catch {
-      toast.error("ছবি আপলোড হয়নি, আবার চেষ্টা করুন।");
+      toast.error("কিছু ছবি আপলোড করা যায়নি।");
     } finally {
-      setUploading(false);
+      if (urls.length) onChange(current => ({ ...current, [list]: [...current[list], ...urls] }));
+      setUploading(undefined);
     }
   };
 
-  const move = (i: number, dir: -1 | 1) => {
-    const images = [...config.images];
+  const move = (list: ImageList, i: number, dir: -1 | 1) => {
+    const images = [...config[list]];
     const j = i + dir;
     if (j < 0 || j >= images.length) return;
     [images[i], images[j]] = [images[j], images[i]];
-    patch({ images });
+    patch({ [list]: images });
   };
 
   const numField = ({ k, label, max, unit = "px", min = 0 }: { k: NumKey; label: string; max: number; unit?: string; min?: number }) => (
@@ -67,7 +70,7 @@ export default function BannerSettings({ config, onChange, onSave, saving }: Ban
     </div>
   );
 
-  const busy = uploading || saving;
+  const busy = uploading !== undefined || saving;
 
   return (
     <section className="space-y-6">
@@ -75,38 +78,48 @@ export default function BannerSettings({ config, onChange, onSave, saving }: Ban
 
       <p className="text-sm text-muted-foreground">প্রোডাক্ট ও ক্যাটেগরি সেকশন সাজাতে “হোম পেজ” ট্যাবে যান।</p>
 
-      <div className="space-y-3">
-        <Label>ব্যানারের ছবিগুলো ({config.images.length})</Label>
-        <input ref={inputRef} type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={upload} disabled={busy} />
-        {config.images.length ? (
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            {config.images.map((src, i) => (
-              <div key={src + i} className="overflow-hidden rounded-lg border border-border bg-muted">
-                <img src={src} alt={`ব্যানার ${i + 1}`} className="block aspect-[16/7] w-full object-cover" />
-                <div className="flex items-center justify-between p-1">
-                  <span className="px-1 text-xs text-muted-foreground">#{i + 1}</span>
-                  <div className="flex">
-                    <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="আগে নিন" onClick={() => move(i, -1)} disabled={i === 0}><ArrowUp className="h-4 w-4" /></Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="পরে নিন" onClick={() => move(i, 1)} disabled={i === config.images.length - 1}><ArrowDown className="h-4 w-4" /></Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" aria-label="সরান" onClick={() => patch({ images: config.images.filter((_, x) => x !== i) })}><Trash2 className="h-4 w-4" /></Button>
+      {(["images", "mobileImages"] as const).map(list => {
+        const mobile = list === "mobileImages";
+        const title = mobile ? "মোবাইল ব্যানার" : "ডেস্কটপ ব্যানার";
+        const input = mobile ? mobileInput : desktopInput;
+        const images = config[list];
+        const hintId = `home-banner-size-hint-${list}`;
+        return (
+          <div key={list} className="space-y-3 rounded-lg border border-border p-4">
+            <h3 className="font-medium">{title} ({images.length})</h3>
+            {mobile && <p className="text-sm text-muted-foreground">১০২৪ পিক্সেলের কম চওড়া স্ক্রিনে এই ছবিগুলো দেখাবে। তালিকা খালি থাকলে ডেস্কটপের ছবি দেখাবে।</p>}
+            <input ref={input} type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={event => void upload(list, event)} disabled={busy} />
+            {images.length ? (
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                {images.map((src, i) => (
+                  <div key={src + i} className="overflow-hidden rounded-lg border border-border bg-muted">
+                    <img src={src} alt={`ব্যানার ${i + 1}`} className={mobile ? "block aspect-[2/1] w-full object-cover" : "block aspect-[16/7] w-full object-cover"} />
+                    <div className="flex items-center justify-between p-1">
+                      <span className="px-1 text-xs text-muted-foreground">#{i + 1}</span>
+                      <div className="flex">
+                        <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="আগে নিন" onClick={() => move(list, i, -1)} disabled={i === 0}><ArrowUp className="h-4 w-4" /></Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="পরে নিন" onClick={() => move(list, i, 1)} disabled={i === images.length - 1}><ArrowDown className="h-4 w-4" /></Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" aria-label="সরান" onClick={() => patch({ [list]: images.filter((_, x) => x !== i) })}><Trash2 className="h-4 w-4" /></Button>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
-            ))}
+            ) : (
+              <div className="flex min-h-32 items-center justify-center rounded-lg border border-dashed border-border bg-muted/40">
+                <ImagePlus className="h-10 w-10 text-muted-foreground" />
+              </div>
+            )}
+            <p id={hintId} className="text-sm text-muted-foreground">
+              প্রস্তাবিত ছবির মাপ <strong className="text-foreground">{mobile ? "৮০০ × ৪০০" : "১৬০০ × ৪৭৫"} পিক্সেল</strong> (প্রস্থ × উচ্চতা)।
+            </p>
+            <Button variant="outline" aria-describedby={hintId} onClick={() => input.current?.click()} disabled={busy}>
+              {uploading === list ? <Loader2 className="animate-spin" /> : <Upload />}
+              {uploading === list ? "আপলোড হচ্ছে…" : `${title} যোগ করুন`}
+            </Button>
           </div>
-        ) : (
-          <div className="flex min-h-32 items-center justify-center rounded-lg border border-dashed border-border bg-muted/40">
-            <ImagePlus className="h-10 w-10 text-muted-foreground" />
-          </div>
-        )}
-        <p id="home-banner-size-hint" className="text-sm text-muted-foreground">
-          ডেস্কটপের জন্য প্রস্তাবিত ছবির মাপ <strong className="text-foreground">১৬০০ × ৪৭৫ পিক্সেল</strong> (প্রস্থ × উচ্চতা)।
-        </p>
-        <Button variant="outline" aria-describedby="home-banner-size-hint" onClick={() => inputRef.current?.click()} disabled={busy}>
-          {uploading ? <Loader2 className="animate-spin" /> : <Upload />}
-          {uploading ? "আপলোড হচ্ছে…" : "ছবি যোগ করুন (একাধিক বাছাই করা যাবে)"}
-        </Button>
-      </div>
+        );
+      })}
 
       <div className="space-y-4 rounded-lg border border-border p-4">
         <h3 className="font-medium">স্লাইডারের উইথ ও হাইট</h3>
@@ -148,7 +161,7 @@ export default function BannerSettings({ config, onChange, onSave, saving }: Ban
 
       {config.images.length > 0 && (
         <div className="space-y-2">
-          <Label>লাইভ প্রিভিউ</Label>
+          <Label>ডেস্কটপ প্রিভিউ</Label>
           <div className="rounded-lg border border-dashed border-border bg-muted/30">
             <BannerSlider key={`${config.images.join()}-${config.autoplay}-${config.intervalSec}`} config={config} />
           </div>

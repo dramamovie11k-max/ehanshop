@@ -669,7 +669,7 @@
 
 /* Homepage banners use independently saved mobile and desktop heights. */
 .banner-responsive-height {
-  aspect-ratio: auto 16 / 7;
+  aspect-ratio: auto var(--banner-aspect-ratio, 16 / 7);
   height: var(--banner-height-mobile, auto);
   object-fit: var(--banner-fit-mobile, contain);
 }

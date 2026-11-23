@@ -5,7 +5,7 @@ import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
-import { HomeBannerConfig, parseHomeBannerConfig } from "@/lib/homeBanner";
+import { getBannerImages, type HomeBannerConfig, parseHomeBannerConfig, useMobileBanner } from "@/lib/homeBanner";
 import HeroSlider from "./HeroSlider";
 
 const responsiveHeightStyle = (config: HomeBannerConfig): CSSProperties => ({
@@ -15,7 +15,7 @@ const responsiveHeightStyle = (config: HomeBannerConfig): CSSProperties => ({
   '--banner-fit-desktop': config.heightDesktop > 0 ? 'cover' : 'contain',
 } as CSSProperties);
 
-export function BannerSlider({ config }: { config: HomeBannerConfig }) {
+export function BannerSlider({ config, mobileImages = false }: { config: HomeBannerConfig; mobileImages?: boolean }) {
   const multi = config.images.length > 1;
   const [emblaRef, embla] = useEmblaCarousel(
     { loop: multi },
@@ -44,6 +44,7 @@ export function BannerSlider({ config }: { config: HomeBannerConfig }) {
         width: `${config.width}%`,
         marginInline: "auto",
         borderRadius: config.radius,
+        ...(mobileImages && { "--banner-aspect-ratio": "2 / 1" }),
       }}
     >
       <div ref={emblaRef} className="overflow-hidden" style={{ borderRadius: config.radius }}>
@@ -90,10 +91,13 @@ export function BannerSlider({ config }: { config: HomeBannerConfig }) {
 
 export default function HomeBanner() {
   const { getSetting, isLoading } = useSiteSettings();
+  const mobile = useMobileBanner();
   if (isLoading) return null;
   const config = parseHomeBannerConfig(getSetting("home_banner_config"), getSetting("home_banner_image"));
-  if (!config.images.length) return <div style={{ margin: `${config.marginTop}px ${config.marginRight}px ${config.marginBottom}px ${config.marginLeft}px` }}>
+  const images = getBannerImages(config, mobile);
+  const showMobileImages = mobile && images === config.mobileImages;
+  if (!images.length) return <div style={{ margin: `${config.marginTop}px ${config.marginRight}px ${config.marginBottom}px ${config.marginLeft}px` }}>
     <div style={{ ...responsiveHeightStyle(config), width: `${config.width}%`, marginInline: "auto", borderRadius: config.radius, overflow: "hidden" }}><HeroSlider isFullWidth responsiveBanner /></div>
   </div>;
-  return <BannerSlider config={config} />;
+  return <BannerSlider key={showMobileImages ? "mobile" : "shared"} config={{ ...config, images }} mobileImages={showMobileImages} />;
 }
