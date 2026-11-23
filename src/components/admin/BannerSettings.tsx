@@ -100,7 +100,7 @@ export default function BannerSettings({ config, onChange, onSave, saving }: Ban
           </div>
         )}
         <p id="home-banner-size-hint" className="text-sm text-muted-foreground">
-          প্রস্তাবিত ছবির সাইজ: <strong className="text-foreground">১৬০০ × ৭০০ পিক্সেল</strong> (প্রস্থ × উচ্চতা)
+          ডেস্কটপের জন্য প্রস্তাবিত ছবির মাপ <strong className="text-foreground">১৬০০ × ৪৭৫ পিক্সেল</strong> (প্রস্থ × উচ্চতা)।
         </p>
         <Button variant="outline" aria-describedby="home-banner-size-hint" onClick={() => inputRef.current?.click()} disabled={busy}>
           {uploading ? <Loader2 className="animate-spin" /> : <Upload />}
@@ -120,7 +120,7 @@ export default function BannerSettings({ config, onChange, onSave, saving }: Ban
             <div className="space-y-2" key={key}>
               <Label htmlFor={`banner-${key}`}>{label}</Label>
               <Input id={`banner-${key}`} type="number" min={0} max={1600} value={config[key]} onChange={e => patch({ [key]: Math.min(1600, Math.max(0, Number(e.target.value) || 0)) })} />
-              <p className="text-xs text-muted-foreground">০ দিলে এই ডিভাইসে অটো হাইট হবে। ডেস্কটপ: ১০২৪px বা বেশি; মোবাইল/ট্যাবলেট: এর নিচে।</p>
+              <p className="text-xs text-muted-foreground">{key === "heightDesktop" ? "প্রস্তাবিত হাইট ৪০০ পিক্সেল। ডেস্কটপ সেটিং ১০২৪ পিক্সেল থেকে প্রযোজ্য। " : ""}০ দিলে এই ডিভাইসে অটো হাইট হবে।</p>
             </div>
           ))}
         </div>
