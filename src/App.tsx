@@ -1,7 +1,6 @@
-import { preloadSalesPageTemplate } from "@/lib/salesPageTemplate";
-import { useSalesPage } from "@/hooks/useSalesPages";
+import SalesPageRoute from "@/components/SalesPageRoute";
+import { lazyRoute as lazy } from "@/lib/lazyRoute";
 import { useProduct } from "@/hooks/useProducts";
-import { imageSrcSet, imageVariant, organicSalesHeroSizes } from "@/lib/responsiveImage";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import HomePage from "@/pages/HomePage";
 import AdminGuard from "@/components/admin/AdminGuard";
@@ -21,27 +20,8 @@ import OptionalSpinWheel from "@/components/spin/OptionalSpinWheel";
 import ScrollToTop from "@/components/layout/ScrollToTop";
 import OrderSourceCapture from "@/components/OrderSourceCapture";
 import DynamicTitle from "@/components/DynamicTitle";
-import { lazy as reactLazy, Suspense, useEffect, type ComponentType } from "react";
+import { Suspense } from "react";
 
-// After a new version is published, old page files disappear. If loading one fails,
-// reload once so the browser picks up the latest version instead of a blank screen.
-const lazy = <T extends ComponentType<any>>(factory: () => Promise<{ default: T }>) =>
-  reactLazy(async () => {
-    const key = "chunk-reload-at";
-    try {
-      const mod = await factory();
-      sessionStorage.removeItem(key);
-      return mod;
-    } catch (error) {
-      const last = Number(sessionStorage.getItem(key) || 0);
-      if (Date.now() - last > 10000) {
-        sessionStorage.setItem(key, String(Date.now()));
-        window.location.reload();
-        return new Promise<{ default: T }>(() => {});
-      }
-      throw error;
-    }
-  });
 import { Loader2 } from "lucide-react";
 
 // Lazy load all pages for code splitting
@@ -59,7 +39,6 @@ const AdminPages = lazy(() => import("./pages/admin/AdminPages"));
 const Register = lazy(() => import("./pages/Register"));
 const Login = lazy(() => import("./pages/Login"));
 const NotFound = lazy(() => import("./pages/NotFound"));
-const SalesPage = lazy(() => import("./pages/SalesPage"));
 const SalesPageOrderSuccess = lazy(() => import("./pages/SalesPageOrderSuccess"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
@@ -86,30 +65,6 @@ const PageLoader = () => (
     <Loader2 className="h-8 w-8 animate-spin text-primary" />
   </div>
 );
-function SalesPageRoute() {
-  const { slug } = useParams();
-  const query = useSalesPage(slug ?? "");
-  const page = query.data;
-  const templateId = page?.template_id;
-  useEffect(() => {
-    if (templateId) void preloadSalesPageTemplate(templateId).catch(() => {});
-  }, [templateId]);
-  const isOrganic = page?.template_id === "template-01-organic" || page?.template_id === "nature-fresh";
-  const heroImage = isOrganic && page.show_hero_section && !page.template_styles?.hero?.design
-    ? page.hero_images?.[0]
-    : undefined;
-  const sources = heroImage ? imageSrcSet(heroImage) : undefined;
-
-  return <>
-    {heroImage && (sources
-      ? <link rel="preload" as="image" imageSrcSet={sources} imageSizes={organicSalesHeroSizes} />
-      : <link rel="preload" as="image" href={imageVariant(heroImage, 960)} />)}
-    <Suspense fallback={<PageLoader />}>
-      <SalesPage data={page} isLoading={query.isLoading} error={query.error} />
-    </Suspense>
-  </>;
-}
-
 function ProductDetailRoute() {
   const { slug } = useParams();
   useProduct(slug ?? "");

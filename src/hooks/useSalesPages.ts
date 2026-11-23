@@ -32,14 +32,14 @@ export const useSalesPages = () => {
   });
 };
 
-export const useSalesPage = (slug: string) => {
+export const useSalesPage = (identifier: string, field: "slug" | "id" = "slug") => {
   return useQuery({
-    queryKey: ["sales-page", slug],
+    queryKey: ["sales-page", field, identifier],
     queryFn: async () => {
       const { data, error } = await api
         .from("sales_pages")
         .select("*, products(id, name, name_bn, price, original_price, image_url, shipping_inside_dhaka, shipping_outside_dhaka, free_shipping, has_variations, variation_type)")
-        .eq("slug", slug)
+        .eq(field, identifier)
         .eq("is_active", true)
         .single();
 
@@ -99,7 +99,7 @@ export const useSalesPage = (slug: string) => {
       };
       return result as SalesPage;
     },
-    enabled: !!slug,
+    enabled: !!identifier,
   });
 };
 
@@ -146,6 +146,8 @@ export const useUpdateSalesPage = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sales-pages"] });
+      queryClient.invalidateQueries({ queryKey: ["sales-page"] });
+      queryClient.invalidateQueries({ queryKey: ["home-sales-pages-grid"] });
       toast.success("সেলস পেজ আপডেট হয়েছে!");
     },
     onError: (error: any) => {
@@ -168,6 +170,8 @@ export const useDeleteSalesPage = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sales-pages"] });
+      queryClient.invalidateQueries({ queryKey: ["sales-page"] });
+      queryClient.invalidateQueries({ queryKey: ["home-sales-pages-grid"] });
       toast.success("সেলস পেজ ডিলিট হয়েছে!");
     },
     onError: (error: any) => {

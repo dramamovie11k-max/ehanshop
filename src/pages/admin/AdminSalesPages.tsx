@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { getSiteMode, salesHomepageSetting } from "@/lib/siteMode";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { useSalesPages, useDeleteSalesPage } from "@/hooks/useSalesPages";
 import { Button } from "@/components/ui/button";
@@ -20,6 +22,9 @@ import { getTemplate } from "@/lib/salesPageTemplates";
 
 const AdminSalesPages = () => {
   const { data: salesPages, isLoading } = useSalesPages();
+  const { getSetting, bulkUpdateSettings, isLoading: settingsLoading, isUpdating } = useSiteSettings();
+  const savedHomepageId = getSetting(salesHomepageSetting);
+  const homepageId = getSiteMode(getSetting("site_mode")) === "landing" ? savedHomepageId : "";
   const deleteMutation = useDeleteSalesPage();
   const [editorOpen, setEditorOpen] = useState(false);
   const [selectedPage, setSelectedPage] = useState<SalesPage | null>(null);
@@ -30,6 +35,15 @@ const AdminSalesPages = () => {
   const handleCreate = () => { setSelectedPage(null); setEditorOpen(true); };
   const handleDelete = (id: string) => { setPageToDelete(id); setDeleteDialogOpen(true); };
   const confirmDelete = () => { if (pageToDelete) deleteMutation.mutate(pageToDelete); setDeleteDialogOpen(false); setPageToDelete(null); };
+
+  const setHomepage = async (id: string) => {
+    try {
+      await bulkUpdateSettings(id ? { [salesHomepageSetting]: id, site_mode: "landing" } : { [salesHomepageSetting]: "" });
+      toast.success(id ? "সেলস পেজটি হোমপেজ হিসেবে সেভ হয়েছে।" : "সেলস পেজের হোমপেজ নির্বাচন সরানো হয়েছে।");
+    } catch {
+      toast.error("হোমপেজ সেটিংস সেভ করা যায়নি।");
+    }
+  };
 
   const getPublicUrl = (slug: string) => `${window.location.origin}/lp/${slug}`;
 
@@ -74,12 +88,13 @@ const AdminSalesPages = () => {
                   <TableHead>Product</TableHead>
                   <TableHead>Price</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>হোমপেজ</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8">Loading...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="text-center py-8">Loading...</TableCell></TableRow>
                 ) : salesPages && salesPages.length > 0 ? (
                   salesPages.map((page) => {
                     const template = getTemplate(page.template_id || 'elegant-dark');
@@ -106,6 +121,18 @@ const AdminSalesPages = () => {
                           {page.is_active ? "Active" : "Inactive"}
                         </Badge>
                       </TableCell>
+                      <TableCell>
+                        {page.is_active && page.id === homepageId ? (
+                          <div className="flex flex-wrap items-center gap-1">
+                            <Badge>বর্তমান হোমপেজ</Badge>
+                            <Button variant="ghost" size="sm" onClick={() => void setHomepage("")} disabled={isUpdating}>সরান</Button>
+                          </div>
+                        ) : (
+                          <Button variant="outline" size="sm" onClick={() => void setHomepage(page.id)} disabled={!page.is_active || settingsLoading || isUpdating}>
+                            হোমপেজ করুন
+                          </Button>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
                           <Button variant="ghost" size="icon" onClick={() => previewPage(page.slug)} title="Preview"><Eye className="h-4 w-4" /></Button>
@@ -119,7 +146,7 @@ const AdminSalesPages = () => {
                     );
                   })
                 ) : (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No sales pages. Create a new one.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No sales pages. Create a new one.</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>

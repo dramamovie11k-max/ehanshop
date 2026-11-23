@@ -1,7 +1,8 @@
 import { lazy, Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useSiteSettings } from '@/hooks/useSiteSettings';
-import { getSiteMode } from '@/lib/siteMode';
+import SalesPageRoute from '@/components/SalesPageRoute';
+import { getSiteMode, salesHomepageSetting } from '@/lib/siteMode';
 import { getBannerImages, parseHomeBannerConfig, useMobileBanner } from '@/lib/homeBanner';
 import { imageSrcSet } from '@/lib/responsiveImage';
 
@@ -13,13 +14,16 @@ export default function HomePage() {
   const { getSetting, isLoading } = useSiteSettings();
   const mobile = useMobileBanner();
   if (isLoading) return <LoadingHome />;
+  const mode = getSiteMode(getSetting('site_mode'));
+  const homepageId = mode === 'landing' ? getSetting(salesHomepageSetting).trim() : '';
   const config = parseHomeBannerConfig(getSetting('home_banner_config'), getSetting('home_banner_image'));
   const [banner] = getBannerImages(config, mobile);
   const bannerSources = banner ? imageSrcSet(banner) : undefined;
-  return <>
+  const storefront = <>
     {bannerSources && <link rel="preload" as="image" imageSrcSet={bannerSources} imageSizes="100vw" />}
     <Suspense fallback={<LoadingHome />}>
-      {getSiteMode(getSetting('site_mode')) === 'website' ? <WebsiteHome /> : <LandingHome />}
+      {mode === 'website' ? <WebsiteHome /> : <LandingHome />}
     </Suspense>
   </>;
+  return homepageId ? <SalesPageRoute homepageId={homepageId} fallback={storefront} /> : storefront;
 }

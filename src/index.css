@@ -769,3 +769,7 @@
   [data-product-copy] [data-product-short-description],
   [data-product-detail-panel] .product-details-copy { font-size:var(--pd-copy-desktop,16px); }
 }
+
+body:has([data-sales-page-home]) [data-mobile-bottom-bar] {
+  display: none;
+}

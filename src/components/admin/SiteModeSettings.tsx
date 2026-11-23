@@ -6,7 +6,7 @@ export default function SiteModeSettings({ value, onChange }: { value: string; o
       <legend className="px-2 text-lg font-semibold">ওয়েবসাইটের মোড</legend>
       <div className="grid gap-3 sm:grid-cols-2">
         {([
-          ['landing', 'ল্যান্ডিং পেজ মোড', 'হোমপেজে সক্রিয় সেলস পেজগুলো দেখাবে।'],
+          ['landing', 'ল্যান্ডিং পেজ মোড', 'Sales Pages থেকে বেছে নেওয়া পেজটি হোমপেজে দেখাবে। পেজ বেছে না নিলে সক্রিয় সেলস পেজের তালিকা দেখাবে।'],
           ['website', 'ওয়েবসাইট মোড', 'হোমপেজে প্রোডাক্ট ও ক্যাটেগরি দেখাবে। শপ, প্রোডাক্ট, কার্ট ও চেকআউট পেজ থাকবে।'],
         ] as const).map(([mode, title, description]) => (
           <label key={mode} className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 ${getSiteMode(value) === mode ? 'border-primary bg-primary/5' : 'border-border'}`}>

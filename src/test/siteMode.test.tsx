@@ -3,15 +3,23 @@ import { fireEvent, render, screen, cleanup } from '@testing-library/react';
 import HomePage from '@/pages/HomePage';
 import SiteModeSettings from '@/components/admin/SiteModeSettings';
 
-const settings = vi.hoisted(() => ({ mode: '', loading: false, banner: '' }));
+const settings = vi.hoisted(() => ({ mode: '', loading: false, banner: '', homepageId: '', available: false }));
 vi.mock('@/hooks/useSiteSettings', () => ({ useSiteSettings: () => ({
   isLoading: settings.loading,
-  getSetting: (key: string) => key === 'site_mode' ? settings.mode : key === 'home_banner_config' ? settings.banner : 'old-pinned-sales-page',
+  getSetting: (key: string) => key === 'site_mode' ? settings.mode : key === 'home_banner_config' ? settings.banner : key === 'sales_home_page_id' ? settings.homepageId : '',
 }) }));
 vi.mock('@/pages/HomeSalesPage', () => ({ default: () => <h1>Sales page catalog</h1> }));
 vi.mock('@/pages/WebsiteHome', () => ({ default: () => <h1>Product and category storefront</h1> }));
 
-beforeEach(() => { cleanup(); settings.mode = ''; settings.loading = false; settings.banner = ''; });
+vi.mock('@/hooks/useSalesPages', () => ({
+  useSalesPage: (identifier: string, field: string) => ({
+    data: settings.available && identifier === 'sales-id' && field === 'id' ? { title: 'Selected sales homepage' } : undefined,
+    isLoading: false,
+  }),
+}));
+vi.mock('@/pages/SalesPage', () => ({ default: ({ data }: { data: { title: string } }) => <h1>{data.title}</h1> }));
+
+beforeEach(() => { cleanup(); settings.mode = ''; settings.loading = false; settings.banner = ''; settings.homepageId = ''; settings.available = false; });
 afterEach(() => vi.unstubAllGlobals());
 describe('homepage mode switching', () => {
   it('keeps existing sites on the sales-page catalog when no mode is saved', async () => {
@@ -49,7 +57,7 @@ describe('homepage mode switching', () => {
     expect(links[0].getAttribute('imagesrcset')).toContain('mobile.webp');
     expect(links[0].getAttribute('imagesrcset')).not.toContain('desktop.webp');
   });
-  it('switches both ways without letting a legacy pinned landing page override the mode', async () => {
+  it('switches between the catalog and storefront when no sales homepage is selected', async () => {
     settings.mode = 'website'; const { rerender } = render(<HomePage />);
     expect(await screen.findByText('Product and category storefront')).toBeInTheDocument();
     expect(screen.queryByText('Sales page catalog')).not.toBeInTheDocument();
@@ -58,6 +66,21 @@ describe('homepage mode switching', () => {
     expect(screen.queryByText('Product and category storefront')).not.toBeInTheDocument();
     settings.mode = 'website'; rerender(<HomePage />);
     expect(await screen.findByText('Product and category storefront')).toBeInTheDocument();
+  });
+  it('renders the selected sales page at home and restores the storefront in website mode', async () => {
+    settings.mode = 'landing';
+    settings.homepageId = 'sales-id';
+    settings.available = true;
+    const { rerender } = render(<HomePage />);
+    expect(await screen.findByText('Selected sales homepage')).toBeInTheDocument();
+    settings.mode = 'website';
+    rerender(<HomePage />);
+    expect(await screen.findByText('Product and category storefront')).toBeInTheDocument();
+  });
+  it('falls back to the catalog when the selected sales page is unavailable', async () => {
+    settings.homepageId = 'sales-id';
+    render(<HomePage />);
+    expect(await screen.findByText('Sales page catalog')).toBeInTheDocument();
   });
   it('uses the landing catalog for an unrecognized saved mode', async () => {
     settings.mode = 'invalid'; render(<HomePage />);
