@@ -84,38 +84,8 @@ const CourierRatioChecker = ({ phone, orderId, cachedData, saveToDb = true }: Co
         throw new Error(result.error);
       }
 
-      const apiData = result.data;
-      
-      // Parse courier-wise data
-      const courierKeys = ['pathao', 'steadfast', 'parceldex', 'redx', 'paperfly', 'carrybee'];
-      const couriers: CourierData[] = courierKeys
-        .filter(key => apiData[key])
-        .map(key => ({
-          name: apiData[key].name,
-          logo: apiData[key].logo,
-          total_parcel: Number(apiData[key].total_parcel) || 0,
-          success_parcel: Number(apiData[key].success_parcel) || 0,
-          cancelled_parcel: Number(apiData[key].cancelled_parcel) || 0,
-          success_ratio: Number(apiData[key].success_ratio) || 0,
-        }));
-
-      const summary = apiData.summary || {
-        total_parcel: 0,
-        success_parcel: 0,
-        cancelled_parcel: 0,
-        success_ratio: 0,
-      };
-
-      const ratioData: CourierRatioData = {
-        couriers,
-        summary: {
-          total_parcel: Number(summary.total_parcel) || 0,
-          success_parcel: Number(summary.success_parcel) || 0,
-          cancelled_parcel: Number(summary.cancelled_parcel) || 0,
-          success_ratio: Number(summary.success_ratio) || 0,
-        },
-        checked_at: new Date().toISOString(),
-      };
+      const apiData = result.data as CourierRatioData;
+      const ratioData: CourierRatioData = { ...apiData, checked_at: new Date().toISOString() };
 
       setData(ratioData);
 

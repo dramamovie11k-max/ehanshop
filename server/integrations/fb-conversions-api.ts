@@ -161,16 +161,17 @@ export async function handle(req: Request, env: Env): Promise<Response> {
     if (cfg.fb_pixel_test_event_code) body.test_event_code = cfg.fb_pixel_test_event_code;
 
     const fbRes = await fetch(
-      `https://graph.facebook.com/v18.0/${cfg.fb_pixel_id}/events`,
+      `https://graph.facebook.com/v23.0/${cfg.fb_pixel_id}/events`,
       {
         method: "POST",
+        signal: AbortSignal.timeout(10_000),
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       }
     );
-    const fbJson = await fbRes.json();
+    const fbJson = await fbRes.json<{ events_received?: number }>();
 
-    if (!fbRes.ok) {
+    if (!fbRes.ok || !(Number(fbJson.events_received) > 0)) {
 
       return new Response(JSON.stringify({ error: "Conversion API request failed" }), {
         status: 502,

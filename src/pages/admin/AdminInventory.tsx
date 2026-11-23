@@ -35,7 +35,6 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import AdminGuard from "@/components/admin/AdminGuard";
 import { api } from "@/integrations/cloudflare/client";
 import { toast } from "sonner";
-import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { bn } from "date-fns/locale";
 
@@ -69,7 +68,6 @@ interface Supplier {
 }
 
 const AdminInventory = () => {
-  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
   const [lowStockProducts, setLowStockProducts] = useState<Product[]>([]);
@@ -152,49 +150,13 @@ const AdminInventory = () => {
 
     setAdjusting(true);
     try {
-      const product = products.find((p) => p.id === adjustForm.product_id);
-      if (!product) throw new Error("Product not found");
-
-      const quantityChange = parseInt(adjustForm.quantity);
-      const previousStock = product.stock || 0;
-      let newStock = previousStock;
-
-      // Calculate new stock based on change type
-      if (adjustForm.change_type === "purchase" || adjustForm.change_type === "return") {
-        newStock = previousStock + Math.abs(quantityChange);
-      } else if (adjustForm.change_type === "sale") {
-        newStock = previousStock - Math.abs(quantityChange);
-      } else {
-        // Adjustment can be positive or negative
-        newStock = previousStock + quantityChange;
-      }
-
-      if (newStock < 0) {
-        toast.error("স্টক নেগেটিভ হতে পারে না");
-        setAdjusting(false);
-        return;
-      }
-
-      // Update product stock
-      const { error: updateError } = await api
-        .from("products")
-        .update({ stock: newStock })
-        .eq("id", adjustForm.product_id);
-
-      if (updateError) throw updateError;
-
-      // Create stock history entry
-      const { error: histError } = await api.from("stock_history").insert({
+      const { error } = await api.rpc("adjust_stock", {
         product_id: adjustForm.product_id,
         change_type: adjustForm.change_type,
-        quantity_change: quantityChange,
-        previous_stock: previousStock,
-        new_stock: newStock,
-        notes: adjustForm.notes || null,
-        created_by: user?.id,
+        quantity: Number(adjustForm.quantity),
+        notes: adjustForm.notes,
       });
-
-      if (histError) throw histError;
+      if (error) throw error;
 
       toast.success("স্টক আপডেট হয়েছে!");
       setAdjustDialogOpen(false);

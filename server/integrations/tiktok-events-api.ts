@@ -163,6 +163,7 @@ export async function handle(req: Request, env: Env): Promise<Response> {
       "https://business-api.tiktok.com/open_api/v1.3/event/track/",
       {
         method: "POST",
+        signal: AbortSignal.timeout(10_000),
         headers: {
           "Content-Type": "application/json",
           "Access-Token": cfg.tiktok_pixel_access_token,

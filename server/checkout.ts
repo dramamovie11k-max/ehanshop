@@ -75,7 +75,7 @@ export async function checkout(env:Env, request:Request, input:Row, user:Identit
   const method=String(order.payment_method||'cod');assert(['cod','bkash','nagad','rocket'].includes(method),'Invalid payment method');
   const row:Row={id,user_id:user?.id||null,customer_name:text(order.customer_name,100),customer_phone:phone,customer_address:text(order.customer_address,2000),customer_city:city,total_amount:total,shipping_cost:shippingCost,coupon_discount:discount,coupon_code:couponCode||null,payment_method:method,notes:String(order.notes||'').slice(0,4000),order_source:page?'sales_page':String(order.order_source||'website').slice(0,50),customer_ip:ipAddress(request)};
   const guest=cookie(request,'__Host-shop_guest')||randomToken();
-  await env.DB.prepare('DELETE FROM checkout_guards WHERE expires_at<=? OR order_id IN (SELECT id FROM orders WHERE status=\'cancelled\')').bind(now()).run();
+  await env.DB.prepare('DELETE FROM checkout_guards WHERE expires_at<=? OR (key NOT LIKE \'courier:%\' AND order_id IN (SELECT id FROM orders WHERE status=\'cancelled\'))').bind(now()).run();
   const statements:D1PreparedStatement[]=[];
   if(cfg.duplicate_block_enabled==='true') {
     const minutes=Math.max(1,Math.min(1440,Number(cfg.duplicate_block_time)||30));

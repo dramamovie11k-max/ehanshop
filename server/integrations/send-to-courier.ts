@@ -1,17 +1,18 @@
-import { Env } from '../core';
-import { serviceDatabase } from '../service';
+import { Env, HttpError, assert, json, settings } from '../core';
 
-const corsHeaders = { 'Cache-Control': 'no-store' };
+type Courier = "steadfast" | "pathao";
 
-interface OrderData {
-  orderId: string;
-  courier: "steadfast" | "pathao";
-  recipientName: string;
-  recipientPhone: string;
-  recipientAddress: string;
-  recipientCity: string;
-  codAmount: number;
-  note?: string;
+interface StoredOrder {
+  id: string;
+  status: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_address: string;
+  total_amount: number;
+  notes: string | null;
+  courier_id: string | null;
+  courier_consignment_id: string | null;
+  courier_tracking_code: string | null;
 }
 
 interface CourierCredentials {
@@ -25,107 +26,71 @@ interface CourierCredentials {
 }
 
 export async function handle(req: Request, env: Env): Promise<Response> {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+  const { orderId, courier, pathaoCityId, pathaoZoneId } = await req.json<{
+    orderId?: string; courier?: Courier; pathaoCityId?: number; pathaoZoneId?: number;
+  }>();
+  assert(typeof orderId === "string" && /^[0-9a-f-]{36}$/i.test(orderId), "Invalid order ID");
+  assert(courier === "steadfast" || courier === "pathao", "Invalid courier");
+  const order = await env.DB.prepare(`SELECT id,status,customer_name,customer_phone,customer_address,total_amount,notes,
+    courier_id,courier_consignment_id,courier_tracking_code FROM orders WHERE id=?`).bind(orderId).first<StoredOrder>();
+  assert(order, "Order not found", 404);
+  if (order.courier_id && order.courier_consignment_id) {
+    return json({ success: true, message: "অর্ডারটি ইতিমধ্যে কুরিয়ারে পাঠানো হয়েছে",
+      consignmentId: order.courier_consignment_id, trackingCode: order.courier_tracking_code });
+  }
+  assert(!order.courier_id && ['pending','confirmed','processing'].includes(order.status),
+    "This order cannot be dispatched. Check its courier and status.", 409);
+
+  const credentials: CourierCredentials = await settings(env);
+  if (courier === "steadfast") {
+    assert(credentials.steadfast_api_key && credentials.steadfast_secret_key, "Configure Steadfast credentials first", 503);
+  } else {
+    assert(Number.isSafeInteger(pathaoCityId) && Number(pathaoCityId)>0 &&
+      Number.isSafeInteger(pathaoZoneId) && Number(pathaoZoneId)>0, "Enter the Pathao city and zone IDs");
+    assert(credentials.pathao_client_id && credentials.pathao_client_secret && credentials.pathao_username &&
+      credentials.pathao_password && /^[1-9]\d*$/.test(credentials.pathao_store_id ?? ""), "Configure Pathao credentials and store ID first", 503);
   }
 
+  const lockKey = "courier:" + orderId;
+  const lock = await env.DB.prepare(`INSERT INTO checkout_guards(key,order_id,expires_at)
+    SELECT ?,id,2147483647 FROM orders
+    WHERE id=? AND status IN ('pending','confirmed','processing') AND coalesce(courier_id,'')=''
+    ON CONFLICT(key) DO NOTHING RETURNING key`).bind(lockKey,orderId).first();
+  assert(lock, "Dispatch already started. Check the courier dashboard before retrying.", 409);
+  const details = {
+    orderId,
+    recipientName: order.customer_name,
+    recipientPhone: order.customer_phone,
+    recipientAddress: order.customer_address,
+    codAmount: order.total_amount,
+    note: order.notes ?? undefined,
+  };
+  let result;
   try {
-    const database = serviceDatabase(env);
-
-    const orderData: OrderData = await req.json();
-    const { orderId, courier, recipientName, recipientPhone, recipientAddress, recipientCity, codAmount, note } = orderData;
-
-    // Fetch courier credentials from site_settings
-    const { data: settingsData, error: settingsError } = await database
-      .from("site_settings")
-      .select("setting_key, setting_value")
-      .in("setting_key", [
-        "steadfast_api_key",
-        "steadfast_secret_key",
-        "pathao_client_id",
-        "pathao_client_secret",
-        "pathao_username",
-        "pathao_password",
-        "pathao_store_id",
-      ]);
-
-    if (settingsError) {
-      throw new Error(`Failed to fetch courier settings: ${settingsError.message}`);
-    }
-
-    const credentials: CourierCredentials = {};
-    settingsData?.forEach((s: {setting_key:string;setting_value:string|null}) => {
-      credentials[s.setting_key as keyof CourierCredentials] = s.setting_value || undefined;
-    });
-
-    let result: { consignmentId: string; trackingCode: string };
-
-    if (courier === "steadfast") {
-      result = await sendToSteadfast(credentials, {
-        orderId,
-        recipientName,
-        recipientPhone,
-        recipientAddress,
-        codAmount,
-        note,
-      });
-    } else if (courier === "pathao") {
-      result = await sendToPathao(credentials, {
-        orderId,
-        recipientName,
-        recipientPhone,
-        recipientAddress,
-        recipientCity,
-        codAmount,
-        note,
-      });
-    } else {
-      throw new Error("Invalid courier type");
-    }
-
-    // Update order with courier info
-    const { error: updateError } = await database
-      .from("orders")
-      .update({
-        courier_id: courier,
-        courier_consignment_id: result.consignmentId,
-        courier_tracking_code: result.trackingCode,
-        courier_sent_at: new Date().toISOString(),
-        status: "shipped",
-      })
-      .eq("id", orderId);
-
-    if (updateError) {
-      throw new Error(`Failed to update order: ${updateError.message}`);
-    }
-
-    // Log the action
-    await database.from("order_logs").insert({
-      order_id: orderId,
-      action: "courier_sent",
-      new_status: "shipped",
-      notes: `Sent to ${courier.toUpperCase()} - Tracking: ${result.trackingCode}`,
-    });
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: `অর্ডার ${courier.toUpperCase()}-এ পাঠানো হয়েছে`,
-        trackingCode: result.trackingCode,
-        consignmentId: result.consignmentId,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    result = courier === "steadfast"
+      ? await sendToSteadfast(credentials, details)
+      : await sendToPathao(credentials, { ...details, cityId: pathaoCityId!, zoneId: pathaoZoneId! });
+    assert(result.consignmentId, "Courier confirmation is missing. Check the courier dashboard before retrying.", 502);
+    const sentAt = new Date().toISOString();
+    const [updated, logged] = await env.DB.batch([
+      env.DB.prepare(`UPDATE orders SET courier_id=?,courier_consignment_id=?,courier_tracking_code=?,courier_sent_at=?,
+        status=CASE WHEN status IN ('pending','confirmed','processing') THEN 'shipped' ELSE status END WHERE id=?`)
+        .bind(courier,result.consignmentId,result.trackingCode,sentAt,orderId),
+      env.DB.prepare(`INSERT INTO order_logs(order_id,action,new_status,notes)
+        SELECT id,'courier_sent',status,? FROM orders WHERE id=?`)
+        .bind("Courier: " + courier + " · " + result.consignmentId,orderId),
+    ]);
+    assert(updated.meta.changes > 0 && logged.meta.changes > 0, "Courier confirmation could not be linked to the order", 502);
   } catch (error) {
-
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-      }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    // A timeout or lost reply can follow a successful booking. Retain the lock
+    // until the courier dashboard has been checked.
+    if (error instanceof HttpError && error.status === 422) {
+      await env.DB.prepare("DELETE FROM checkout_guards WHERE key=?").bind(lockKey).run();
+      throw error;
+    }
+    throw new HttpError(502, "Dispatch could not be confirmed. Check the courier dashboard before retrying.");
   }
+  return json({ success: true, message: "অর্ডার কুরিয়ারে পাঠানো হয়েছে", ...result });
 }
 
 async function sendToSteadfast(
@@ -147,6 +112,7 @@ async function sendToSteadfast(
 
   const response = await fetch("https://portal.steadfast.com.bd/api/v1/create_order", {
     method: "POST",
+    signal: AbortSignal.timeout(12_000),
     headers: {
       "Content-Type": "application/json",
       "Api-Key": steadfast_api_key,
@@ -165,7 +131,9 @@ async function sendToSteadfast(
   const result = await response.json<{status?:number;consignment?:{consignment_id:string|number;tracking_code:string};message?:string}>();
 
   if (!response.ok || result.status !== 200) {
-    throw new Error(result.message || "Steadfast API error");
+    const status = response.ok ? result.status : response.status;
+    if (status && [400, 401, 403, 422].includes(status)) throw new HttpError(422, "Steadfast rejected the booking. Check the settings and order details.");
+    throw new HttpError(502, "Steadfast did not confirm the booking");
   }
 
   return {
@@ -181,7 +149,8 @@ async function sendToPathao(
     recipientName: string;
     recipientPhone: string;
     recipientAddress: string;
-    recipientCity: string;
+    cityId: number;
+    zoneId: number;
     codAmount: number;
     note?: string;
   }
@@ -195,6 +164,7 @@ async function sendToPathao(
   // First, get access token
   const tokenResponse = await fetch("https://api-hermes.pathao.com/aladdin/api/v1/issue-token", {
     method: "POST",
+    signal: AbortSignal.timeout(12_000),
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
@@ -211,30 +181,28 @@ async function sendToPathao(
   const tokenResult = await tokenResponse.json<{access_token?:string;message?:string}>();
 
   if (!tokenResponse.ok || !tokenResult.access_token) {
-    throw new Error("Failed to get Pathao access token: " + (tokenResult.message || "Unknown error"));
+    throw new HttpError(422, "Pathao authentication failed. Check the courier settings.");
   }
 
   const accessToken = tokenResult.access_token;
 
-  // Determine city ID based on city name
-  const cityId = data.recipientCity?.toLowerCase().includes("dhaka") ? 1 : 2;
-
   // Create order
   const orderResponse = await fetch("https://api-hermes.pathao.com/aladdin/api/v1/orders", {
     method: "POST",
+    signal: AbortSignal.timeout(12_000),
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
       Authorization: `Bearer ${accessToken}`,
     },
     body: JSON.stringify({
-      store_id: pathao_store_id || "1",
+      store_id: Number(pathao_store_id),
       merchant_order_id: data.orderId.slice(0, 8).toUpperCase(),
       recipient_name: data.recipientName,
       recipient_phone: data.recipientPhone,
       recipient_address: data.recipientAddress,
-      recipient_city: cityId,
-      recipient_zone: 1,
+      recipient_city: data.cityId,
+      recipient_zone: data.zoneId,
       delivery_type: 48,
       item_type: 2,
       special_instruction: data.note || "",
@@ -248,7 +216,8 @@ async function sendToPathao(
   const orderResult = await orderResponse.json<{data?:{consignment_id:string};message?:string;errors?:unknown}>();
 
   if (!orderResponse.ok) {
-    throw new Error("Pathao order creation failed: " + (orderResult.message || JSON.stringify(orderResult.errors) || "Unknown error"));
+    if ([400, 401, 403, 422].includes(orderResponse.status)) throw new HttpError(422, "Pathao rejected the booking. Check the zone and order details.");
+    throw new HttpError(502, "Pathao did not confirm the booking");
   }
 
   return {

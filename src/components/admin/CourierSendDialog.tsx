@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Loader2, Truck, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,6 +8,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { api } from "@/integrations/cloudflare/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -31,6 +33,10 @@ interface CourierSendDialogProps {
 const CourierSendDialog = ({ open, onOpenChange, order }: CourierSendDialogProps) => {
   const [sending, setSending] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const [cityId, setCityId] = useState("");
+  const [zoneId, setZoneId] = useState("");
+  useEffect(() => { setCityId(""); setZoneId(""); }, [order?.id, open]);
+  const validPathaoLocation = [cityId, zoneId].every(id => /^[1-9]\d*$/.test(id) && Number.isSafeInteger(Number(id)));
 
   const handleSendToCourier = async (courier: "steadfast" | "pathao") => {
     if (!order) return;
@@ -41,12 +47,7 @@ const CourierSendDialog = ({ open, onOpenChange, order }: CourierSendDialogProps
         body: {
           orderId: order.id,
           courier,
-          recipientName: order.customer_name,
-          recipientPhone: order.customer_phone,
-          recipientAddress: order.customer_address,
-          recipientCity: order.customer_city,
-          codAmount: order.total_amount,
-          note: order.notes || "",
+          ...(courier === "pathao" ? { pathaoCityId: Number(cityId), pathaoZoneId: Number(zoneId) } : {}),
         },
       });
 
@@ -108,6 +109,16 @@ const CourierSendDialog = ({ open, onOpenChange, order }: CourierSendDialogProps
               <p><strong>COD:</strong> ৳{order.total_amount}</p>
             </div>
 
+            <div className="grid grid-cols-2 gap-3">
+              <Label htmlFor="pathao-city-id">Pathao City ID
+                <Input id="pathao-city-id" inputMode="numeric" value={cityId} onChange={event => setCityId(event.target.value)} />
+              </Label>
+              <Label htmlFor="pathao-zone-id">Pathao Zone ID
+                <Input id="pathao-zone-id" inputMode="numeric" value={zoneId} onChange={event => setZoneId(event.target.value)} />
+              </Label>
+              <p className="col-span-2 text-xs text-muted-foreground">Pathao ড্যাশবোর্ড থেকে ডেলিভারি ঠিকানার City ও Zone ID দিন।</p>
+            </div>
+
             {/* Courier Options */}
             <div className="grid grid-cols-2 gap-3">
               <Button
@@ -126,7 +137,7 @@ const CourierSendDialog = ({ open, onOpenChange, order }: CourierSendDialogProps
 
               <Button
                 onClick={() => handleSendToCourier("pathao")}
-                disabled={sending !== null}
+                disabled={sending !== null || !validPathaoLocation}
                 className="h-auto py-4 flex flex-col gap-2 bg-red-500 hover:bg-red-600"
               >
                 {sending === "pathao" ? (

@@ -83,6 +83,17 @@ assert page_data['show_hero_section'] is True and page_data['template_styles']['
 dbquery(admin,'sales_pages','update',values={'hero_subheadline':'Updated'},filters=[eq('id',page)])
 assert dbquery(anonymous,'sales_pages',select='*')['data'][0]['show_hero_section'] is True
 report('catalog joins and compressed sales-page document round-trip')
+stock_before=database.execute("SELECT coalesce(stock,0) FROM products WHERE id=?",(product,)).fetchone()[0]
+adjustment={'product_id':product,'change_type':'purchase','quantity':5,'notes':'Local test'}
+assert anonymous.request('rpc/adjust_stock',adjustment)[0]==403
+assert admin.ok('rpc/adjust_stock',adjustment)['success']
+assert admin.request('rpc/adjust_stock',{**adjustment,'change_type':'sale','quantity':1000})[0]==409
+assert admin.ok('rpc/adjust_stock',{**adjustment,'change_type':'sale'})['success']
+history=database.execute("SELECT quantity_change,previous_stock,new_stock,created_by FROM stock_history WHERE product_id=?",(product,)).fetchall()
+assert set(history)=={(5,stock_before,stock_before+5,uid),(-5,stock_before+5,stock_before,uid)},history
+assert database.execute("SELECT stock FROM products WHERE id=?",(product,)).fetchone()[0]==stock_before
+report('inventory adjusts stock and history atomically with signed quantities and admin access')
+
 dbquery(admin,'site_settings','upsert',values=[{'setting_key':'site_name','setting_value':'Test'},{'setting_key':'fb_pixel_access_token','setting_value':'dummy-not-a-token'}],onConflict='setting_key')
 public=dbquery(anonymous,'site_settings',select='*')['data']
 assert {r['setting_key'] for r in public}=={'site_name'}
@@ -225,7 +236,19 @@ report('zero-priced/free-shipping orders, 30-item checkout and staff-only aggreg
 review=dbquery(guest,'product_reviews','insert',values={'id':'forged-review','created_at':'2099-01-01T00:00:00.000Z','product_id':product,'customer_name':'Test','customer_phone':'01700000001','rating':5,'is_approved':True},select='*',single='one')['data']
 assert review['id']!='forged-review' and not review['created_at'].startswith('2099')
 assert dbquery(anonymous,'product_reviews_public',select='*')['data']==[]
-report('untrusted review approval is rejected')
+dbquery(admin,'product_reviews','update',values={'is_approved':True},filters=[eq('id',review['id'])])
+approved=dbquery(anonymous,'product_reviews_public',select='*',filters=[eq('id',review['id'])])['data']
+assert len(approved)==1 and 'customer_phone' not in approved[0]
+dbquery(admin,'product_reviews','delete',filters=[eq('id',review['id'])])
+assert dbquery(anonymous,'product_reviews_public',select='*')['data']==[]
+report('reviews require moderation and publish without customer phone')
+temporary_category=uuid.uuid4().hex
+dbquery(admin,'categories','insert',values={'id':temporary_category,'name':'Temporary','name_bn':'Temporary','slug':temporary_category})
+dbquery(admin,'categories','update',values={'name':'Updated'},filters=[eq('id',temporary_category)])
+assert dbquery(anonymous,'categories',select='name',filters=[eq('id',temporary_category)])['data']==[{'name':'Updated'}]
+dbquery(admin,'categories','delete',filters=[eq('id',temporary_category)])
+assert dbquery(anonymous,'categories',select='id',filters=[eq('id',temporary_category)])['data']==[]
+report('category create, edit and delete are reflected in the public catalog')
 dbquery(admin,'site_settings','upsert',values={'setting_key':'duplicate_block_enabled','setting_value':'true'},onConflict='setting_key')
 assert guest.ok('rpc/duplicate_status',{'phone':'01700000001'})['isBlocked'] is True
 assert guest.request('checkout',{'order':{**order,'id':str(uuid.uuid4())},'items':items})[0]==409

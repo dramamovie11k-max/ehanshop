@@ -9,6 +9,27 @@ export async function rpc(env:Env,request:Request,name:string,input:Row,user:Ide
     if(input._user_id===user.id)return user.roles.includes(String(input._role));
     return !!await env.DB.prepare('SELECT id FROM user_roles WHERE user_id=? AND role=?').bind(String(input._user_id),String(input._role)).first();
   }
+  if (name === 'adjust_stock') {
+    assert(admin(user), 'Administrator access required', 403);
+    const productId = String(input.product_id ?? '');
+    const type = String(input.change_type ?? '');
+    const quantity = Number(input.quantity);
+    assert(productId && ['purchase','return','sale','adjustment'].includes(type) &&
+      Number.isSafeInteger(quantity) && quantity !== 0 && Math.abs(quantity) <= 1_000_000, 'Invalid stock adjustment');
+    const delta = type === 'sale' ? -Math.abs(quantity) : type === 'adjustment' ? quantity : Math.abs(quantity);
+    const id = crypto.randomUUID();
+    const [history] = await env.DB.batch([
+      env.DB.prepare(`INSERT INTO stock_history
+        (id,product_id,change_type,quantity_change,previous_stock,new_stock,notes,created_by)
+        SELECT ?,id,?,?,coalesce(stock,0),coalesce(stock,0)+?,?,?
+        FROM products WHERE id=? AND coalesce(stock,0)+?>=0`)
+        .bind(id,type,delta,delta,String(input.notes ?? '').slice(0,2000) || null,user!.id,productId,delta),
+      env.DB.prepare(`UPDATE products SET stock=(SELECT new_stock FROM stock_history WHERE id=?)
+        WHERE id=? AND EXISTS (SELECT 1 FROM stock_history WHERE id=?)`).bind(id,productId,id),
+    ]);
+    assert(history.meta.changes > 0, 'Product missing or insufficient stock', 409);
+    return { success: true };
+  }
   if(name==='admin_stats'){
     assert(staff(user),'Staff access required',403);
     const dates=['today','week','month'].map(key=>{const value=String(input[key]||'');assert(/^\d{4}-\d{2}-\d{2}T/.test(value)&&Number.isFinite(Date.parse(value)),'Invalid date range');return value;});

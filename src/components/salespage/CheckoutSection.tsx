@@ -241,7 +241,7 @@ const CheckoutSection = ({ page, sectionId = "checkout" }: CheckoutSectionProps)
   // Abandoned cart tracking - save when phone is valid
   const saveAbandonedCart = useCallback(async (phone: string) => {
     const normalizedPhone = normalizePhone(phone);
-    if (!normalizedPhone || normalizedPhone.length !== 11) return;
+    if (!normalizedPhone || normalizedPhone.length !== 11 || orderItems.length === 0) return;
 
     const cartData = {
       items: orderItems.map(i => ({ product_id: i.product_id, product_name: i.product_name, price: i.price, quantity: i.quantity })),
