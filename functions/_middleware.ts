@@ -24,10 +24,10 @@ export const onRequest: PagesFunction<Env> = async context => {
       'twitter:title': meta.title, 'twitter:description': meta.description, 'twitter:image': meta.image,
     };
     const rewritten = new HTMLRewriter()
-      .on('head', { element(element) {
+      .on('meta[name="viewport"]', { element(element) {
         if (!bannerSources) return;
         const sources = bannerSources.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-        element.prepend(`<link rel="preload" as="image" imagesrcset="${sources}" imagesizes="100vw" fetchpriority="high" data-home-banner-preload>`, { html: true });
+        element.after(`<link rel="preload" as="image" imagesrcset="${sources}" imagesizes="100vw" fetchpriority="high" data-home-banner-preload>`, { html: true });
       } })
       .on('title', { element(element) { element.setInnerContent(meta.name); } })
       .on('meta', { element(element) {
