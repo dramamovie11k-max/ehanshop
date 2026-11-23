@@ -441,6 +441,18 @@ const CheckoutSection = ({ page, sectionId = "checkout" }: CheckoutSectionProps)
   // Coupon field can be turned off per page from the checkout design settings
   const couponEnabled = page.template_styles?.checkout?.coupon !== "0";
 
+  const renderQuantity = (value: number, onChange: (delta: number) => void) => (
+    <div className="checkout-quantity flex w-fit items-center gap-0.5" onClick={(event) => event.stopPropagation()}>
+      <button type="button" aria-label="পরিমাণ কমান" onClick={() => onChange(-1)} className="grid size-6 place-items-center rounded-md text-white" style={{ background: page.primary_color }}>
+        <Minus className="size-3" />
+      </button>
+      <span className="min-w-5 px-0.5 text-center text-xs font-bold tabular-nums text-white" aria-live="polite">{value}</span>
+      <button type="button" aria-label="পরিমাণ বাড়ান" onClick={() => onChange(1)} className="grid size-6 place-items-center rounded-md text-white" style={{ background: page.primary_color }}>
+        <Plus className="size-3" />
+      </button>
+    </div>
+  );
+
   const productBlock = isMultiProduct && linkedProducts.length > 0 ? (
           <div className={cn("checkout-product py-3 space-y-2", !productsBelowPayment && "px-4 border-b border-white/10")}>
             <p className="checkout-products-heading text-sm font-semibold text-white">{renderSalesText(text("productsHeading", "আপনার পছন্দের প্রোডাক্ট সিলেক্ট করুন"))}</p>
@@ -454,7 +466,7 @@ const CheckoutSection = ({ page, sectionId = "checkout" }: CheckoutSectionProps)
                   tabIndex={0}
                   data-selected={selected}
                   onClick={() => toggleProduct(p.id)}
-                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleProduct(p.id); } }}
+                  onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); toggleProduct(p.id); } }}
                   className="flex items-center gap-3 rounded-lg p-2 cursor-pointer transition-all"
                   style={{ border: `2px solid ${selected ? page.accent_color : "rgba(255,255,255,0.15)"}` }}
                 >
@@ -465,26 +477,16 @@ const CheckoutSection = ({ page, sectionId = "checkout" }: CheckoutSectionProps)
                     {renderSalesText(selected && <Check className="h-3 w-3 text-white" />)}
                   </span>
                   {renderSalesText(img && <img src={imageVariant(img,384)} loading="lazy" decoding="async" alt={salesPlainText(productLabel(p))} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />)}
-                  <div className="flex-1 min-w-0">
-                    <p className="checkout-product-name font-medium text-white text-sm truncate">{renderSalesText(productLabel(p))}</p>
-                    <div className="flex items-center gap-2">
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <p className="checkout-product-name break-words text-sm font-medium leading-snug text-white">{renderSalesText(productLabel(p))}</p>
+                    {selected && renderQuantity(selectedQty[p.id], (delta) => changeQty(p.id, delta))}
+                    <div className="flex flex-wrap items-center gap-x-2">
                       <p className="checkout-price text-base font-bold" style={{ color: page.accent_color }}>{renderSalesText(page.price_unit)}{renderSalesText(p.price)}</p>
                       {renderSalesText(p.original_price && Number(p.original_price) > Number(p.price) && (
                         <span className="checkout-old-price text-xs text-white/50 line-through">{renderSalesText(page.price_unit)}{renderSalesText(p.original_price)}</span>
                       ))}
                     </div>
                   </div>
-                  {renderSalesText(selected && (
-                    <div className="checkout-quantity flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
-                      <button type="button" onClick={() => changeQty(p.id, -1)} className="w-7 h-7 rounded-lg flex items-center justify-center text-white" style={{ background: page.primary_color }}>
-                        <Minus className="h-3 w-3" />
-                      </button>
-                      <span className="w-7 text-center font-bold text-white">{renderSalesText(selectedQty[p.id])}</span>
-                      <button type="button" onClick={() => changeQty(p.id, 1)} className="w-7 h-7 rounded-lg flex items-center justify-center text-white" style={{ background: page.primary_color }}>
-                        <Plus className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
                 </div>
               );
             }))}
@@ -501,11 +503,12 @@ const CheckoutSection = ({ page, sectionId = "checkout" }: CheckoutSectionProps)
                   style={{ border: `2px solid ${page.primary_color}40` }}
                 />
               ))}
-              <div className="flex-1 min-w-0">
-                 <p className="checkout-product-name font-medium text-white text-sm truncate">
+              <div className="min-w-0 flex-1 space-y-1">
+                 <p className="checkout-product-name break-words text-sm font-medium leading-snug text-white">
                   {renderSalesText(product?.name_bn || product?.name || page.offer_details || page.title)}
                 </p>
-                <div className="flex items-center gap-2">
+                {renderQuantity(quantity, (delta) => setQuantity((current) => Math.max(1, current + delta)))}
+                <div className="flex flex-wrap items-center gap-x-2">
                    <p className="checkout-price text-lg font-bold" style={{ color: page.accent_color }}>
                     {renderSalesText(page.price_unit)}{renderSalesText(unitPrice)}
                   </p>
@@ -526,27 +529,6 @@ const CheckoutSection = ({ page, sectionId = "checkout" }: CheckoutSectionProps)
                     </>
                   ))}
                 </div>
-              </div>
-
-              {/* Quantity - Compact */}
-               <div className="checkout-quantity flex items-center gap-0.5">
-                <button
-                  type="button"
-                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  className="w-7 h-7 rounded-lg flex items-center justify-center text-white transition-all hover:scale-105"
-                  style={{ background: page.primary_color }}
-                >
-                  <Minus className="h-3 w-3" />
-                </button>
-                <span className="w-8 text-center font-bold text-white">{renderSalesText(quantity)}</span>
-                <button
-                  type="button"
-                  onClick={() => setQuantity((q) => q + 1)}
-                  className="w-7 h-7 rounded-lg flex items-center justify-center text-white transition-all hover:scale-105"
-                  style={{ background: page.primary_color }}
-                >
-                  <Plus className="h-3 w-3" />
-                </button>
               </div>
             </div>
           </div>
