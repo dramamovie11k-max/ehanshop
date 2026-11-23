@@ -41,7 +41,7 @@ const CheckoutSection = ({ page, sectionId = "checkout" }: CheckoutSectionProps)
   const text = (key: Parameters<typeof getCheckoutText>[1], fallback: string) => getCheckoutText(page.template_styles?.checkout, key, fallback);
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { trackPurchase } = usePixelTracking();
+  const { trackPurchase, trackStandardEvent } = usePixelTracking();
   const [quantity, setQuantity] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("cod");
@@ -327,6 +327,10 @@ const CheckoutSection = ({ page, sectionId = "checkout" }: CheckoutSectionProps)
          toast.error(text("transactionInvalid", "সঠিক ট্রানজেকশন আইডি দিন"));
         return;
       }
+    }
+
+    if (paymentMethod === "online") {
+      trackStandardEvent("AddPaymentInfo", { currency: "BDT", value: total, _user: { phone: formData.phone, firstName: formData.name } });
     }
 
     setIsSubmitting(true);

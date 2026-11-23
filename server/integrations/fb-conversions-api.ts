@@ -31,6 +31,7 @@ function clientIp(req: Request): string | undefined {
 
 interface CapiPayload {
   event_name: string;
+  test_only?: boolean;
   event_id?: string;
   event_source_url?: string;
   user_data?: {
@@ -70,7 +71,7 @@ export async function handle(req: Request, env: Env): Promise<Response> {
       ]);
 
     const cfg: Record<string, string> = {};
-    rows?.forEach((r: {setting_key:string;setting_value:string|null}) => (cfg[r.setting_key] = r.setting_value || ""));
+    rows?.forEach((r: {setting_key:string;setting_value:string|null}) => (cfg[r.setting_key] = r.setting_value?.trim() || ""));
 
     if (cfg.fb_pixel_enabled !== "true" || !cfg.fb_pixel_id || !cfg.fb_pixel_access_token) {
       return new Response(
@@ -80,6 +81,9 @@ export async function handle(req: Request, env: Env): Promise<Response> {
     }
 
     const payload: CapiPayload = await req.json();
+    if (payload.test_only && !cfg.fb_pixel_test_event_code) {
+      return Response.json({ skipped: true, reason: "Save a Test Event Code first" }, { headers: corsHeaders });
+    }
     if (!payload?.event_name) {
       return new Response(JSON.stringify({ error: "event_name required" }), {
         status: 400,

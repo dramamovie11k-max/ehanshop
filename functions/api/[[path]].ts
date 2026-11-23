@@ -78,6 +78,14 @@ export const onRequest: PagesFunction<Env> = async ({request,env,waitUntil}) => 
           if(['fb-conversions-api','tiktok-events-api'].includes(name)) {
             assert(typeof input.event_name==='string'&&input.event_name.length<=100,'Event name required');
             if(/cancel|refund/i.test(input.event_name))assert(staff(user),'Staff access required',403);
+            if(input.test_only===true) {
+              assert(admin(user),'Admin access required',403);
+              input.event_name='PageView';
+              input.event_id=randomToken();
+              input.event_source_url=new URL('/',request.url).href;
+              input.user_data={client_user_agent:request.headers.get('user-agent')||undefined};
+              input.custom_data={};
+            }
             const data=(input.user_data||{}) as Row;
             if(!staff(user))delete data.client_ip_address;
             input.user_data=data;

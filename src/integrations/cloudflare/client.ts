@@ -1,8 +1,8 @@
 import { QueryBuilder, Result } from '../../../shared/query';
 import type { AuthEvent, Session, User } from './authTypes';
-async function call(path:string,body?:unknown,method=body===undefined?'GET':'POST'):Promise<Result> {
+async function call(path:string,body?:unknown,method=body===undefined?'GET':'POST',keepalive=false):Promise<Result> {
   try {
-    const response=await fetch('/api/'+path,{method,credentials:'same-origin',headers:body===undefined?{}:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});
+    const response=await fetch('/api/'+path,{method,keepalive,credentials:'same-origin',headers:body===undefined?{}:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});
     const result=await response.json() as Record<string,any>;
     if(!response.ok||result.error){const message=typeof result.error==='string'?result.error:result.error?.message;return {data:null,error:Object.assign(new Error(message||'Request failed'),{code:result.error?.code,status:response.status})};}
     return result.data!==undefined?{data:result.data,error:null,count:result.count}:{data:result,error:null};
@@ -29,7 +29,7 @@ export const api={
   rpc:(name:string,input:unknown={})=>call('rpc/'+encodeURIComponent(name),input),
   checkout:(input:unknown)=>call('checkout',input),
   auth,
-  functions:{invoke:(name:string,options?:{body?:unknown})=>call('functions/'+encodeURIComponent(name),options?.body||{})},
+  functions:{invoke:(name:string,options?:{body?:unknown;keepalive?:boolean})=>call('functions/'+encodeURIComponent(name),options?.body||{},'POST',options?.keepalive)},
   storage:{from:(bucket:string)=>({
     async upload(path:string,file:Blob,_options?:{upsert?:boolean}){try{const r=await fetch('/api/media/'+encoded(bucket,path),{method:'PUT',credentials:'same-origin',headers:{'Content-Type':file.type||'application/octet-stream'},body:file});const result=await r.json() as Record<string,any>;
       if(r.ok&&file.type.startsWith('image/')&&!path.includes('.responsive-')){

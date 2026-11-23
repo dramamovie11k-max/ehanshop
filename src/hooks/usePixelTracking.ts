@@ -147,7 +147,6 @@ export const usePixelTracking = () => {
     window.dataLayer = window.dataLayer || [];
     window.dataLayer.push({ ecommerce: null });
     window.dataLayer.push({ event, ...data });
-    console.log(`[Tracking] DataLayer Event: ${event}`, data);
   }, []);
 
   // Direct Meta Pixel + Conversion API firing.
@@ -247,7 +246,8 @@ export const usePixelTracking = () => {
     if (!capiOnly && typeof (window as any).fbq === "function") {
       try {
         (window as any).fbq(
-          isCustom ? "trackCustom" : "track",
+          isCustom ? "trackSingleCustom" : "trackSingle",
+          cfg.id,
           eventName,
           isCustom ? { ...rest, ...customData } : customData,
           event_id ? { eventID: event_id } : undefined
@@ -260,6 +260,7 @@ export const usePixelTracking = () => {
     // Server-side Conversions API (deduped by event_id)
     api.functions
       .invoke("fb-conversions-api", {
+        keepalive: true,
         body: {
           event_name: eventName,
           event_id,
@@ -284,7 +285,7 @@ export const usePixelTracking = () => {
           custom_data: isCustom ? { ...rest, ...customData } : customData,
         },
       })
-      .catch((e) => console.warn("[CAPI] invoke failed", e));
+      .then(({ error }) => { if (error) console.warn("[CAPI] event delivery failed"); });
   }, []);
 
   // Direct TikTok Pixel + Events API firing.
@@ -311,7 +312,7 @@ export const usePixelTracking = () => {
     const externalId = getOrCreateExternalId();
     const mergedUser = {
       email: userInput.email || persisted.email,
-      phone: userInput.phone || rest.customer_phone || persisted.phone,
+      phone: normalizePhoneE164(userInput.phone || rest.customer_phone || persisted.phone),
       firstName: userInput.firstName || userInput.first_name || persisted.firstName,
       lastName: userInput.lastName || userInput.last_name || persisted.lastName,
       city: userInput.city || rest.customer_city || persisted.city,
@@ -357,8 +358,7 @@ export const usePixelTracking = () => {
       brand: rest.brand,
       contents: normContents,
       order_id: rest.order_id,
-      search_string: rest.search_string,
-      query: rest.query,
+      query: rest.query || rest.search_string,
       status: rest.status,
     };
     Object.keys(customData).forEach((k) => customData[k] === undefined && delete customData[k]);
@@ -367,7 +367,9 @@ export const usePixelTracking = () => {
     if (!capiOnly && (window as any).ttq?.track) {
       try {
         const ttProps: Record<string, any> = { ...customData };
-        (window as any).ttq.track(
+        const ttq = window.ttq;
+        const pixel = ttq._i?.[cfg.id] && ttq.instance ? ttq.instance(cfg.id) : ttq;
+        pixel.track(
           eventName,
           ttProps,
           event_id ? { event_id } : undefined
@@ -380,6 +382,7 @@ export const usePixelTracking = () => {
     // Server-side Events API (deduped by event_id)
     api.functions
       .invoke("tiktok-events-api", {
+        keepalive: true,
         body: {
           event_name: eventName,
           event_id,
@@ -404,7 +407,7 @@ export const usePixelTracking = () => {
           custom_data: customData,
         },
       })
-      .catch((e) => console.warn("[TikTok Events API] invoke failed", e));
+      .then(({ error }) => { if (error) console.warn("[TikTok Events API] event delivery failed"); });
   }, []);
 
   // Build comprehensive GA4 + WooCommerce-style item
@@ -524,6 +527,7 @@ export const usePixelTracking = () => {
     });
 
     fireTikTokEvent("AddToCart", {
+      event_id: eventId,
       value: value,
       currency: currency,
       content_name: product.product_name,
@@ -599,6 +603,7 @@ export const usePixelTracking = () => {
     });
 
     fireTikTokEvent("InitiateCheckout", {
+      event_id: eventId,
       value: total,
       currency: currency,
       content_type: 'product',
@@ -752,6 +757,7 @@ export const usePixelTracking = () => {
     });
 
     fireTikTokEvent("CompletePayment", {
+      event_id: eventId,
       value: order.total,
       currency: currency,
       content_type: 'product',
@@ -782,7 +788,6 @@ export const usePixelTracking = () => {
       tracking?: { fbp?: string | null; fbc?: string | null; ttp?: string | null; ttclid?: string | null; user_agent?: string | null; external_id?: string | null; source_url?: string | null; customer_ip?: string | null };
     }
   ) => {
-    console.log("[Tracking] Cancel - using purchase_event_id:", purchaseEventId, "for order:", orderId);
     pushToDataLayer("purchase", {
       event_id: purchaseEventId,
       order_cancelled: true,
@@ -889,6 +894,7 @@ export const usePixelTracking = () => {
     });
 
     fireTikTokEvent("ViewContent", {
+      event_id: eventId,
       value: value,
       currency: currency,
       content_name: product.product_name,
@@ -946,6 +952,7 @@ export const usePixelTracking = () => {
       });
 
       fireTikTokEvent("ViewContent", {
+        event_id: eventId,
         value: productData.price,
         currency: currency,
         content_name: productData.product_name,
@@ -959,8 +966,6 @@ export const usePixelTracking = () => {
     }
     // Meta PageView (browser + server) is fired by FBPixelLoader on every route change
 
-    // TikTok PageView — always fire on every page (browser ttq.page + Events API)
-    fireTikTokEvent("PageView", { event_id: eventId });
   }, [pushToDataLayer, firePixelEvent, fireTikTokEvent, buildGA4Item, buildFBContents, buildTikTokContents]);
 
   // Track Contact/Lead event
@@ -981,7 +986,7 @@ export const usePixelTracking = () => {
     });
 
     firePixelEvent("Contact", { event_id: eventId, contact_method: 'phone' });
-    fireTikTokEvent("Contact", { contact_method: 'phone' });
+    fireTikTokEvent("Contact", { event_id: eventId, contact_method: 'phone' });
   }, [pushToDataLayer, firePixelEvent, fireTikTokEvent]);
 
   // Track form submission started
@@ -1027,7 +1032,15 @@ export const usePixelTracking = () => {
     firedEvents.current.clear();
   }, []);
 
+  const trackStandardEvent = useCallback((name: "Search" | "AddToWishlist" | "AddPaymentInfo" | "CompleteRegistration" | "Contact", data: Record<string, unknown> = {}) => {
+    const event = { ...data, event_id: generateEventId() };
+    firePixelEvent(name, event);
+    fireTikTokEvent(name, event);
+  }, [firePixelEvent, fireTikTokEvent]);
+
   return {
+    fireTikTokEvent,
+    trackStandardEvent,
     trackEngagement,
     trackAddToCart,
     trackInitiateCheckout,

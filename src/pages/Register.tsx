@@ -1,3 +1,4 @@
+import { usePixelTracking } from "@/hooks/usePixelTracking";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ const Register = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const { trackStandardEvent } = usePixelTracking();
   const { signUp } = useAuth();
   const navigate = useNavigate();
   const { t } = useLanguage();
@@ -42,6 +44,7 @@ const Register = () => {
     if (error) {
       toast.error(error.message || t('auth.register_failed'));
     } else {
+      trackStandardEvent("CompleteRegistration", { status: true, _user: { email, firstName: fullName } });
       toast.success(t('auth.register_success'));
       navigate("/login");
     }

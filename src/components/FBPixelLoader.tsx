@@ -8,6 +8,7 @@ import {
   getPersistedUser,
   buildAdvancedMatching,
   getCookie,
+  ensureFbp,
 } from "@/lib/fbTracking";
 
 declare global {
@@ -16,7 +17,7 @@ declare global {
   }
 }
 
-const isAdminPath = (p: string) => p.startsWith("/admin");
+const skipPageView = (path: string) => path.startsWith("/admin") || path === "/reset-password";
 
 /**
  * Loads the Meta Pixel base script when admin configured a Pixel ID and enabled it.
@@ -28,6 +29,7 @@ const FBPixelLoader = () => {
   const pixelId = getSetting("fb_pixel_id", "").trim();
   const enabled = getSetting("fb_pixel_enabled", "false") === "true";
   const location = useLocation();
+  const initializedPixels = useRef(new Set<string>());
   const lastTracked = useRef<string>("");
 
   // Load base script + init (once)
@@ -57,7 +59,10 @@ const FBPixelLoader = () => {
         s.parentNode.insertBefore(t, s);
       })(window, document, "script", "https://connect.facebook.net/en_US/fbevents.js");
       /* eslint-enable */
+    }
+    if (!initializedPixels.current.has(pixelId)) {
       (window as any).fbq("init", pixelId, buildAdvancedMatching(getPersistedUser(), externalId));
+      initializedPixels.current.add(pixelId);
     }
 
     const onUserUpdated = (e: any) => {
@@ -71,45 +76,42 @@ const FBPixelLoader = () => {
 
   // PageView on every route (browser + server, deduped by event_id)
   useEffect(() => {
-    if (!pixelId || !enabled || isAdminPath(location.pathname)) return;
-    const key = location.pathname + location.search;
+    if (!pixelId || !enabled || skipPageView(location.pathname)) return;
+    const key = JSON.stringify([pixelId, location.key, location.pathname, location.search]);
     if (lastTracked.current === key) return;
     lastTracked.current = key;
 
-    const eventId = `pv_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    const eventId = crypto.randomUUID();
     try {
-      (window as any).fbq?.("track", "PageView", {}, { eventID: eventId });
+      (window as any).fbq?.("trackSingle", pixelId, "PageView", {}, { eventID: eventId });
     } catch {}
 
     const sourceUrl = window.location.href;
-    // Small delay so the Pixel can set the _fbp cookie before the server event
-    const timer = window.setTimeout(() => {
-      const u = getPersistedUser();
-      api.functions
-        .invoke("fb-conversions-api", {
-          body: {
-            event_name: "PageView",
-            event_id: eventId,
-            event_source_url: sourceUrl,
-            user_data: {
-              email: u.email,
-              phone: u.phone,
-              first_name: u.firstName,
-              last_name: u.lastName,
-              city: u.city,
-              country: u.country || "BD",
-              external_id: getOrCreateExternalId(),
-              client_user_agent: navigator.userAgent,
-              fbp: getCookie("_fbp"),
-              fbc: getCookie("_fbc"),
-            },
-            custom_data: {},
+    const u = getPersistedUser();
+    api.functions
+      .invoke("fb-conversions-api", {
+        keepalive: true,
+        body: {
+          event_name: "PageView",
+          event_id: eventId,
+          event_source_url: sourceUrl,
+          user_data: {
+            email: u.email,
+            phone: u.phone,
+            first_name: u.firstName,
+            last_name: u.lastName,
+            city: u.city,
+            country: u.country || "BD",
+            external_id: getOrCreateExternalId(),
+            client_user_agent: navigator.userAgent,
+            fbp: ensureFbp(),
+            fbc: getCookie("_fbc"),
           },
-        })
-        .catch((e) => console.warn("[CAPI] PageView failed", e));
-    }, 1200);
-    return () => window.clearTimeout(timer);
-  }, [pixelId, enabled, location.pathname, location.search]);
+          custom_data: {},
+        },
+      })
+      .then(({ error }) => { if (error) console.warn("[Meta CAPI] PageView delivery failed"); });
+  }, [pixelId, enabled, location.pathname, location.search, location.key]);
 
   return null;
 };

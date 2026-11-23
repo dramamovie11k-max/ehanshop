@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { usePixelTracking } from "@/hooks/usePixelTracking";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Filter, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,13 @@ const Products = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const categorySlug = searchParams.get("category") || undefined;
   const searchQuery = searchParams.get("search") || "";
+  const { trackStandardEvent } = usePixelTracking();
+  const lastSearch = useRef("");
+  useEffect(() => {
+    const term = searchQuery.trim();
+    if (term && lastSearch.current !== term) trackStandardEvent("Search", { search_string: term });
+    lastSearch.current = term;
+  }, [searchQuery, trackStandardEvent]);
   const { data: products = [], isLoading } = useProducts({ categorySlug, compact: true });
   const { data: categories = [] } = useCategories();
   const { t, language } = useLanguage();

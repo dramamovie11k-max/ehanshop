@@ -29,6 +29,7 @@ const EVENT_MAP: Record<string, string> = {
 
 interface TtPayload {
   event_name: string;
+  test_only?: boolean;
   event_id?: string;
   event_source_url?: string;
   event_source_referrer?: string;
@@ -68,7 +69,7 @@ export async function handle(req: Request, env: Env): Promise<Response> {
       ]);
 
     const cfg: Record<string, string> = {};
-    rows?.forEach((r: {setting_key:string;setting_value:string|null}) => (cfg[r.setting_key] = r.setting_value || ""));
+    rows?.forEach((r: {setting_key:string;setting_value:string|null}) => (cfg[r.setting_key] = r.setting_value?.trim() || ""));
 
     if (cfg.tiktok_pixel_enabled !== "true" || !cfg.tiktok_pixel_id || !cfg.tiktok_pixel_access_token) {
       return new Response(
@@ -78,6 +79,9 @@ export async function handle(req: Request, env: Env): Promise<Response> {
     }
 
     const payload: TtPayload = await req.json();
+    if (payload.test_only && !cfg.tiktok_pixel_test_event_code) {
+      return Response.json({ skipped: true, reason: "Save a Test Event Code first" }, { headers: corsHeaders });
+    }
     if (!payload?.event_name) {
       return new Response(JSON.stringify({ error: "event_name required" }), {
         status: 400,
@@ -100,7 +104,7 @@ export async function handle(req: Request, env: Env): Promise<Response> {
     if (u.ttp) user.ttp = u.ttp;
     if (u.ttclid) user.ttclid = u.ttclid;
     if (u.locale) user.locale = u.locale;
-    const ip = u.client_ip_address || req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+    const ip = u.client_ip_address || req.headers.get("cf-connecting-ip") || req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
     if (ip) user.ip = ip;
 
     // Build properties (TikTok schema)

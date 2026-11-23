@@ -130,7 +130,7 @@ const Checkout = () => {
     localStorage.getItem("session_id") || crypto.randomUUID()
   );
   const blockAlertRef = useRef<HTMLDivElement>(null);
-  const { trackInitiateCheckout, trackPurchase } = usePixelTracking();
+  const { trackInitiateCheckout, trackPurchase, trackStandardEvent } = usePixelTracking();
   const { getOrderSource } = useOrderSource();
   const hasTrackedCheckout = useRef(false);
 
@@ -406,6 +406,10 @@ const Checkout = () => {
     } else if (formData.paymentMethod === "online") {
       toast.error("পেমেন্ট মাধ্যম নির্বাচন করুন (বিকাশ/নগদ/রকেট)");
       return;
+    }
+
+    if (["bkash","nagad","rocket"].includes(formData.paymentMethod)) {
+      trackStandardEvent("AddPaymentInfo", { currency: "BDT", _user: { phone: formData.phone, firstName: formData.name } });
     }
 
     // Get IP early for both blocking check and order saving

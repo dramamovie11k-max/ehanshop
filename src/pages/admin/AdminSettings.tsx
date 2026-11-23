@@ -633,6 +633,22 @@ const AdminSettings = () => {
 
   const handleSaveSettings = async () => {
     if (!settingsReady.current) { toast.error("সেটিংস লোড হয়নি। পেজ রিফ্রেশ করে আবার চেষ্টা করুন।"); return; }
+    if (activeTab === "tracking") {
+      for (const [name, enabled, id, token, code, idPattern] of [
+        ["Meta", settings.fb_pixel_enabled, settings.fb_pixel_id, settings.fb_pixel_access_token, settings.fb_pixel_test_event_code, /^\d+$/],
+        ["TikTok", settings.tiktok_pixel_enabled, settings.tiktok_pixel_id, settings.tiktok_pixel_access_token, settings.tiktok_pixel_test_event_code, /^[a-z0-9]+$/i],
+      ] as const) {
+        if (enabled !== "true") continue;
+        if (!idPattern.test(id.trim()) || !token.trim()) {
+          toast.error(`${name} চালু করতে সঠিক Pixel ID ও Access Token দিন।`);
+          return;
+        }
+        if (code.trim() && !/^[a-z0-9_-]{1,64}$/i.test(code.trim())) {
+          toast.error(`${name} Test Event Code সঠিক নয়। Events Manager-এর কোড দিন অথবা ঘরটি খালি রাখুন।`);
+          return;
+        }
+      }
+    }
     setSaving(true);
     try {
       const snapshot = { ...settings };
@@ -658,6 +674,21 @@ const AdminSettings = () => {
         home_banner_image: banner.images[0] || "",
       };
     });
+  };
+
+  const [testingPixel, setTestingPixel] = useState<"meta" | "tiktok">();
+  const testPixel = async (provider: "meta" | "tiktok") => {
+    setTestingPixel(provider);
+    try {
+      const { data, error } = await api.functions.invoke(provider === "meta" ? "fb-conversions-api" : "tiktok-events-api", {
+        body: { event_name: "PageView", test_only: true },
+      });
+      if (error) toast.error("প্ল্যাটফর্ম টেস্ট ইভেন্ট গ্রহণ করেনি। সেভ করা Pixel ID ও টোকেন যাচাই করুন।");
+      else if (!data?.success) toast.error("পিক্সেল চালু করে Pixel ID, Access Token ও Test Event Code সেভ করুন।");
+      else toast.success("প্ল্যাটফর্ম সার্ভারের টেস্ট ইভেন্ট গ্রহণ করেছে। Events Manager-এ দেখুন।");
+    } finally {
+      setTestingPixel(undefined);
+    }
   };
 
   const toggleSecret = (key: string) => {
@@ -1335,6 +1366,7 @@ const AdminSettings = () => {
                         <Label htmlFor="fb_pixel_test_event_code">Test Event Code (অপশনাল)</Label>
                         <Input
                           id="fb_pixel_test_event_code"
+                          autoComplete="off"
                           placeholder="TEST12345"
                           value={settings.fb_pixel_test_event_code || ""}
                           onChange={(e) => setSettings({ ...settings, fb_pixel_test_event_code: e.target.value } as any)}
@@ -1344,6 +1376,7 @@ const AdminSettings = () => {
                         <Label htmlFor="fb_pixel_access_token">Access Token (Conversion API)</Label>
                         <Input
                           id="fb_pixel_access_token"
+                          autoComplete="off"
                           type="password"
                           placeholder="EAA..."
                           value={settings.fb_pixel_access_token || ""}
@@ -1352,13 +1385,16 @@ const AdminSettings = () => {
                         <p className="text-xs text-muted-foreground">
                           Events Manager → Settings → Conversions API → Generate access token
                         </p>
+                        <Button type="button" variant="outline" size="sm" disabled={!!testingPixel || saving} onClick={() => void testPixel("meta")}>
+                          {testingPixel === "meta" ? "পাঠানো হচ্ছে…" : "সার্ভার টেস্ট ইভেন্ট পাঠান"}
+                        </Button>
                       </div>
                     </div>
 
                     <div className="rounded-md border bg-background p-3 text-xs text-muted-foreground">
                       <p className="font-semibold text-foreground mb-1">সাপোর্টেড স্ট্যান্ডার্ড ইভেন্টস (Ecommerce)</p>
                       <div className="flex flex-wrap gap-1.5">
-                        {["PageView","ViewContent","Search","AddToCart","AddToWishlist","InitiateCheckout","AddPaymentInfo","Purchase","Lead","CompleteRegistration"].map(ev => (
+                        {["PageView","ViewContent","Search","AddToCart","AddToWishlist","InitiateCheckout","AddPaymentInfo","Purchase","Contact","CompleteRegistration"].map(ev => (
                           <span key={ev} className="px-2 py-0.5 rounded bg-muted text-foreground text-[11px]">{ev}</span>
                         ))}
                       </div>
@@ -1406,6 +1442,7 @@ const AdminSettings = () => {
                         <Label htmlFor="tiktok_pixel_test_event_code">Test Event Code (অপশনাল)</Label>
                         <Input
                           id="tiktok_pixel_test_event_code"
+                          autoComplete="off"
                           placeholder="TEST12345"
                           value={settings.tiktok_pixel_test_event_code || ""}
                           onChange={(e) => setSettings({ ...settings, tiktok_pixel_test_event_code: e.target.value } as any)}
@@ -1415,6 +1452,7 @@ const AdminSettings = () => {
                         <Label htmlFor="tiktok_pixel_access_token">Access Token (Events API)</Label>
                         <Input
                           id="tiktok_pixel_access_token"
+                          autoComplete="off"
                           type="password"
                           placeholder="ttok-..."
                           value={settings.tiktok_pixel_access_token || ""}
@@ -1423,13 +1461,16 @@ const AdminSettings = () => {
                         <p className="text-xs text-muted-foreground">
                           TikTok Events Manager → Settings → Events API → Generate access token
                         </p>
+                        <Button type="button" variant="outline" size="sm" disabled={!!testingPixel || saving} onClick={() => void testPixel("tiktok")}>
+                          {testingPixel === "tiktok" ? "পাঠানো হচ্ছে…" : "সার্ভার টেস্ট ইভেন্ট পাঠান"}
+                        </Button>
                       </div>
                     </div>
 
                     <div className="rounded-md border bg-background p-3 text-xs text-muted-foreground">
                       <p className="font-semibold text-foreground mb-1">সাপোর্টেড স্ট্যান্ডার্ড ইভেন্টস (Ecommerce)</p>
                       <div className="flex flex-wrap gap-1.5">
-                        {["Pageview","ViewContent","Search","AddToCart","AddToWishlist","InitiateCheckout","AddPaymentInfo","CompletePayment","SubmitForm","Contact","CancelOrder"].map(ev => (
+                        {["Pageview","ViewContent","Search","AddToCart","AddToWishlist","InitiateCheckout","AddPaymentInfo","CompletePayment","Contact","CompleteRegistration"].map(ev => (
                           <span key={ev} className="px-2 py-0.5 rounded bg-muted text-foreground text-[11px]">{ev}</span>
                         ))}
                       </div>

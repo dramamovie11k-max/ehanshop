@@ -1,3 +1,4 @@
+import { usePixelTracking } from "@/hooks/usePixelTracking";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/integrations/cloudflare/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,6 +12,7 @@ export interface WishlistItem {
 }
 
 export const useWishlist = () => {
+  const { trackStandardEvent } = usePixelTracking();
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -47,7 +49,8 @@ export const useWishlist = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_data, productId) => {
+      trackStandardEvent("AddToWishlist", { content_ids: [productId], content_id: productId, _user: { email: user?.email } });
       queryClient.invalidateQueries({ queryKey: ["wishlist", user?.id] });
       toast.success("উইশলিস্টে যোগ হয়েছে!");
     },

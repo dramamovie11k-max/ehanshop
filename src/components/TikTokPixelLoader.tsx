@@ -1,4 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
+import { usePixelTracking } from "@/hooks/usePixelTracking";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { captureTtclid } from "@/lib/ttTracking";
 import { getOrCreateExternalId, getPersistedUser } from "@/lib/fbTracking";
@@ -15,6 +17,9 @@ declare global {
  * usePixelTracking, which calls ttq.track() in addition to dataLayer.push().
  */
 const TikTokPixelLoader = () => {
+  const { fireTikTokEvent } = usePixelTracking();
+  const { pathname, search, key } = useLocation();
+  const lastPage = useRef("");
   const { getSetting } = useSiteSettings();
   const pixelId = getSetting("tiktok_pixel_id", "").trim();
   const enabled = getSetting("tiktok_pixel_enabled", "false") === "true";
@@ -26,47 +31,47 @@ const TikTokPixelLoader = () => {
     captureTtclid();
     const externalId = getOrCreateExternalId();
 
-    if ((window as any).ttq?.loaded) return;
+    if (!(window as any).ttq?.load) {
 
-    /* eslint-disable */
-    (function (w: any, d: any, t: any) {
-      w.TiktokAnalyticsObject = t;
-      var ttq = (w[t] = w[t] || []);
-      ttq.methods = [
-        "page","track","identify","instances","debug","on","off","once","ready",
-        "alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent",
-      ];
-      ttq.setAndDefer = function (t: any, e: any) {
-        t[e] = function () {
-          t.push([e].concat(Array.prototype.slice.call(arguments, 0)));
+      /* eslint-disable */
+      (function (w: any, d: any, t: any) {
+        w.TiktokAnalyticsObject = t;
+        var ttq = (w[t] = w[t] || []);
+        ttq.methods = [
+          "page","track","identify","instances","debug","on","off","once","ready",
+          "alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent",
+        ];
+        ttq.setAndDefer = function (t: any, e: any) {
+          t[e] = function () {
+            t.push([e].concat(Array.prototype.slice.call(arguments, 0)));
+          };
         };
-      };
-      for (var i = 0; i < ttq.methods.length; i++) ttq.setAndDefer(ttq, ttq.methods[i]);
-      ttq.instance = function (t: any) {
-        for (var e = ttq._i[t] || [], n = 0; n < ttq.methods.length; n++) ttq.setAndDefer(e, ttq.methods[n]);
-        return e;
-      };
-      ttq.load = function (e: any, n: any) {
-        var r = "https://analytics.tiktok.com/i18n/pixel/events.js";
-        var o = n && n.partner;
-        ttq._i = ttq._i || {};
-        ttq._i[e] = [];
-        ttq._i[e]._u = r;
-        ttq._t = ttq._t || {};
-        ttq._t[e] = +new Date();
-        ttq._o = ttq._o || {};
-        ttq._o[e] = n || {};
-        var s = d.createElement("script");
-        s.type = "text/javascript";
-        s.async = !0;
-        s.src = r + "?sdkid=" + e + "&lib=" + t;
-        var a = d.getElementsByTagName("script")[0];
-        a.parentNode.insertBefore(s, a);
-      };
-      ttq.load(pixelId);
-      ttq.page();
-    })(window, document, "ttq");
-    /* eslint-enable */
+        for (var i = 0; i < ttq.methods.length; i++) ttq.setAndDefer(ttq, ttq.methods[i]);
+        ttq.instance = function (t: any) {
+          for (var e = ttq._i[t] || [], n = 0; n < ttq.methods.length; n++) ttq.setAndDefer(e, ttq.methods[n]);
+          return e;
+        };
+        ttq.load = function (e: any, n: any) {
+          var r = "https://analytics.tiktok.com/i18n/pixel/events.js";
+          var o = n && n.partner;
+          ttq._i = ttq._i || {};
+          ttq._i[e] = [];
+          ttq._i[e]._u = r;
+          ttq._t = ttq._t || {};
+          ttq._t[e] = +new Date();
+          ttq._o = ttq._o || {};
+          ttq._o[e] = n || {};
+          var s = d.createElement("script");
+          s.type = "text/javascript";
+          s.async = !0;
+          s.src = r + "?sdkid=" + e + "&lib=" + t;
+          var a = d.getElementsByTagName("script")[0];
+          a.parentNode.insertBefore(s, a);
+        };
+      })(window, document, "ttq");
+      /* eslint-enable */
+    }
+    if (!(window as any).ttq._i?.[pixelId]) (window as any).ttq.load(pixelId);
 
     // Identify with persisted user for advanced matching
     try {
@@ -89,6 +94,14 @@ const TikTokPixelLoader = () => {
     window.addEventListener("fb-user-updated", onUserUpdated);
     return () => window.removeEventListener("fb-user-updated", onUserUpdated);
   }, [pixelId, enabled]);
+
+  useEffect(() => {
+    if (!enabled || !pixelId || pathname.startsWith("/admin") || pathname === "/reset-password") return;
+    const route = JSON.stringify([pixelId, key, pathname, search]);
+    if (lastPage.current === route) return;
+    lastPage.current = route;
+    fireTikTokEvent("Pageview", { event_id: crypto.randomUUID() });
+  }, [enabled, pixelId, pathname, search, key, fireTikTokEvent]);
 
   return null;
 };

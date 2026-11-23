@@ -15,6 +15,7 @@ import { CartProvider } from "@/contexts/CartContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import CustomCodeInjector from "@/components/CustomCodeInjector";
 import FBPixelLoader from "@/components/FBPixelLoader";
+import TrackingContactLinks from "@/components/TrackingContactLinks";
 import TikTokPixelLoader from "@/components/TikTokPixelLoader";
 import OptionalSpinWheel from "@/components/spin/OptionalSpinWheel";
 import ScrollToTop from "@/components/layout/ScrollToTop";
@@ -89,6 +90,7 @@ const App = () => (
               <CustomCodeInjector />
               <FBPixelLoader />
               <TikTokPixelLoader />
+              <TrackingContactLinks />
               <Toaster />
               <Sonner />
               <Suspense fallback={<PageLoader />}>
