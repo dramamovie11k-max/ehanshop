@@ -4,10 +4,18 @@ import { Query, runQuery } from '../../server/database';
 import { checkout } from '../../server/checkout';
 import { storage } from '../../server/storage';
 import { rpc } from '../../server/rpc';
+import { guardDynamicRequest } from '../../server/requestGuard';
 import { handle as facebook } from '../../server/integrations/fb-conversions-api';
 import { handle as tiktok } from '../../server/integrations/tiktok-events-api';
 import { handle as courier } from '../../server/integrations/send-to-courier';
 import { handle as ratio } from '../../server/integrations/check-courier-ratio';
+
+const integrationHandlers: Record<string, (request: Request, env: Env) => Promise<Response>> = {
+  'fb-conversions-api': facebook,
+  'tiktok-events-api': tiktok,
+  'send-to-courier': courier,
+  'check-courier-ratio': ratio,
+};
 
 const mediaWidths = ['', '384', '960', '1600'];
 function mediaCacheKey(request: Request, path: string[], width = '') {
@@ -34,8 +42,17 @@ export const onRequest: PagesFunction<Env> = async ({request,env,waitUntil}) => 
       if(cacheable&&media.status===200)waitUntil(cache.put(key,media.clone()).catch(()=>{}));
       return media;
     }
+    assert(['media','database','checkout','auth','rpc','functions'].includes(path[0]),'Unknown API route',404);
     if(['database','checkout'].includes(path[0]))assert(path.length===1,'Unknown API route',404);
     if(['auth','rpc','functions'].includes(path[0]))assert(path.length===2,'Unknown API route',404);
+    if (path[0] === 'auth') assert(request.method === (path[1] === 'session' ? 'GET' : 'POST'), 'Method not allowed', 405);
+    else if (path[0] === 'media') assert(['PUT','DELETE'].includes(request.method), 'Method not allowed', 405);
+    else assert(request.method === 'POST', 'Method not allowed', 405);
+    if (path[0] === 'functions' && path[1] !== 'get-client-ip') {
+      assert(Object.prototype.hasOwnProperty.call(integrationHandlers, path[1]), 'Unknown function', 404);
+    }
+    const blocked = guardDynamicRequest(request);
+    if (blocked) return blocked;
     const user=await identify(request,env);
     let response:Response;
     if(path[0]==='media') {
@@ -46,11 +63,8 @@ export const onRequest: PagesFunction<Env> = async ({request,env,waitUntil}) => 
       }
     }
     else if(path[0]==='auth') {
-      assert(path.length===2);
-      assert(request.method===(path[1]==='session'?'GET':'POST'),'Method not allowed',405);
       response=await auth(request,env,path[1],request.method==='POST'?await body(request,admin(user)?1024*1024:64*1024):{},user);
     } else {
-      assert(request.method==='POST','Method not allowed',405);
       const input=await body(request,admin(user)?1024*1024:64*1024);
       if(path[0]==='database') response=json(await runQuery(env,input as unknown as Query,user,request));
       else if(path[0]==='checkout') response=await checkout(env,request,input,user);
@@ -68,9 +82,7 @@ export const onRequest: PagesFunction<Env> = async ({request,env,waitUntil}) => 
             if(!staff(user))delete data.client_ip_address;
             input.user_data=data;
           }
-          const handlers:Record<string,(r:Request,e:Env)=>Promise<Response>>={'fb-conversions-api':facebook,'tiktok-events-api':tiktok,'send-to-courier':courier,'check-courier-ratio':ratio};
-          assert(Object.prototype.hasOwnProperty.call(handlers,name),'Unknown function',404);
-          response=await handlers[name](new Request(request.url,{method:'POST',headers:request.headers,body:JSON.stringify(input)}),env);
+          response=await integrationHandlers[name](new Request(request.url,{method:'POST',headers:request.headers,body:JSON.stringify(input)}),env);
           if(!response.ok)response=json({error:{message:'Integration is unavailable or not configured'}},response.status);
         }
       } else throw new HttpError(404,'Unknown API route');

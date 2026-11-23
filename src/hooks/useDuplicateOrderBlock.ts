@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback } from "react";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { api } from "@/integrations/cloudflare/client";
 
 interface DuplicateBlockSettings {
@@ -16,7 +17,6 @@ interface BlockStatus {
 }
 
 const LOCAL_STORAGE_KEY = "last_order_block";
-const IP_CACHE_KEY = "user_server_ip";
 
 const defaultSettings: DuplicateBlockSettings = {
   enabled: false,
@@ -35,31 +35,6 @@ const normalizePhoneNumber = (phone: string): string => {
     digits = "0" + digits;
   }
   return digits;
-};
-
-// Get user's IP via edge function (server-side detection like PHP REMOTE_ADDR)
-const getUserIP = async (): Promise<string | null> => {
-  try {
-    // Check cache first (valid for 5 minutes)
-    const cached = localStorage.getItem(IP_CACHE_KEY);
-    if (cached) {
-      const { ip, timestamp } = JSON.parse(cached);
-      if (Date.now() - timestamp < 5 * 60 * 1000 && ip) {
-        return ip;
-      }
-    }
-
-    const { data, error } = await api.functions.invoke("get-client-ip");
-    
-    if (!error && data?.ip) {
-      localStorage.setItem(IP_CACHE_KEY, JSON.stringify({ ip: data.ip, timestamp: Date.now() }));
-      return data.ip;
-    }
-  } catch (error) {
-    console.error("Error fetching IP via edge function:", error);
-  }
-
-  return null;
 };
 
 // Save block info to localStorage after successful order (like WooCommerce cookie)
@@ -94,58 +69,16 @@ const checkLocalStorageBlock = (): { isBlocked: boolean; remainingMinutes: numbe
 };
 
 export const useDuplicateOrderBlock = () => {
-  const [settings, setSettings] = useState<DuplicateBlockSettings>(defaultSettings);
-  const [loading, setLoading] = useState(true);
+  const { getSetting, isLoading: loading } = useSiteSettings();
+  const enabled = getSetting("duplicate_block_enabled") === "true";
+  const blockTimeMinutes = parseInt(getSetting("duplicate_block_time"), 10) || defaultSettings.blockTimeMinutes;
+  const message = getSetting("duplicate_block_message", defaultSettings.message);
+  const whatsappNumber = getSetting("duplicate_block_whatsapp", defaultSettings.whatsappNumber);
+  const settings = { enabled, blockTimeMinutes, message, whatsappNumber };
 
-  // Fetch settings from database
-  useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const { data, error } = await api
-          .from("site_settings")
-          .select("setting_key, setting_value")
-          .in("setting_key", [
-            "duplicate_block_enabled",
-            "duplicate_block_time",
-            "duplicate_block_message",
-            "duplicate_block_whatsapp",
-          ]);
-
-        if (!error && data) {
-          const newSettings: DuplicateBlockSettings = { ...defaultSettings };
-          data.forEach((item) => {
-            switch (item.setting_key) {
-              case "duplicate_block_enabled":
-                newSettings.enabled = item.setting_value === "true";
-                break;
-              case "duplicate_block_time":
-                newSettings.blockTimeMinutes = parseInt(item.setting_value || "30") || 30;
-                break;
-              case "duplicate_block_message":
-                newSettings.message = item.setting_value || defaultSettings.message;
-                break;
-              case "duplicate_block_whatsapp":
-                newSettings.whatsappNumber = item.setting_value || "";
-                break;
-            }
-          });
-          setSettings(newSettings);
-        }
-      } catch (error) {
-        console.error("Error fetching duplicate block settings:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchSettings();
-  }, []);
-
-  // Check if blocked by localStorage / phone / IP
-  // Accepts optional pre-fetched IP to avoid duplicate calls
   const checkBlockStatus = useCallback(
-    async (phone: string, preloadedIP?: string | null): Promise<BlockStatus> => {
-      if (loading || !settings.enabled) {
+    async (phone: string): Promise<BlockStatus> => {
+      if (loading || !enabled) {
         return { isBlocked: false, remainingMinutes: 0, message: "", whatsappNumber: "" };
       }
 
@@ -155,8 +88,8 @@ export const useDuplicateOrderBlock = () => {
         return {
           isBlocked: true,
           remainingMinutes: localBlock.remainingMinutes,
-          message: settings.message,
-          whatsappNumber: settings.whatsappNumber,
+          message,
+          whatsappNumber,
         };
       }
 
@@ -169,21 +102,20 @@ export const useDuplicateOrderBlock = () => {
 
       return { isBlocked: false, remainingMinutes: 0, message: "", whatsappNumber: "" };
     },
-    [settings, loading]
+    [enabled, loading, message, whatsappNumber]
   );
 
   // Call after successful order to set localStorage block
   const markOrderPlaced = useCallback(() => {
-    if (settings.enabled) {
-      saveOrderBlock(settings.blockTimeMinutes);
+    if (enabled) {
+      saveOrderBlock(blockTimeMinutes);
     }
-  }, [settings]);
+  }, [enabled, blockTimeMinutes]);
 
   return {
     settings,
     loading,
     checkBlockStatus,
     markOrderPlaced,
-    getUserIP,
   };
 };

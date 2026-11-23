@@ -108,8 +108,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     if (error) {
       console.error("Error loading cart:", error);
     } else if (data) {
-      const ids = data.map(item => item.product_id);
-      const { data: variations = [] } = await api.from("product_variations").select("*").in("product_id", ids);
+      const ids = [...new Set(data.filter(item => item.variation_ids?.length).map(item => item.product_id))];
+      const variations = ids.length
+        ? (await api.from("product_variations").select("*").in("product_id", ids)).data ?? []
+        : [];
       const items: LocalCartItem[] = data.map((item: any) => {
         const selected = (item.variation_ids || []).map((id: string) => variations.find(v => v.id === id)).filter(Boolean);
         return { product: item.products, quantity: item.quantity, variations: selected, variation: selected[0] };

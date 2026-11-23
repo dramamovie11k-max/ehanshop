@@ -81,7 +81,7 @@ const CheckoutSection = ({ page, sectionId = "checkout" }: CheckoutSectionProps)
   );
 
    const { data: variations = [] } = useProductVariations(page.product_id);
-  const { checkBlockStatus, markOrderPlaced, getUserIP } = useDuplicateOrderBlock();
+  const { checkBlockStatus, markOrderPlaced } = useDuplicateOrderBlock();
  
   // Save session ID to localStorage
   useEffect(() => {
@@ -304,10 +304,9 @@ const CheckoutSection = ({ page, sectionId = "checkout" }: CheckoutSectionProps)
     }
 
     // Get IP early for both blocking check and order saving
-    const userIP = await getUserIP();
 
     // Check duplicate order block before submitting
-    const blockStatus = await checkBlockStatus(formData.phone, userIP);
+    const blockStatus = await checkBlockStatus(formData.phone);
     if (blockStatus.isBlocked) {
       setIsBlocked(true);
       setBlockInfo({
@@ -354,7 +353,6 @@ const CheckoutSection = ({ page, sectionId = "checkout" }: CheckoutSectionProps)
           order_source: "sales_page",
           coupon_code: appliedCoupon?.couponCode || null,
           coupon_discount: couponDiscount || 0,
-          customer_ip: userIP || null,
         },
         items: orderItems.map(i => ({
           product_id: i.product_id,
@@ -369,14 +367,6 @@ const CheckoutSection = ({ page, sectionId = "checkout" }: CheckoutSectionProps)
 
       // Delete abandoned cart after successful order
       await deleteAbandonedCart();
-
-      // Mark coupon as used
-      if (appliedCoupon?.couponCode) {
-        await api.rpc("redeem_spin_coupon", {
-          _code: appliedCoupon.couponCode,
-          _order_id: generatedOrderId,
-        });
-      }
 
       // Track Purchase event for Facebook Pixel / GA4
       const eventId = trackPurchase(

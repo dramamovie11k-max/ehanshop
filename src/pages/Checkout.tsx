@@ -100,7 +100,7 @@ const Checkout = () => {
   const navigate = useNavigate();
   const { cartItems, cartTotal, clearCart, updateQuantity, removeFromCart } = useCart();
   const { user } = useAuth();
-  const { checkBlockStatus, markOrderPlaced, getUserIP } = useDuplicateOrderBlock();
+  const { checkBlockStatus, markOrderPlaced } = useDuplicateOrderBlock();
   const { getSetting } = useSiteSettings();
   const { t, language } = useLanguage();
 
@@ -222,30 +222,12 @@ const Checkout = () => {
   };
 
   const [formData, setFormData] = useState(getSavedFormData);
-  const [defaultShipping, setDefaultShipping] = useState({ inside: 60, outside: 120 });
-
-  useEffect(() => {
-    const fetchShippingSettings = async () => {
-      const { data, error } = await api
-        .from("site_settings")
-        .select("setting_key, setting_value")
-        .in("setting_key", ["default_shipping_inside_dhaka", "default_shipping_outside_dhaka"]);
-      
-      if (!error && data) {
-        const settings: { inside: number; outside: number } = { inside: 60, outside: 120 };
-        data.forEach((item) => {
-          if (item.setting_key === "default_shipping_inside_dhaka") {
-            settings.inside = parseInt(item.setting_value || "60");
-          }
-          if (item.setting_key === "default_shipping_outside_dhaka") {
-            settings.outside = parseInt(item.setting_value || "120");
-          }
-        });
-        setDefaultShipping(settings);
-      }
-    };
-    fetchShippingSettings();
-  }, []);
+  const insideShipping = Number(getSetting("default_shipping_inside_dhaka", "60"));
+  const outsideShipping = Number(getSetting("default_shipping_outside_dhaka", "120"));
+  const defaultShipping = {
+    inside: Number.isFinite(insideShipping) && insideShipping >= 0 ? insideShipping : 60,
+    outside: Number.isFinite(outsideShipping) && outsideShipping >= 0 ? outsideShipping : 120,
+  };
 
   const hasAllFreeShipping = cartItems.every(item => item.product.free_shipping === true);
   const isDhaka = formData.city === "ঢাকার ভিতরে";
@@ -263,7 +245,7 @@ const Checkout = () => {
       });
     
     return customShippings.length > 0 ? Math.max(...customShippings) : 0;
-  }, [cartItems, isDhaka, defaultShipping, hasAllFreeShipping]);
+  }, [cartItems, isDhaka, defaultShipping.inside, defaultShipping.outside, hasAllFreeShipping]);
 
   const shippingCost = appliedCoupon?.discountType === "free_shipping" ? 0 : calculateShippingCost();
   const couponDiscount = appliedCoupon?.discountType === "free_shipping" ? 0 : (appliedCoupon?.discountAmount || 0);
@@ -427,9 +409,8 @@ const Checkout = () => {
     }
 
     // Get IP early for both blocking check and order saving
-    const userIP = await getUserIP();
 
-    const duplicateStatus = await checkBlockStatus(formData.phone, userIP);
+    const duplicateStatus = await checkBlockStatus(formData.phone);
     if (duplicateStatus.isBlocked) {
       setBlockStatus(duplicateStatus);
       toast.error(t('checkout.already_ordered'));
@@ -464,7 +445,6 @@ const Checkout = () => {
           order_source: getOrderSource(),
           coupon_code: appliedCoupon?.couponCode || null,
           coupon_discount: couponDiscount || 0,
-          customer_ip: userIP || null,
       };
 
       const orderItems = cartItems.map((item) => ({
@@ -488,14 +468,6 @@ const Checkout = () => {
       markOrderPlaced();
 
       await deleteAbandonedCart();
-
-      // Mark coupon as used
-      if (appliedCoupon?.couponCode) {
-        await api.rpc("redeem_spin_coupon", {
-          _code: appliedCoupon.couponCode,
-          _order_id: generatedOrderId,
-        });
-      }
 
       const eventId = trackPurchase({
         order_id: generatedOrderId,

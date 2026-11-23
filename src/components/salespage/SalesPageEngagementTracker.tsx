@@ -55,16 +55,14 @@ const SalesPageEngagementTracker = ({ page }: Props) => {
 
   // InitiateCheckout when the checkout section comes into view
   useEffect(() => {
-    if (isAdmin) return;
+    if (isAdmin || page?.show_checkout_section === false) return;
     let observer: IntersectionObserver | null = null;
-    let tries = 0;
+    let changes: MutationObserver | null = null;
     let done = false;
     const attach = () => {
       const el = document.getElementById("checkout");
-      if (!el) {
-        if (tries++ < 20) window.setTimeout(attach, 500);
-        return;
-      }
+      if (!el) return;
+      changes?.disconnect();
       observer = new IntersectionObserver(
         (entries) => {
           if (done || !entries.some((e) => e.isIntersecting)) return;
@@ -88,8 +86,15 @@ const SalesPageEngagementTracker = ({ page }: Props) => {
       observer.observe(el);
     };
     attach();
-    return () => observer?.disconnect();
-  }, [title, isAdmin, trackInitiateCheckout]);
+    if (!observer) {
+      changes = new MutationObserver(attach);
+      changes.observe(document.getElementById("root") ?? document.body, { childList: true, subtree: true });
+    }
+    return () => {
+      observer?.disconnect();
+      changes?.disconnect();
+    };
+  }, [page?.id, page?.show_checkout_section, title, isAdmin, trackInitiateCheckout]);
 
   return null;
 };
