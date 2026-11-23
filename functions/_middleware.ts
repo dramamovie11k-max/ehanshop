@@ -9,11 +9,11 @@ export const onRequest: PagesFunction<Env> = async context => {
   if (context.request.method !== 'GET' || !response.headers.get('content-type')?.includes('text/html')) return response;
   try {
     const isHome = new URL(context.request.url).pathname === '/';
-    const bannerSettings = isHome ? ",'site_mode','home_banner_config','home_banner_image'" : '';
+    const bannerSettings = isHome ? ",'home_banner_config','home_banner_image'" : '';
     const { results } = await context.env.DB.prepare(`SELECT setting_key, setting_value FROM site_settings WHERE setting_key IN ('site_name','site_logo_url','header_customization','og_title','og_description'${bannerSettings})`).all<{ setting_key: string; setting_value: string }>();
     const settings = Object.fromEntries(results.map(row => [row.setting_key, row.setting_value || '']));
     const meta = socialMetadata(settings, context.request.url);
-    const banner = isHome && settings.site_mode === 'website'
+    const banner = isHome
       ? parseHomeBannerConfig(settings.home_banner_config, settings.home_banner_image).images[0]
       : undefined;
     const bannerSources = banner ? imageSrcSet(banner) : undefined;

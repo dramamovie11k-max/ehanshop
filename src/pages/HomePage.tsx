@@ -14,7 +14,7 @@ export default function HomePage() {
   if (isLoading) return <LoadingHome />;
   const mode = getSiteMode(getSetting('site_mode'));
   const [banner] = parseHomeBannerConfig(getSetting('home_banner_config'), getSetting('home_banner_image')).images;
-  const bannerSources = banner && mode === 'website'
+  const bannerSources = banner
     ? imageSrcSet(banner)
     : undefined;
   const preloadedSources = document.querySelector('[data-home-banner-preload]')?.getAttribute('imagesrcset');
