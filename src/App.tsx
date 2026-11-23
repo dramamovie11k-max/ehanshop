@@ -1,3 +1,4 @@
+import { preloadSalesPageTemplate } from "@/lib/salesPageTemplate";
 import { useSalesPage } from "@/hooks/useSalesPages";
 import { useProduct } from "@/hooks/useProducts";
 import { imageSrcSet, imageVariant, organicSalesHeroSizes } from "@/lib/responsiveImage";
@@ -20,7 +21,7 @@ import OptionalSpinWheel from "@/components/spin/OptionalSpinWheel";
 import ScrollToTop from "@/components/layout/ScrollToTop";
 import OrderSourceCapture from "@/components/OrderSourceCapture";
 import DynamicTitle from "@/components/DynamicTitle";
-import { lazy as reactLazy, Suspense, type ComponentType } from "react";
+import { lazy as reactLazy, Suspense, useEffect, type ComponentType } from "react";
 
 // After a new version is published, old page files disappear. If loading one fails,
 // reload once so the browser picks up the latest version instead of a blank screen.
@@ -89,6 +90,10 @@ function SalesPageRoute() {
   const { slug } = useParams();
   const query = useSalesPage(slug ?? "");
   const page = query.data;
+  const templateId = page?.template_id;
+  useEffect(() => {
+    if (templateId) void preloadSalesPageTemplate(templateId).catch(() => {});
+  }, [templateId]);
   const isOrganic = page?.template_id === "template-01-organic" || page?.template_id === "nature-fresh";
   const heroImage = isOrganic && page.show_hero_section && !page.template_styles?.hero?.design
     ? page.hero_images?.[0]
