@@ -104,7 +104,7 @@ const Template14VideoOrganic = ({ page }: Template14Props) => {
           <div key="checkout" ref={checkoutRef} id="checkout" className="px-3 md:px-4">
             <div className="max-w-[650px] mx-auto">
               <div className="rounded-t-[15px] overflow-hidden">
-                <CheckoutSection page={page} />
+                <CheckoutSection page={page} sectionId={null} />
               </div>
             </div>
           </div>

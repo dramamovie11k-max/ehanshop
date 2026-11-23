@@ -218,7 +218,7 @@ const Template15Universal = ({ page }: Template15Props) => {
           <div key="checkout" ref={checkoutRef} id="checkout">
             <div className="mx-auto" style={{ maxWidth: `${s.global.maxWidth}px` }}>
               <div style={{ borderRadius: `${s.checkout.borderRadius}px`, overflow: 'hidden' }}>
-                <CheckoutSection page={page} />
+                <CheckoutSection page={page} sectionId={null} />
               </div>
             </div>
           </div>

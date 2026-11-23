@@ -730,7 +730,7 @@ const Template13NaturalCard = ({ page }: TemplateProps) => {
       case 'extra3': return isExtraDesign(page.template_styles?.extra3?.design) ? <ExtraSection key="extra3" page={page} number={3} /> : renderExtraSection(3);
       case 'checkout':
         if (!page.show_checkout_section) return null;
-        return <div key="checkout" id="checkout" style={{ background: c.bg }}><CheckoutSection page={page} /></div>;
+        return <div key="checkout" id="checkout" style={{ background: c.bg }}><CheckoutSection page={page} sectionId={null} /></div>;
       default: return null;
     }
   };
