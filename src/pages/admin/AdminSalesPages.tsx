@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { getSiteMode, salesHomepageSetting } from "@/lib/siteMode";
 import AdminLayout from "@/components/admin/AdminLayout";
@@ -14,7 +13,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, ExternalLink, Copy, Eye, Palette } from "lucide-react";
+import { Plus, Pencil, Trash2, ExternalLink, Copy, Eye, Check } from "lucide-react";
 import { SalesPage } from "@/types/salesPage";
 import SimplifiedSalesPageEditor from "@/components/admin/SimplifiedSalesPageEditor";
 import { toast } from "sonner";
@@ -58,7 +57,7 @@ const AdminSalesPages = () => {
     <AdminLayout title="Sales Pages">
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <div><p className="text-muted-foreground">Manage your sales/landing pages</p><Link to="/admin/settings" className="text-sm text-primary underline">হোমপেজের মোড বদলাতে সাইট সেটিংসে যান</Link></div>
+          <p className="text-muted-foreground">Manage your sales/landing pages</p>
           <Button onClick={handleCreate}><Plus className="h-4 w-4 mr-2" />New Sales Page</Button>
         </div>
 
@@ -82,13 +81,13 @@ const AdminSalesPages = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[90px]">হোমপেজ</TableHead>
                   <TableHead>Title</TableHead>
                   <TableHead>Slug</TableHead>
                   <TableHead>Template</TableHead>
                   <TableHead>Product</TableHead>
                   <TableHead>Price</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>হোমপেজ</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -98,8 +97,26 @@ const AdminSalesPages = () => {
                 ) : salesPages && salesPages.length > 0 ? (
                   salesPages.map((page) => {
                     const template = getTemplate(page.template_id || 'elegant-dark');
+                    const isHomepage = page.is_active && page.id === homepageId;
+                    const homepageAction = isHomepage ? "হোমপেজ নির্বাচন সরান" : "হোমপেজ হিসেবে বেছে নিন";
                     return (
-                    <TableRow key={page.id}>
+                    <TableRow key={page.id} data-state={isHomepage ? "selected" : undefined}>
+                      <TableCell>
+                        <button
+                          type="button"
+                          aria-pressed={isHomepage}
+                          aria-label={`${page.title}: ${homepageAction}`}
+                          title={homepageAction}
+                          disabled={!page.is_active || settingsLoading || isUpdating}
+                          onClick={() => void setHomepage(isHomepage ? "" : page.id)}
+                          className="inline-flex min-h-8 min-w-8 items-center gap-2 whitespace-nowrap rounded text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <span aria-hidden="true" className={`grid size-4 shrink-0 place-items-center rounded-full border border-primary ${isHomepage ? "bg-primary text-primary-foreground" : ""}`}>
+                            {isHomepage && <Check className="size-3" />}
+                          </span>
+                          {isHomepage && <span className="text-xs">হোমপেজ</span>}
+                        </button>
+                      </TableCell>
                       <TableCell className="font-medium">{page.title}</TableCell>
                       <TableCell><code className="text-xs bg-muted px-2 py-1 rounded">/lp/{page.slug}</code></TableCell>
                       <TableCell>
@@ -120,18 +137,6 @@ const AdminSalesPages = () => {
                         <Badge variant={page.is_active ? "default" : "secondary"}>
                           {page.is_active ? "Active" : "Inactive"}
                         </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {page.is_active && page.id === homepageId ? (
-                          <div className="flex flex-wrap items-center gap-1">
-                            <Badge>বর্তমান হোমপেজ</Badge>
-                            <Button variant="ghost" size="sm" onClick={() => void setHomepage("")} disabled={isUpdating}>সরান</Button>
-                          </div>
-                        ) : (
-                          <Button variant="outline" size="sm" onClick={() => void setHomepage(page.id)} disabled={!page.is_active || settingsLoading || isUpdating}>
-                            হোমপেজ করুন
-                          </Button>
-                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
