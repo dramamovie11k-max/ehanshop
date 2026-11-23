@@ -12,16 +12,12 @@ const LoadingHome = () => <div role="status" aria-label="হোমপেজ ল�
 export default function HomePage() {
   const { getSetting, isLoading } = useSiteSettings();
   if (isLoading) return <LoadingHome />;
-  const mode = getSiteMode(getSetting('site_mode'));
   const [banner] = parseHomeBannerConfig(getSetting('home_banner_config'), getSetting('home_banner_image')).images;
-  const bannerSources = banner
-    ? imageSrcSet(banner)
-    : undefined;
-  const preloadedSources = document.querySelector('[data-home-banner-preload]')?.getAttribute('imagesrcset');
+  const bannerSources = banner ? imageSrcSet(banner) : undefined;
   return <>
-    {bannerSources && bannerSources !== preloadedSources && <link rel="preload" as="image" imageSrcSet={bannerSources} imageSizes="100vw" />}
+    {bannerSources && <link rel="preload" as="image" imageSrcSet={bannerSources} imageSizes="100vw" />}
     <Suspense fallback={<LoadingHome />}>
-      {mode === 'website' ? <WebsiteHome /> : <LandingHome />}
+      {getSiteMode(getSetting('site_mode')) === 'website' ? <WebsiteHome /> : <LandingHome />}
     </Suspense>
   </>;
 }
